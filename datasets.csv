@@ -1,0 +1,4 @@
+lang,set_name,sampling_rate
+EN,NAMED_MediaSum_CNN-1,25.0
+EN,NAMED_MediaSum_NPR,25.0
+FR,CFPP,50.0
