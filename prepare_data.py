@@ -44,7 +44,7 @@ def prepare_fn(
         set_name = row["lang"] + "-" + row["set_name"]
         file_name = "full.txt"
 
-        filepath = source_path / set_name / file_name
+        filepath = source_path / row["lang"] / row["set_name"] / file_name
 
         if not filepath.is_file():
             raise RuntimeError(
@@ -62,7 +62,7 @@ def prepare_fn(
 
         print(f"Processing {set_name}")
 
-        dataset = load_dataset("text", data_files={"train": filepath}, sample_by="paragraph", streaming=True)
+        dataset = load_dataset("text", data_files={"train": str(filepath)}, sample_by="paragraph", streaming=True)
         updated_dataset = dataset.map(augment_fn)
         for sample in tqdm(updated_dataset["train"]):
             text = sample["text"]
