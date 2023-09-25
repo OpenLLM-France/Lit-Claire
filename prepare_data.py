@@ -1,6 +1,6 @@
 import re
 import csv
-# import sys
+import sys
 import random
 from pathlib import Path
 
@@ -10,11 +10,13 @@ from tqdm import tqdm
 from datasets import load_dataset
 
 # support running without installing as a package
-# wd = Path(__file__).parent.parent.resolve()
-# sys.path.append(str(wd))
+wd = Path(__file__).parent.resolve()
+sys.path.append(str(wd / "lit_gpt"))
 
 import lit_gpt.lit_gpt.packed_dataset as packed_dataset
-from lit_gpt.lit_gpt import Config, Tokenizer
+from lit_gpt.lit_gpt.config import Config
+from lit_gpt.lit_gpt.tokenizer import Tokenizer
+
 
 datasets_csv = csv.DictReader(open("datasets.csv"))
 
@@ -66,13 +68,6 @@ def prepare_fn(
             text = sample["text"]
             text_ids = tokenizer.encode(text)
             builder.add_array(np.array(text_ids, dtype=builder.dtype))
-
-            # print text before and after augmentation
-            print("BEFORE")
-            print(next(iter(dataset['train'].take(1)))['text'])
-            print("AFTER")
-            print(text)
-            print(len(text_ids))
 
         builder.write_reminder()
 
