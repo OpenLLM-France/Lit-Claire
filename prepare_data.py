@@ -39,6 +39,7 @@ def prepare_fn(
     max_length: int = None,
     bos=None,
     eos=None,
+    padding=True,
 ) -> None:
     """Prepare the dataset using the tokenizer."""
     destination_path.mkdir(parents=True, exist_ok=True)
@@ -64,6 +65,11 @@ def prepare_fn(
                 f"Input file not found at {filepath}."
             )
 
+        print(f"Processing {set_name}")
+
+        dataset_hf = load_dataset("text", data_files={"train": str(filepath)}, sample_by="paragraph", streaming=True)
+        dataset_hf = dataset_hf.map(augment_fn)
+
         builder = packed_dataset.PackedDatasetBuilder(
             outdir=destination_path,
             prefix=set_name,
@@ -73,29 +79,48 @@ def prepare_fn(
             vocab_size=tokenizer.vocab_size,
         )
 
-        print(f"Processing {set_name}")
-
-        dataset = load_dataset("text", data_files={"train": str(filepath)}, sample_by="paragraph", streaming=True)
-        updated_dataset = dataset.map(augment_fn)
-        for sample in tqdm(updated_dataset["train"]):
+        num_cuts = 0
+        num_total = 0
+        min_len = 1e10
+        max_len = 0
+        for sample in tqdm(dataset_hf["train"]):
             text = sample["text"]
             text_ids = tokenizer.encode(text, bos=bos, eos=eos)
             if max_length and len(text_ids) > max_length:
                 # Cut in several chunks
                 for i in range(0, len(text_ids), max_length):
-                    builder.add_array(np.array(text_ids[i:i+max_length], dtype=builder.dtype))
+                    a =np.array(text_ids[i:i+max_length], dtype=builder.dtype)
+                    if len(a) <= 10:
+                        # Leave too short tails
+                        continue
+                    if padding and len(a) < max_length:
+                        a = np.pad(a, (0, max_length - len(a)), mode="constant", constant_values=tokenizer.eos_id)
+                    min_len = min(min_len, len(a))
+                    max_len = max(max_len, len(a))
+                    builder.add_array(a)
+                num_cuts += 1
             else:
-                builder.add_array(np.array(text_ids, dtype=builder.dtype))
+                a = np.array(text_ids, dtype=builder.dtype)
+                if padding and len(a) < max_length:
+                    a = np.pad(a, (0, max_length - len(a)), mode="constant", constant_values=tokenizer.eos_id)
+                min_len = min(min_len, len(a))
+                max_len = max(max_len, len(a))
+                builder.add_array(a)
+            num_total+= 1
 
         builder.write_reminder()
+
+        print(f"* {num_cuts}/{num_total} text cutted in several chunks")
+        print(f"* min-max length: {min_len} - {max_len}")
 
 
 def prepare(
     source_path: Path = Path("data/source_data_folder"),
     checkpoint_dir: Path = Path("checkpoints/tiiuae/falcon-7b"),
     destination_path: Path = Path("data/prepared_data_folder"),
+    padding: bool = True,
 ) -> None:
-    """Prepare the "Red Pajama" dataset. We assume tokenizer has been trained."""
+    """Prepare the "Claire" dataset. We assume tokenizer has been trained."""
     config = Config.from_json(checkpoint_dir / "lit_config.json")
 
     max_length = None
@@ -110,6 +135,7 @@ def prepare(
         destination_path=destination_path,
         chunk_size=(config.block_size + 1) * 1024,  # block size + 1 for causal, 1024 blocks
         max_length=max_length,
+        padding=padding,
     )
 
 
