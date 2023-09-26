@@ -11,11 +11,11 @@ from datasets import load_dataset
 
 # support running without installing as a package
 wd = Path(__file__).parent.resolve()
-sys.path.append(str(wd / "lit_gpt"))
+sys.path = [str(wd / "lit_gpt")] + sys.path # Prepend to PYTHONPATH
 
-import lit_gpt.lit_gpt.packed_dataset as packed_dataset
-from lit_gpt.lit_gpt.config import Config
-from lit_gpt.lit_gpt.tokenizer import Tokenizer
+import lit_gpt.packed_dataset as packed_dataset
+from lit_gpt.config import Config
+from lit_gpt.tokenizer import Tokenizer
 
 
 WEIGHTS_CSV = csv.DictReader(open(wd / "data" / "claire_weights.csv"))

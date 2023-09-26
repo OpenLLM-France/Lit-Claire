@@ -3,8 +3,6 @@
 # download code
 ```
 git clone --recurse-submodules https://github.com/OpenLLM-France/Claire
-cd Claire/
-rm lit_gpt/lit_gpt/__init__.py
 ```
 
 # create environment
