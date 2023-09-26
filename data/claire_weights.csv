@@ -1,4 +1,4 @@
-lang,set_name,sampling_rate
-FR,UBS,25.0
-FR,ParisStories,25.0
-EN,ASR-ETELECSC,50.0
+dataset,language,sampling_rate
+FR/UBS,fr,25.0
+FR/ParisStories,fr,25.0
+EN/ASR-ETELECSC,en,50.0

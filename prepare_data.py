@@ -4,6 +4,8 @@ import sys
 import random
 import json
 from pathlib import Path
+import re
+import os
 
 import numpy as np
 from tqdm import tqdm
@@ -18,20 +20,37 @@ import lit_gpt.packed_dataset as packed_dataset
 from lit_gpt.config import Config
 from lit_gpt.tokenizer import Tokenizer
 
+from utils import get_metadata
 
-WEIGHTS_CSV = csv.DictReader(open(wd / "data" / "claire_weights.csv"))
+##############################
+# Text normalization functions
 
-def augment_fn(sample):
-    # speaker anonymization and randomization
-    speakers = set(re.findall(r"\[.+:\]", sample["text"]))
-    anonymized_randomized_speakers = ["[speaker" + f"{i+1:03}" + ":]" for i in range(len(speakers))]
-    random.shuffle(anonymized_randomized_speakers)
+def collapse_whitespaces(text):
+    return re.sub(r" +", " ", text).strip()
 
-    for s, a_r_s in zip(speakers, anonymized_randomized_speakers):
-        sample["text"] = sample["text"].replace(s, a_r_s)
+def remove_special_words(text):
+    # Remove all [*] except the one at the beginning and after linebreaks
+    text = re.sub(r"([^\n])\[[^\]]*\]", r"\1", text)
+    return collapse_whitespaces(text)
     
-    return sample
+def remove_punctuations(text):
+    text = re.sub(r"[,\.!?…]", "", text)
+    return collapse_whitespaces(text)
 
+def to_lower_case(text):
+    return text.lower()
+
+def anonymize_speakers(text):
+    # Get all speakers
+    speakers = [] 
+    [speakers.append(x) for x in re.findall(r"\[([^\]]+):\]", text) if x not in speakers] 
+    new_speakers = [f"speaker{i+1:03d}" for i in range(len(speakers))]
+    for spk, nspk in zip(speakers, new_speakers):
+        text = text.replace(f"[{spk}:", f"[{nspk}:")
+    return text
+
+###############
+# Main function
 
 def prepare_fn(
     source_path: Path, checkpoint_dir: Path, destination_path: Path,
@@ -40,8 +59,10 @@ def prepare_fn(
     bos=None,
     eos=None,
     padding=True,
+    filename_regex="full.txt",
 ) -> None:
     """Prepare the dataset using the tokenizer."""
+    destination_path = destination_path.resolve()
     destination_path.mkdir(parents=True, exist_ok=True)
 
     tokenizer = Tokenizer(checkpoint_dir)
@@ -54,21 +75,24 @@ def prepare_fn(
 
     print(f"Using: {bos=}, {eos=}, {max_length=}")
 
-    for row in WEIGHTS_CSV:
-        set_name = row["lang"] + "-" + row["set_name"]
-        file_name = "full.txt"
+    all_files = {}
+    for root, dirs, files in os.walk(source_path, followlinks=True):
+        root = os.path.realpath(root)
+        for file in files:
+            if re.match(filename_regex + r"$", file):
+                filepath = os.path.join(root, file)
+                set_name = get_metadata(filepath)["dataset"].replace("/", "--")
+                all_files[filepath] = set_name
 
-        filepath = source_path / row["lang"] / row["set_name"] / file_name
+    if len(all_files) == 0:
+        raise RuntimeError(
+            f"No input files found at {source_path}."
+        )
 
-        if not filepath.is_file():
-            raise RuntimeError(
-                f"Input file not found at {filepath}."
-            )
+    for filepath, set_name in all_files.items():
+        print(f"Processing {filepath} -> {destination_path}/{set_name}*")
 
-        print(f"Processing {set_name}")
-
-        dataset_hf = load_dataset("text", data_files={"train": str(filepath)}, sample_by="paragraph", streaming=True)
-        dataset_hf = dataset_hf.map(augment_fn)
+        dataset_hf = load_dataset("text", data_files={"train": filepath}, sample_by="paragraph", streaming=True)
 
         builder = packed_dataset.PackedDatasetBuilder(
             outdir=destination_path,
@@ -85,6 +109,11 @@ def prepare_fn(
         max_len = 0
         for sample in tqdm(dataset_hf["train"]):
             text = sample["text"]
+
+            # Text normalization
+            text = remove_special_words(text)
+
+
             text_ids = tokenizer.encode(text, bos=bos, eos=eos)
             if max_length and len(text_ids) > max_length:
                 # Cut in several chunks
