@@ -49,6 +49,38 @@ def anonymize_speakers(text):
         text = text.replace(f"[{spk}:", f"[{nspk}:")
     return text
 
+def has_upper_case(text):
+    return bool(re.search(r"[A-Z]", text))
+
+def has_speaker_id(text):
+    return bool(re.search(r"\[[^spkeaker\d]+:\]", text))
+
+def has_punctuation(text):
+    return bool(re.search(r"[,\.!?…]", text))
+
+def augmented_texts_generator(text):
+    text = remove_special_words(text)
+    yield text
+    _upper = has_upper_case(text)
+    _speaker = has_speaker_id(text)
+    _punct = has_punctuation(text)
+    if _speaker:
+        text_anonym = anonymize_speakers(text)
+        yield text_anonym
+    if _upper:
+        yield to_lower_case(text)
+        if _speaker:
+            yield to_lower_case(text_anonym)
+    if _punct:
+        text_no_punct = remove_punctuations(text)
+        yield text_no_punct
+        if _upper:
+            yield to_lower_case(text_no_punct)
+            if _speaker:
+                yield remove_punctuations(to_lower_case(text_anonym))
+        if _speaker:
+            yield remove_punctuations(text_anonym)
+
 ###############
 # Main function
 
@@ -113,29 +145,37 @@ def prepare_fn(
             # Text normalization
             text = remove_special_words(text)
 
+            # Augmentation
+            for ivariant, text_variant in enumerate(augmented_texts_generator(text)):
 
-            text_ids = tokenizer.encode(text, bos=bos, eos=eos)
-            if max_length and len(text_ids) > max_length:
-                # Cut in several chunks
-                for i in range(0, len(text_ids), max_length):
-                    a =np.array(text_ids[i:i+max_length], dtype=builder.dtype)
-                    if len(a) <= 10:
-                        # Leave too short tails
-                        continue
+                # # Uncomment for debugging of text augmentation
+                # if ivariant > 0:
+                #     if ivariant == 1:
+                #         print(text.replace("\n", " ")[:100])
+                #     print(text_variant.replace("\n", " ")[:100])
+
+                text_ids = tokenizer.encode(text_variant, bos=bos, eos=eos)
+                if max_length and len(text_ids) > max_length:
+                    # Cut in several chunks
+                    for i in range(0, len(text_ids), max_length):
+                        a =np.array(text_ids[i:i+max_length], dtype=builder.dtype)
+                        if len(a) <= 10:
+                            # Leave too short tails
+                            continue
+                        if padding and len(a) < max_length:
+                            a = np.pad(a, (0, max_length - len(a)), mode="constant", constant_values=tokenizer.eos_id)
+                        min_len = min(min_len, len(a))
+                        max_len = max(max_len, len(a))
+                        builder.add_array(a)
+                    num_cuts += 1
+                else:
+                    a = np.array(text_ids, dtype=builder.dtype)
                     if padding and len(a) < max_length:
                         a = np.pad(a, (0, max_length - len(a)), mode="constant", constant_values=tokenizer.eos_id)
                     min_len = min(min_len, len(a))
                     max_len = max(max_len, len(a))
                     builder.add_array(a)
-                num_cuts += 1
-            else:
-                a = np.array(text_ids, dtype=builder.dtype)
-                if padding and len(a) < max_length:
-                    a = np.pad(a, (0, max_length - len(a)), mode="constant", constant_values=tokenizer.eos_id)
-                min_len = min(min_len, len(a))
-                max_len = max(max_len, len(a))
-                builder.add_array(a)
-            num_total+= 1
+                num_total+= 1
 
         builder.write_reminder()
 
