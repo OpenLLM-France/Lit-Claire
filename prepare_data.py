@@ -18,7 +18,7 @@ from lit_gpt.lit_gpt.config import Config
 from lit_gpt.lit_gpt.tokenizer import Tokenizer
 
 
-datasets_csv = csv.DictReader(open("datasets.csv"))
+WEIGHTS_CSV = csv.DictReader(open(wd / "data" / "claire_weights.csv"))
 
 def augment_fn(sample):
     # speaker anonymization and randomization
@@ -40,7 +40,7 @@ def prepare_fn(
 
     tokenizer = Tokenizer(checkpoint_dir)
 
-    for row in datasets_csv:
+    for row in WEIGHTS_CSV:
         set_name = row["lang"] + "-" + row["set_name"]
         file_name = "full.txt"
 
