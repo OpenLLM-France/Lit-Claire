@@ -3,6 +3,7 @@
 # download code
 ```
 git clone --recurse-submodules https://github.com/OpenLLM-France/Claire
+cd Claire/
 rm lit_gpt/lit_gpt/__init__.py
 ```
 
@@ -14,7 +15,7 @@ module load anaconda-py3/2023.03
 ```
 
 ```
-conda create -y -n claire python=3.8
+conda create -y -n claire python=3.10
 conda activate claire
 pip install --user --no-cache-dir --index-url https://download.pytorch.org/whl/nightly/cu118 --pre 'torch>=2.1.0dev'
 pip install --user --no-cache-dir -r requirements.txt
@@ -28,7 +29,9 @@ python lit_gpt/scripts/convert_hf_checkpoint.py --checkpoint_dir checkpoints/tii
 
 # prepare data
 ```
-python prepare_data.py --source_path $WORK/../commun/Corpus_text/MULTILANG/OpenLLM --destination_path $SCRATCH/../commun/data/OpenLLM
-
+python prepare_data.py \
+    --source_path       $WORK/../commun/Corpus_text/MULTILANG/OpenLLM \
+    --checkpoint_dir    $WORK/../commun/Claire/checkpoints/tiiuae/falcon-7b \
+    --destination_path  $SCRATCH/../commun/preprocessed_data/Claire/falcon-7b
 ```
 
