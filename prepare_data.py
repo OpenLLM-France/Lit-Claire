@@ -37,11 +37,21 @@ def prepare_fn(
     source_path: Path, checkpoint_dir: Path, destination_path: Path,
     chunk_size: int,
     max_length: int = None,
+    bos=None,
+    eos=None,
 ) -> None:
     """Prepare the dataset using the tokenizer."""
     destination_path.mkdir(parents=True, exist_ok=True)
 
     tokenizer = Tokenizer(checkpoint_dir)
+
+    if bos is None:
+        bos = tokenizer.use_bos
+        assert bos == tokenizer.check_if_bos_token_used(checkpoint_dir)
+    if eos is None:
+        eos = bool(tokenizer.eos_id)
+
+    print(f"Using: {bos=}, {eos=}, {max_length=}")
 
     for row in WEIGHTS_CSV:
         set_name = row["lang"] + "-" + row["set_name"]
@@ -69,7 +79,7 @@ def prepare_fn(
         updated_dataset = dataset.map(augment_fn)
         for sample in tqdm(updated_dataset["train"]):
             text = sample["text"]
-            text_ids = tokenizer.encode(text, bos=True, eos=True)
+            text_ids = tokenizer.encode(text, bos=bos, eos=eos)
             if max_length and len(text_ids) > max_length:
                 # Cut in several chunks
                 for i in range(0, len(text_ids), max_length):
