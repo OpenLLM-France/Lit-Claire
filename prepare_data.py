@@ -2,6 +2,7 @@ import re
 import csv
 import sys
 import random
+import json
 from pathlib import Path
 
 import numpy as np
@@ -33,7 +34,9 @@ def augment_fn(sample):
 
 
 def prepare_fn(
-    source_path: Path, checkpoint_dir: Path, destination_path: Path, chunk_size: int
+    source_path: Path, checkpoint_dir: Path, destination_path: Path,
+    chunk_size: int,
+    max_length: int = None,
 ) -> None:
     """Prepare the dataset using the tokenizer."""
     destination_path.mkdir(parents=True, exist_ok=True)
@@ -66,8 +69,13 @@ def prepare_fn(
         updated_dataset = dataset.map(augment_fn)
         for sample in tqdm(updated_dataset["train"]):
             text = sample["text"]
-            text_ids = tokenizer.encode(text)
-            builder.add_array(np.array(text_ids, dtype=builder.dtype))
+            text_ids = tokenizer.encode(text, bos=True, eos=True)
+            if max_length and len(text_ids) > max_length:
+                # Cut in several chunks
+                for i in range(0, len(text_ids), max_length):
+                    builder.add_array(np.array(text_ids[i:i+max_length], dtype=builder.dtype))
+            else:
+                builder.add_array(np.array(text_ids, dtype=builder.dtype))
 
         builder.write_reminder()
 
@@ -76,16 +84,22 @@ def prepare(
     source_path: Path = Path("data/source_data_folder"),
     checkpoint_dir: Path = Path("checkpoints/tiiuae/falcon-7b"),
     destination_path: Path = Path("data/prepared_data_folder"),
-    sample: bool = True,
 ) -> None:
     """Prepare the "Red Pajama" dataset. We assume tokenizer has been trained."""
     config = Config.from_json(checkpoint_dir / "lit_config.json")
+
+    max_length = None
+    tokenizer_config_file = checkpoint_dir / "tokenizer_config.json"
+    if tokenizer_config_file.is_file():
+        tokenizer_config = json.load(open(tokenizer_config_file))
+        max_length = tokenizer_config["model_max_length"]
 
     prepare_fn(
         source_path=source_path,
         checkpoint_dir=checkpoint_dir,
         destination_path=destination_path,
         chunk_size=(config.block_size + 1) * 1024,  # block size + 1 for causal, 1024 blocks
+        max_length=max_length,
     )
 
 
