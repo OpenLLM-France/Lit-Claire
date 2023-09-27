@@ -31,7 +31,25 @@ if os.path.isfile(metadata_filename_extra):
         for row in metadata_rows:
             METADATA_DICT[row["dataset"]].update(format_dict_values(row))
 
-# TODO: Add sampling weights
+# Add sampling weights
+def get_scaled_num_samples(metadata):
+    # num_samples = metadata.get("segments_augmented_2048", 0)
+    num_samples = metadata["words"]
+    # augmentation_factor = metadata.get("segments_augmented_2048", 1) / metadata.get("segments_2048", 1)
+    # num_samples *= augmentation_factor
+    if not metadata["spontaneous"]:
+        num_samples /= 5
+    return num_samples
+scale_per_languages = {
+    "fr": 0.25,
+    "en": 0.75,
+}
+num_samples_per_language = {}
+for dataset, metadata in METADATA_DICT.items():
+    num_samples_per_language[metadata["language"]] = num_samples_per_language.get(metadata["language"], 0) + get_scaled_num_samples(metadata)
+num_languages = len(num_samples_per_language)
+for dataset, metadata in METADATA_DICT.items():
+    metadata["sampling_rate"] = 100. * get_scaled_num_samples(metadata) * scale_per_languages[metadata["language"]] / (num_samples_per_language[metadata["language"]])
 
 def get_metadata(path):
     """Get metadata from a path."""
@@ -52,5 +70,13 @@ def get_metadata(path):
 
 
 if __name__ == "__main__":    
+
     import json
     print(json.dumps(METADATA_DICT,indent=4))
+    sum_per_language = {}
+
+    print(f"{'dataset':40} {'weights':8} {'segments(A)':10} {'segments':10} {'convs':10} {'M words':7}")
+    for k, v in METADATA_DICT.items():
+        print(f"{k:40} {v['sampling_rate']:8.2f} {v.get('segments_augmented_2048',0):10d} {v.get('segments_2048',0):10d} {v['conversations']:10d} {v['words']/1000000:7.1f}")
+        sum_per_language[v["language"]] = sum_per_language.get(v["language"], 0) + v["sampling_rate"]
+    print(sum_per_language)
