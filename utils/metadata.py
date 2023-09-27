@@ -7,12 +7,20 @@ wd = os.path.dirname(os.path.realpath(__file__))
 metadata_filename = os.path.join(os.path.dirname(wd), "data", "claire_metadata.csv")
 assert os.path.isfile(metadata_filename), f"Metadata file {metadata_filename} not found."
 
+metadata_filename_extra = os.path.join(os.path.dirname(wd), "data", "claire_metadata_extra.csv")
+
 # Read CSV
 METADATA_DICT = {}
 with open(metadata_filename, "r") as csvfile:
     metadata_rows = csv.DictReader(csvfile)
     for row in metadata_rows:
         METADATA_DICT[row["dataset"]] = row
+
+if os.path.isfile(metadata_filename_extra):
+    with open(metadata_filename_extra, "r") as csvfile:
+        metadata_rows = csv.DictReader(csvfile)
+        for row in metadata_rows:
+            METADATA_DICT[row["dataset"]].update(row)
 
 # TODO: Add sampling weights
 

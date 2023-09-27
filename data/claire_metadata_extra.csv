@@ -1,0 +1,5 @@
+dataset,segments_2048,conversations_augmented,segments_augmented_2048
+EN/ASR-ETELECSC,42,26,84
+FR/NAMED_FreD,383,342,1105
+FR/UBS,41,82,82
+FR/ParisStories,21,42,42

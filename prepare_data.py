@@ -20,7 +20,7 @@ import lit_gpt.packed_dataset as packed_dataset
 from lit_gpt.config import Config
 from lit_gpt.tokenizer import Tokenizer
 
-from utils.metadata import get_metadata, metadata_filename
+from utils.metadata import get_metadata, metadata_filename_extra
 from utils.text import augmented_texts_generator
 
 
@@ -54,7 +54,10 @@ def prepare_fn(
     if not max_length:
         update_metadata = False
     if update_metadata:
-        metadata = list(csv.DictReader(open(metadata_filename)))
+        if os.path.isfile(metadata_filename_extra):
+            metadata = list(csv.DictReader(open(metadata_filename_extra)))
+        else:
+            metadata = []
         metadata_dict = {row["dataset"]: row for row in metadata}
         key_convs_augmented = f"conversations_augmented"
         key_segments_augmented = f"segments_augmented_{max_length}"
@@ -75,7 +78,7 @@ def prepare_fn(
             f"No input files found at {source_path}."
         )
 
-    for filepath, metadata in tqdm(all_files.items(), unit="dataset"):
+    for filepath, metadata in all_files.items(): # tqdm(all_files.items(), unit="dataset"):
         set_name = metadata["dataset"]
         num_conversations = int(metadata["conversations"])
         prefix = set_name.replace("/", "--")
@@ -145,15 +148,15 @@ def prepare_fn(
         print(f"* min-max length: {min_len} - {max_len}")
 
         if update_metadata:
-            metadata_dict[set_name].update(
-                {
-                    key_segments: num_segments,
-                    key_convs_augmented: num_convs_augmented,
-                    key_segments_augmented: num_segments_augmented,
-                }
-            )
+            metadata_dict[set_name] = metadata_dict.get(set_name, {}) | {
+                "dataset": set_name,
+                key_segments: num_segments,
+                key_convs_augmented: num_convs_augmented,
+                key_segments_augmented: num_segments_augmented,
+            }
             
-            with open(metadata_filename,"w") as file:
+            # Update metadata file
+            with open(metadata_filename_extra,"w") as file:
                 metadata = list(metadata_dict.values())
                 fieldnames = list(metadata[0].keys())
                 for field in key_convs_augmented, key_segments, key_segments_augmented:
@@ -183,7 +186,7 @@ def prepare(
         source_path=source_path,
         checkpoint_dir=checkpoint_dir,
         destination_path=destination_path,
-        chunk_size=(config.block_size + 1) * 1024,  # block size + 1 for causal, 1024 blocks
+        chunk_size=(config.block_size + 1) * 512,  # block size + 1 for causal, 512 blocks
         max_length=max_length,
         padding=padding,
         update_metadata=update_metadata,
