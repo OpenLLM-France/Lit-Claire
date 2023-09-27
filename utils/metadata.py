@@ -9,18 +9,27 @@ assert os.path.isfile(metadata_filename), f"Metadata file {metadata_filename} no
 
 metadata_filename_extra = os.path.join(os.path.dirname(wd), "data", "claire_metadata_extra.csv")
 
+def format_dict_values(d):
+    for k, v in d.items():
+        if isinstance(v, str):
+            if re.match(r"^\d+$", v):
+                d[k] = int(v)
+            elif v in ["True", "False"]:
+                d[k] = True if v.lower() == "true" else False
+    return d
+
 # Read CSV
 METADATA_DICT = {}
 with open(metadata_filename, "r") as csvfile:
     metadata_rows = csv.DictReader(csvfile)
     for row in metadata_rows:
-        METADATA_DICT[row["dataset"]] = row
+        METADATA_DICT[row["dataset"]] = format_dict_values(row)
 
 if os.path.isfile(metadata_filename_extra):
     with open(metadata_filename_extra, "r") as csvfile:
         metadata_rows = csv.DictReader(csvfile)
         for row in metadata_rows:
-            METADATA_DICT[row["dataset"]].update(row)
+            METADATA_DICT[row["dataset"]].update(format_dict_values(row))
 
 # TODO: Add sampling weights
 
