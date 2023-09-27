@@ -21,7 +21,7 @@ from lit_gpt.config import Config
 from lit_gpt.tokenizer import Tokenizer
 
 from utils.metadata import get_metadata, metadata_filename
-from utils.text import remove_special_words, augmented_texts_generator
+from utils.text import augmented_texts_generator
 
 
 ###############
@@ -101,10 +101,7 @@ def prepare_fn(
         for sample in tqdm(dataset_hf["train"], total=num_conversations, unit="conversations", desc=prefix):
             text = sample["text"]
 
-            # Text normalization
-            text = remove_special_words(text)
-
-            # Augmentation
+            # Text normalization and augmentation
             for ivariant, text_variant in enumerate(augmented_texts_generator(text)):
 
                 # # Uncomment for debugging of text augmentation
@@ -155,18 +152,16 @@ def prepare_fn(
                     key_segments_augmented: num_segments_augmented,
                 }
             )
-
-    if update_metadata:
             
-        with open(metadata_filename,"w") as file:
-            metadata = list(metadata_dict.values())
-            fieldnames = list(metadata[0].keys())
-            for field in key_convs_augmented, key_segments, key_segments_augmented:
-                if field not in fieldnames:
-                    fieldnames.append(field)
-            writer = csv.DictWriter(file, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(metadata)
+            with open(metadata_filename,"w") as file:
+                metadata = list(metadata_dict.values())
+                fieldnames = list(metadata[0].keys())
+                for field in key_convs_augmented, key_segments, key_segments_augmented:
+                    if field not in fieldnames:
+                        fieldnames.append(field)
+                writer = csv.DictWriter(file, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(metadata)
 
 def prepare(
     source_path: Path = Path("data/source_data_folder"),
