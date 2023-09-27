@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import re
 import os
+import filelock
 
 import numpy as np
 from tqdm import tqdm
@@ -53,12 +54,6 @@ def prepare_fn(
 
     if not max_length:
         update_metadata = False
-    if update_metadata:
-        if os.path.isfile(metadata_filename_extra):
-            metadata = list(csv.DictReader(open(metadata_filename_extra)))
-        else:
-            metadata = []
-        metadata_dict = {row["dataset"]: row for row in metadata}
 
     # First collect all files to process (making preliminary checks)
     all_files = {}
@@ -163,14 +158,21 @@ def prepare_fn(
         print(json.dumps(info, indent=4))
 
         if update_metadata:
-            metadata_dict[set_name] = metadata_dict.get(set_name, {}) | info
-            # Update metadata file
-            metadata = list(metadata_dict.values())
-            fieldnames = list(metadata_dict[set_name].keys())
-            with open(metadata_filename_extra, "w", newline='') as file:
-                writer = csv.DictWriter(file, fieldnames=fieldnames, lineterminator='\n')
-                writer.writeheader()
-                writer.writerows(metadata)
+
+            with filelock.FileLock(metadata_filename_extra + ".lock", timeout=5):
+                if os.path.isfile(metadata_filename_extra):
+                    with open(metadata_filename_extra) as f:
+                        metadata = list(csv.DictReader(f))
+                else:
+                    metadata = []
+                metadata_dict = {row["dataset"]: row for row in metadata}
+                metadata_dict[set_name] = metadata_dict.get(set_name, {}) | info
+                metadata = list(metadata_dict.values())
+                fieldnames = list(metadata_dict[set_name].keys())
+                with open(metadata_filename_extra, "w", newline='') as file:
+                    writer = csv.DictWriter(file, fieldnames=fieldnames, lineterminator='\n')
+                    writer.writeheader()
+                    writer.writerows(metadata)
 
 def prepare(
     source_path: Path = Path("data/source_data_folder"),
