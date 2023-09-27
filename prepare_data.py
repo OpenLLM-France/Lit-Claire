@@ -20,66 +20,9 @@ import lit_gpt.packed_dataset as packed_dataset
 from lit_gpt.config import Config
 from lit_gpt.tokenizer import Tokenizer
 
-from utils import get_metadata, metadata_filename
+from utils.metadata import get_metadata, metadata_filename
+from utils.text import remove_special_words, augmented_texts_generator
 
-##############################
-# Text normalization functions
-
-def collapse_whitespaces(text):
-    return re.sub(r" +", " ", text).strip()
-
-def remove_special_words(text):
-    # Remove all [*] except the one at the beginning and after linebreaks
-    text = re.sub(r"([^\n])\[[^\]]*\]", r"\1", text)
-    return collapse_whitespaces(text)
-    
-def remove_punctuations(text):
-    text = re.sub(r"[,\.!?…]", "", text)
-    return collapse_whitespaces(text)
-
-def to_lower_case(text):
-    return text.lower()
-
-def anonymize_speakers(text):
-    # Get all speakers
-    speakers = [] 
-    [speakers.append(x) for x in re.findall(r"\[([^\]]+):\]", text) if x not in speakers] 
-    new_speakers = [f"speaker{i+1:03d}" for i in range(len(speakers))]
-    for spk, nspk in zip(speakers, new_speakers):
-        text = text.replace(f"[{spk}:", f"[{nspk}:")
-    return text
-
-def has_upper_case(text):
-    return bool(re.search(r"[A-Z]", text))
-
-def has_speaker_id(text):
-    return bool(re.search(r"\[[^spkeaker\d]+:\]", text))
-
-def has_punctuation(text):
-    return bool(re.search(r"[,\.!?…]", text))
-
-def augmented_texts_generator(text):
-    text = remove_special_words(text)
-    yield text
-    _upper = has_upper_case(text)
-    _speaker = has_speaker_id(text)
-    _punct = has_punctuation(text)
-    if _speaker:
-        text_anonym = anonymize_speakers(text)
-        yield text_anonym
-    if _upper:
-        yield to_lower_case(text)
-        if _speaker:
-            yield to_lower_case(text_anonym)
-    if _punct:
-        text_no_punct = remove_punctuations(text)
-        yield text_no_punct
-        if _upper:
-            yield to_lower_case(text_no_punct)
-            if _speaker:
-                yield remove_punctuations(to_lower_case(text_anonym))
-        if _speaker:
-            yield remove_punctuations(text_anonym)
 
 ###############
 # Main function
@@ -113,7 +56,7 @@ def prepare_fn(
     if update_metadata:
         metadata = list(csv.DictReader(open(metadata_filename)))
         metadata_dict = {row["dataset"]: row for row in metadata}
-        key_total_augmented = f"conversations_augmented"
+        key_convs_augmented = f"conversations_augmented"
         key_segments_augmented = f"segments_augmented_{max_length}"
         key_segments = f"segments_{max_length}"
 
@@ -132,7 +75,7 @@ def prepare_fn(
             f"No input files found at {source_path}."
         )
 
-    for filepath, metadata in all_files.items():
+    for filepath, metadata in tqdm(all_files.items(), unit="dataset"):
         set_name = metadata["dataset"]
         num_conversations = int(metadata["conversations"])
         prefix = set_name.replace("/", "--")
@@ -150,12 +93,12 @@ def prepare_fn(
         )
 
         num_cuts = 0
-        num_total = 0
+        num_convs_augmented = 0
         num_segments_augmented = 0
         num_segments = 0
         min_len = 1e10
         max_len = 0
-        for sample in tqdm(dataset_hf["train"], total=num_conversations):
+        for sample in tqdm(dataset_hf["train"], total=num_conversations, unit="conversations", desc=prefix):
             text = sample["text"]
 
             # Text normalization
@@ -197,18 +140,18 @@ def prepare_fn(
                     if ivariant == 0:
                         num_segments += 1
                     num_segments_augmented += 1
-                num_total+= 1
+                num_convs_augmented+= 1
 
         builder.write_reminder()
 
-        print(f"* {num_cuts}/{num_total} text cutted in several chunks")
+        print(f"* {num_cuts}/{num_convs_augmented} text cutted in several chunks")
         print(f"* min-max length: {min_len} - {max_len}")
 
         if update_metadata:
             metadata_dict[set_name].update(
                 {
                     key_segments: num_segments,
-                    key_total_augmented: num_total,
+                    key_convs_augmented: num_convs_augmented,
                     key_segments_augmented: num_segments_augmented,
                 }
             )
@@ -218,7 +161,7 @@ def prepare_fn(
         with open(metadata_filename,"w") as file:
             metadata = list(metadata_dict.values())
             fieldnames = list(metadata[0].keys())
-            for field in key_total_augmented, key_segments, key_segments_augmented:
+            for field in key_convs_augmented, key_segments, key_segments_augmented:
                 if field not in fieldnames:
                     fieldnames.append(field)
             writer = csv.DictWriter(file, fieldnames=fieldnames)
