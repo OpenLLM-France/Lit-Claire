@@ -59,9 +59,6 @@ def prepare_fn(
         else:
             metadata = []
         metadata_dict = {row["dataset"]: row for row in metadata}
-        key_convs_augmented = f"conversations_augmented"
-        key_segments_augmented = f"segments_augmented_{max_length}"
-        key_segments = f"segments_{max_length}"
 
     # First collect all files to process (making preliminary checks)
     all_files = {}
@@ -79,10 +76,17 @@ def prepare_fn(
         )
 
     for filepath, metadata in all_files.items(): # tqdm(all_files.items(), unit="dataset"):
+
+        random.seed(51) # For deterministic text augmentation
+
         set_name = metadata["dataset"]
         num_conversations = int(metadata["conversations"])
+        is_spontaneous = metadata["spontaneous"]
+        assert is_spontaneous in [True, False]
+        augmentation_level = 4 if is_spontaneous else 0
+
         prefix = set_name.replace("/", "--")
-        print(f"Processing {filepath} -> {destination_path}/{prefix}*")
+        print(f"Processing:\n{filepath} -> {destination_path}/{prefix}*\n{augmentation_level=}")
 
         dataset_hf = load_dataset("text", data_files={"train": filepath}, sample_by="paragraph", streaming=True)
 
@@ -96,6 +100,7 @@ def prepare_fn(
         )
 
         num_cuts = 0
+        num_convs = 0
         num_convs_augmented = 0
         num_segments_augmented = 0
         num_segments = 0
@@ -105,7 +110,7 @@ def prepare_fn(
             text = sample["text"]
 
             # Text normalization and augmentation
-            for ivariant, text_variant in enumerate(augmented_texts_generator(text)):
+            for ivariant, text_variant in enumerate(augmented_texts_generator(text, augmentation_level, force_augmentation=True)):
 
                 # # Uncomment for debugging of text augmentation
                 # if ivariant > 0:
@@ -141,28 +146,29 @@ def prepare_fn(
                         num_segments += 1
                     num_segments_augmented += 1
                 num_convs_augmented+= 1
+            num_convs += 1
 
         builder.write_reminder()
 
         print(f"* {num_cuts}/{num_convs_augmented} text cutted in several chunks")
         print(f"* min-max length: {min_len} - {max_len}")
 
+        info = {
+            "dataset": set_name,
+            "conversations_check": num_convs,
+            "conversations_augmented": num_convs_augmented,
+            f"segments_{max_length}": num_segments,
+            f"segments_augmented_{max_length}": num_segments_augmented,
+        }
+        print(json.dumps(info, indent=4))
+
         if update_metadata:
-            metadata_dict[set_name] = metadata_dict.get(set_name, {}) | {
-                "dataset": set_name,
-                key_segments: num_segments,
-                key_convs_augmented: num_convs_augmented,
-                key_segments_augmented: num_segments_augmented,
-            }
-            
+            metadata_dict[set_name] = metadata_dict.get(set_name, {}) | info
             # Update metadata file
-            with open(metadata_filename_extra,"w") as file:
-                metadata = list(metadata_dict.values())
-                fieldnames = list(metadata[0].keys())
-                for field in key_convs_augmented, key_segments, key_segments_augmented:
-                    if field not in fieldnames:
-                        fieldnames.append(field)
-                writer = csv.DictWriter(file, fieldnames=fieldnames)
+            metadata = list(metadata_dict.values())
+            fieldnames = list(metadata_dict[set_name].keys())
+            with open(metadata_filename_extra, "w", newline='') as file:
+                writer = csv.DictWriter(file, fieldnames=fieldnames, lineterminator='\n')
                 writer.writeheader()
                 writer.writerows(metadata)
 

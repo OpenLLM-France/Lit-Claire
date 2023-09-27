@@ -12,3 +12,4 @@ datasets  # quantize/gptq.py
 # git+https://github.com/EleutherAI/lm-evaluation-harness.git@master  # eval
 # pandas
 deepspeed
+names
