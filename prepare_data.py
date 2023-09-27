@@ -20,7 +20,7 @@ import lit_gpt.packed_dataset as packed_dataset
 from lit_gpt.config import Config
 from lit_gpt.tokenizer import Tokenizer
 
-from utils import get_metadata
+from utils import get_metadata, metadata_filename
 
 ##############################
 # Text normalization functions
@@ -92,6 +92,7 @@ def prepare_fn(
     eos=None,
     padding=True,
     filename_regex="full.txt",
+    update_metadata=False,
 ) -> None:
     """Prepare the dataset using the tokenizer."""
     destination_path = destination_path.resolve()
@@ -107,28 +108,41 @@ def prepare_fn(
 
     print(f"Using: {bos=}, {eos=}, {max_length=}")
 
+    if not max_length:
+        update_metadata = False
+    if update_metadata:
+        metadata = list(csv.DictReader(open(metadata_filename)))
+        metadata_dict = {row["dataset"]: row for row in metadata}
+        key_total_augmented = f"conversations_augmented"
+        key_segments_augmented = f"segments_augmented_{max_length}"
+        key_segments = f"segments_{max_length}"
+
+    # First collect all files to process (making preliminary checks)
     all_files = {}
     for root, dirs, files in os.walk(source_path, followlinks=True):
         root = os.path.realpath(root)
         for file in files:
             if re.match(filename_regex + r"$", file):
                 filepath = os.path.join(root, file)
-                set_name = get_metadata(filepath)["dataset"].replace("/", "--")
-                all_files[filepath] = set_name
+                metadata = get_metadata(filepath)
+                all_files[filepath] = metadata
 
     if len(all_files) == 0:
         raise RuntimeError(
             f"No input files found at {source_path}."
         )
 
-    for filepath, set_name in all_files.items():
-        print(f"Processing {filepath} -> {destination_path}/{set_name}*")
+    for filepath, metadata in all_files.items():
+        set_name = metadata["dataset"]
+        num_conversations = int(metadata["conversations"])
+        prefix = set_name.replace("/", "--")
+        print(f"Processing {filepath} -> {destination_path}/{prefix}*")
 
         dataset_hf = load_dataset("text", data_files={"train": filepath}, sample_by="paragraph", streaming=True)
 
         builder = packed_dataset.PackedDatasetBuilder(
             outdir=destination_path,
-            prefix=set_name,
+            prefix=prefix,
             chunk_size=chunk_size,
             sep_token=tokenizer.eos_id,
             dtype="auto",
@@ -137,9 +151,11 @@ def prepare_fn(
 
         num_cuts = 0
         num_total = 0
+        num_segments_augmented = 0
+        num_segments = 0
         min_len = 1e10
         max_len = 0
-        for sample in tqdm(dataset_hf["train"]):
+        for sample in tqdm(dataset_hf["train"], total=num_conversations):
             text = sample["text"]
 
             # Text normalization
@@ -167,6 +183,9 @@ def prepare_fn(
                         min_len = min(min_len, len(a))
                         max_len = max(max_len, len(a))
                         builder.add_array(a)
+                        if ivariant == 0:
+                            num_segments += 1
+                        num_segments_augmented += 1
                     num_cuts += 1
                 else:
                     a = np.array(text_ids, dtype=builder.dtype)
@@ -175,6 +194,9 @@ def prepare_fn(
                     min_len = min(min_len, len(a))
                     max_len = max(max_len, len(a))
                     builder.add_array(a)
+                    if ivariant == 0:
+                        num_segments += 1
+                    num_segments_augmented += 1
                 num_total+= 1
 
         builder.write_reminder()
@@ -182,12 +204,33 @@ def prepare_fn(
         print(f"* {num_cuts}/{num_total} text cutted in several chunks")
         print(f"* min-max length: {min_len} - {max_len}")
 
+        if update_metadata:
+            metadata_dict[set_name].update(
+                {
+                    key_segments: num_segments,
+                    key_total_augmented: num_total,
+                    key_segments_augmented: num_segments_augmented,
+                }
+            )
+
+    if update_metadata:
+            
+        with open(metadata_filename,"w") as file:
+            metadata = list(metadata_dict.values())
+            fieldnames = list(metadata[0].keys())
+            for field in key_total_augmented, key_segments, key_segments_augmented:
+                if field not in fieldnames:
+                    fieldnames.append(field)
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(metadata)
 
 def prepare(
     source_path: Path = Path("data/source_data_folder"),
     checkpoint_dir: Path = Path("checkpoints/tiiuae/falcon-7b"),
     destination_path: Path = Path("data/prepared_data_folder"),
     padding: bool = True,
+    update_metadata: bool = False,
 ) -> None:
     """Prepare the "Claire" dataset. We assume tokenizer has been trained."""
     config = Config.from_json(checkpoint_dir / "lit_config.json")
@@ -205,6 +248,7 @@ def prepare(
         chunk_size=(config.block_size + 1) * 1024,  # block size + 1 for causal, 1024 blocks
         max_length=max_length,
         padding=padding,
+        update_metadata=update_metadata,
     )
 
 
