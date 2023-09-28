@@ -35,7 +35,9 @@ def prepare_fn(
     bos=None,
     eos=None,
     padding=True,
-    filename_regex="full.txt",
+    filename_full="full.txt",
+    filename_train="train.txt",
+    filename_dev="dev.txt",
     update_metadata=False,
 ) -> None:
     """Prepare the dataset using the tokenizer."""
@@ -60,10 +62,18 @@ def prepare_fn(
     for root, dirs, files in os.walk(source_path, followlinks=True):
         root = os.path.realpath(root)
         for file in files:
-            if re.match(filename_regex + r"$", file):
-                filepath = os.path.join(root, file)
-                metadata = get_metadata(filepath)
-                all_files[filepath] = metadata
+            if file == filename_full:
+                files_for_this_dataset = [file]
+                if filename_train in files:
+                    files_for_this_dataset = [filename_train]
+                if filename_dev in files:
+                    files_for_this_dataset += [filename_dev]
+                    if file in files_for_this_dataset:
+                        files_for_this_dataset.remove(file)
+                for f in files_for_this_dataset:
+                    filepath = os.path.join(root, f)
+                    metadata = get_metadata(filepath)
+                    all_files[filepath] = metadata
 
     if len(all_files) == 0:
         raise RuntimeError(

@@ -16,6 +16,22 @@ from utils.metadata import get_metadata, get_filename_prefix
 import lit_gpt.packed_dataset as packed_dataset
 from lit_gpt.packed_dataset import CombinedDataset, PackedDataset
 
+def create_dataloaders(
+    batch_size=32,
+    path="/gpfsscratch/rech/qgz/commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae--falcon-7b/",
+    prefixes=None,
+    block_size=2048, # TODO: find automatically (this holds for Falcon-7b)
+    shuffle=True,
+    num_processes=1,
+    process_rank=0,
+    seed=51,
+    verbose=True,
+    try_small=False,
+    return_details=False,
+):
+    pass
+
+
 def create_dataloader(
     batch_size=32,
     path="/gpfsscratch/rech/qgz/commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae--falcon-7b/",
