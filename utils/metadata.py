@@ -55,7 +55,7 @@ def get_metadata(path):
     """Get metadata from a path."""
     if not os.path.isdir(path):
         filename = os.path.basename(os.path.realpath(path))
-        filename = re.sub(r"(\*)?(_[\d]+)?(\.[a-z]+)?","", filename)
+        filename = get_filename_prefix(filename)
         filename = filename.replace("--", "/")
         if filename in METADATA_DICT:
             return METADATA_DICT[filename]
@@ -68,8 +68,11 @@ def get_metadata(path):
     assert set_name in METADATA_DICT, f"Dataset {set_name} not found in metadata file."
     return METADATA_DICT[set_name]
 
+def get_filename_prefix(filename):
+    return re.sub(r"(\*)?(_)?([\d]+)?(\.[a-z]+)?$", "", filename)
 
-if __name__ == "__main__":    
+
+if __name__ == "__main__":
 
     import json
     print(json.dumps(METADATA_DICT,indent=4))
