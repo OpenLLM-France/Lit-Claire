@@ -53,20 +53,27 @@ for dataset, metadata in METADATA_DICT.items():
 
 def get_metadata(path):
     """Get metadata from a path."""
-    if not os.path.isdir(path):
-        filename = os.path.basename(os.path.realpath(path))
+    if os.path.sep != "/":
+        path = path.replace(os.path.sep, "/")
+    # path = os.path.realpath(path) if os.path.exists(path) else path
+    if max(path.endswith(ext) for ext in [".txt", ".bin"]):
+        filename = os.path.basename(path)
         filename = get_filename_prefix(filename)
         filename = filename.replace("--", "/")
         if filename in METADATA_DICT:
             return METADATA_DICT[filename]
-        return get_metadata(os.path.dirname(os.path.realpath(path)))
-    assert os.path.isdir(path), f"Path {path} does not exist."
-    set_name = os.path.basename(path)
-    if set_name in METADATA_DICT:
-        return METADATA_DICT[set_name]
-    set_name = os.path.basename(os.path.dirname(path)) + "/" + set_name
-    assert set_name in METADATA_DICT, f"Dataset {set_name} not found in metadata file."
-    return METADATA_DICT[set_name]
+        foldername = os.path.dirname(path)
+        if filename in ["train"]:
+            foldername += "/TRAIN"
+        elif filename in ["dev"]:
+            foldername += "/DEV"
+        return get_metadata(foldername)
+    fields = path.rstrip("/").split("/")
+    for k in range(1, 4):
+        set_name = "/".join(fields[-k:])
+        if set_name in METADATA_DICT:
+            return METADATA_DICT[set_name]
+    raise RuntimeError(f"Could not find a correspondance for {path} in metadata file.")
 
 def get_filename_prefix(filename):
     return re.sub(r"(\*)?(_)?([\d]+)?(\.[a-z]+)?$", "", filename)
