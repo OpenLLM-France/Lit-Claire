@@ -2,8 +2,8 @@ dataset,language,named,asr,text,spontaneous,conversations,turns,words,punctuatio
 FR/ACSYNT,fr,False,False,False,True,144,2718,61727,2690,3204
 FR/ASR_Old_MINEFI,fr,False,True,False,True,27,6587,925769,38616,6587
 FR/ASR_Whisper_SUMM-RE,fr,False,True,False,True,281,38368,1296751,98626,38368
-FR/ASR_Whisper_SUMM-RE/TRAIN,fr,False,True,False,True,269,36652,1236394,94581,38368
-FR/ASR_Whisper_SUMM-RE/DEV,fr,False,True,False,True,12,1716,60357,4045,1716
+FR/ASR_Whisper_SUMM-RE/TRAIN,fr,False,True,False,True,209,27413,954916,72364,38368
+FR/ASR_Whisper_SUMM-RE/DEV,fr,False,True,False,True,72,10955,341835,26262,10955
 FR/AssembleeNationale,fr,False,False,False,False,1465,370651,20876635,2498663,370792
 FR/AssembleeNationale/TRAIN,fr,False,False,False,False,1458,368407,20774525,2486113,370792
 FR/AssembleeNationale/DEV,fr,False,False,False,False,7,2244,102110,12550,2245
@@ -32,6 +32,9 @@ FR/ParisStories,fr,False,False,False,True,21,291,8882,2577,308
 FR/Rhapsodie,fr,False,False,False,True,26,943,24471,6479,1023
 FR/TCOF,fr,False,False,False,True,619,146815,1511591,36803,242948
 FR/UBS,fr,False,False,False,True,41,804,7446,115,1037
+EN/AMI,en,False,False,False,True,139,75190,712099,118124,115905
+EN/AMI/TRAIN,en,False,False,False,True,119,64504,603594,100565,115905
+EN/AMI/DEV,en,False,False,False,True,20,10686,108505,17559,15968
 EN/ASR-ETELECSC,en,False,True,False,True,13,1809,56752,2479,2877
 EN/DailyDialog,en,False,False,True,False,13118,102980,1212927,232017,103192
 EN/DialogStudio_CR_OpenDialKG,en,False,False,True,False,12302,84003,1029131,165780,84224
@@ -62,6 +65,6 @@ EN/NAMED_MediaSum_CNN-7,en,True,False,False,False,51651,1562772,95874845,1251812
 EN/NAMED_MediaSum_CNN-8,en,True,False,False,False,51456,1387393,89563855,11806935,1400641
 EN/NAMED_MediaSum_NPR,en,True,False,False,False,46103,946050,44845179,6043718,986080
 EN/OANC_Charlotte,en,False,False,False,True,73,2655,134355,23453,2684
-EN/OANC_Switchboard,en,False,False,False,True,2305,161115,3049960,0,161115
-EN/OANC_Switchboard/TRAIN,en,False,False,False,True,2225,154600,2927109,0,161115
-EN/OANC_Switchboard/DEV,en,False,False,False,True,80,6515,122851,0,6515
+EN/OANC_Switchboard,en,False,False,False,True,3460,286988,4598204,377007,306842
+EN/OANC_Switchboard/TRAIN,en,False,False,False,True,3212,264280,4274821,334982,306842
+EN/OANC_Switchboard/DEV,en,False,False,False,True,248,22708,323383,42025,24946
