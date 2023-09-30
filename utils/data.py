@@ -182,7 +182,7 @@ if __name__ == "__main__":
     max_batches = 1000
     shuffle = True
     seed = random.randint(1, 1000)
-    try_small = False
+    try_small = True
 
     checkpoint_dir = "/gpfswork/rech/qgz/commun/Claire/checkpoints/tiiuae/falcon-7b"
     tokenizer = Tokenizer(Path(checkpoint_dir))
@@ -271,9 +271,9 @@ if __name__ == "__main__":
         total_null = stats.get(-1, 0)
         if -1 in stats:
             stats.pop(-1)
-        print(f"{total_null*100/total:.2f} % of samples are just padding")
+        print(f"{total_null*100/total:.2f} % of samples ({total_null}) are just padding")
         for i in sorted(stats.keys(), key=lambda x: stats[x]):
-            print(f"{stats.get(i,0)*100/(total - total_null):.2f} % of samples are from dataset {pseudos[i]}")
+            print(f"{stats.get(i,0)*100/(total - total_null):.2f} % of samples ({stats.get(i,0)}) are from dataset {pseudos[i]}")
 
         not_null_indices = [x for x in sample_indices if x is not None]
         num_uniques = len(set(not_null_indices))
