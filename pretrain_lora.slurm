@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=training_claire
-#SBATCH --output=training_claire.out
-#SBATCH --error=training_claire.out
+#SBATCH --job-name=pretrain_lora
+#SBATCH --output=pretrain_lora.out
+#SBATCH --error=pretrain_lora.out
 #SBATCH --gres=gpu:2
 #SBATCH --ntasks-per-node=2
 #SBATCH --nodes=1
@@ -21,4 +21,4 @@ conda activate claire
 set -x
 
 # execute script
-srun python full.py
+srun python pretrain_lora.py
