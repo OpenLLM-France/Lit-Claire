@@ -21,4 +21,6 @@ conda activate claire
 set -x
 
 # execute script
-srun python pretrain_lora.py
+srun python pretrain_lora.py \
+--data_dir $SCRATCH/../commun/lit-redpajama-sample \
+--checkpoint_dir $WORK/../commun/Claire/checkpoints/tiiuae/falcon-7b

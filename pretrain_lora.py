@@ -26,8 +26,8 @@ from lit_gpt.utils import (
     step_csv_logger,
 )
 
-from utils.data import create_dataloaders
-
+# from utils.data import create_dataloaders
+from utils.redpajama_data import create_dataloaders
 
 eval_interval = 1000
 save_interval = 1000
@@ -119,17 +119,25 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
         to_head=lora_head,
     )
 
+    # train_dataloader, val_dataloader = create_dataloaders(
+    #     batch_size=micro_batch_size,
+    #     path=data_dir,
+    #     block_size=config.block_size,
+    #     shuffle=True,
+    #     num_processes=fabric.world_size,
+    #     process_rank=fabric.global_rank,
+    #     seed=(1337 + fabric.global_rank),
+    #     verbose=True,
+    #     try_small=False,
+    #     return_details=False,
+    # )
     train_dataloader, val_dataloader = create_dataloaders(
         batch_size=micro_batch_size,
-        path=data_dir,
         block_size=config.block_size,
-        shuffle=True,
-        num_processes=fabric.world_size,
-        process_rank=fabric.global_rank,
+        fabric=fabric,
+        train_data_dir=data_dir,
+        val_data_dir=data_dir,
         seed=(1337 + fabric.global_rank),
-        verbose=True,
-        try_small=False,
-        return_details=False,
     )
     if val_dataloader is None:
         train_dataloader = fabric.setup_dataloaders(train_dataloader)
@@ -141,7 +149,6 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
         checkpoint_path = out_dir / sorted(out_dir.glob("*.pth"))[-1]
 
     fabric.print(f"Loading model {str(checkpoint_path)!r} with {config.__dict__}")
-    print("Fabric devices:", fabric.devices)
     with fabric.init_module(empty_init=True), quantization(quantize):
         model = GPT(config)
     mark_only_lora_as_trainable(model)
