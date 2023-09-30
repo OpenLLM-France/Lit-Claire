@@ -104,6 +104,21 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
     if fabric.global_rank == 0:
         os.makedirs(out_dir, exist_ok=True)
 
+    if not any((lora_query, lora_key, lora_value, lora_projection, lora_mlp, lora_head)):
+        fabric.print("Warning: all LoRA layers are disabled!")
+    config = Config.from_name(
+        name=checkpoint_dir.name,
+        r=lora_r,
+        alpha=lora_alpha,
+        dropout=lora_dropout,
+        to_query=lora_query,
+        to_key=lora_key,
+        to_value=lora_value,
+        to_projection=lora_projection,
+        to_mlp=lora_mlp,
+        to_head=lora_head,
+    )
+
     train_dataloader, val_dataloader = create_dataloaders(
         batch_size=micro_batch_size,
         path=data_dir,
@@ -121,28 +136,13 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
     else:
         train_dataloader, val_dataloader = fabric.setup_dataloaders(train_dataloader, val_dataloader)
 
-    if not any((lora_query, lora_key, lora_value, lora_projection, lora_mlp, lora_head)):
-        fabric.print("Warning: all LoRA layers are disabled!")
-    config = Config.from_name(
-        name=checkpoint_dir.name,
-        r=lora_r,
-        alpha=lora_alpha,
-        dropout=lora_dropout,
-        to_query=lora_query,
-        to_key=lora_key,
-        to_value=lora_value,
-        to_projection=lora_projection,
-        to_mlp=lora_mlp,
-        to_head=lora_head,
-    )
-
     checkpoint_path = checkpoint_dir / "lit_model.pth"
     if resume is True:
         checkpoint_path = out_dir / sorted(out_dir.glob("*.pth"))[-1]
 
     fabric.print(f"Loading model {str(checkpoint_path)!r} with {config.__dict__}")
     print("Fabric devices:", fabric.devices)
-    with fabric.init_module(empty_init=(fabric.devices > 1)), quantization(quantize):
+    with fabric.init_module(empty_init=True), quantization(quantize):
         model = GPT(config)
     mark_only_lora_as_trainable(model)
 
