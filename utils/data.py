@@ -15,15 +15,14 @@ if __name__ == "__main__":
 
 from utils.metadata import get_metadata, get_filename_prefix
 
-import lit_gpt.packed_dataset as packed_dataset
 from lit_gpt.packed_dataset import CombinedDataset, PackedDataset
+from lit_gpt.config import Config
 
 DEFAULT_PATH="/gpfsscratch/rech/qgz/commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae--falcon-7b/"
 
 def create_dataloaders(
     batch_size=32,
     path=DEFAULT_PATH,
-    block_size=2048, # TODO: find automatically (this holds for Falcon-7b)
     shuffle=True,
     num_processes=1,
     process_rank=0,
@@ -32,6 +31,13 @@ def create_dataloaders(
     try_small=False,
     return_details=False,
 ):
+    assert os.path.isdir(path), f"Path {path} does not exist"
+
+    config_file = os.path.join(path, "lit_config.json")
+    assert os.path.isfile(config_file), f"Config file {config_file} does not exist"
+    config = Config.from_json(config_file)
+    effective_block_size = config.block_size + 1
+
     all_prefixes = list(set(
         [get_filename_prefix(filename) for filename in os.listdir(path) \
         if os.path.isfile(os.path.join(path, filename)) and filename.endswith(".bin")]
@@ -51,7 +57,7 @@ def create_dataloaders(
     kwargs = dict(
         batch_size=batch_size,
         path=path,
-        block_size=block_size,
+        effective_block_size=effective_block_size,
         num_processes=num_processes,
         process_rank=process_rank,
         seed=seed,
@@ -65,10 +71,10 @@ def create_dataloaders(
     )
 
 def create_dataloader(
+    effective_block_size,
     batch_size=32,
     path=DEFAULT_PATH,
     prefixes=None,
-    block_size=2048, # TODO: find automatically (this holds for Falcon-7b)
     shuffle=True,
     num_processes=1,
     process_rank=0,
@@ -111,7 +117,7 @@ def create_dataloader(
         dataset = PackedDataset(
             filenames,
             n_chunks=len(filenames),
-            block_size=block_size,
+            block_size=effective_block_size,
             shuffle=shuffle,
             seed=seed,
             num_processes=num_processes,
@@ -186,7 +192,7 @@ if __name__ == "__main__":
 
     checkpoint_dir = "/gpfswork/rech/qgz/commun/Claire/checkpoints/tiiuae/falcon-7b"
     tokenizer = Tokenizer(Path(checkpoint_dir))
-    block_size = 2048
+    effective_block_size = 2048
 
     import hashlib
     import pickle
@@ -200,7 +206,7 @@ if __name__ == "__main__":
     train_details, dev_details = create_dataloaders(
         try_small=try_small,
         return_details=True,
-        block_size=block_size,
+        effective_block_size=effective_block_size,
         batch_size=batch_size,
         shuffle=shuffle,
         seed=seed,
@@ -219,7 +225,7 @@ if __name__ == "__main__":
             all_datas.append([])
             for s in d:
                 all_datas[-1].append(hashmd5(s))
-        NULL_DATA = hashmd5(torch.tensor([tokenizer.eos_id] * block_size, dtype=torch.int64))
+        NULL_DATA = hashmd5(torch.tensor([tokenizer.eos_id] * effective_block_size, dtype=torch.int64))
 
         # Sample the combined dataset
         sample_indices = []

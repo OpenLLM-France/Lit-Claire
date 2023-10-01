@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import re
 import os
+import shutil
 import filelock
 
 import numpy as np
@@ -31,7 +32,7 @@ from utils.text import augmented_texts_generator
 def prepare_fn(
     source_path: Path, checkpoint_dir: Path, destination_path: Path,
     chunk_size: int,
-    max_length: int = None,
+    effective_block_size: int = None,
     bos=None,
     eos=None,
     padding=True,
@@ -52,9 +53,9 @@ def prepare_fn(
     if eos is None:
         eos = bool(tokenizer.eos_id)
 
-    print(f"Using: {bos=}, {eos=}, {max_length=}")
+    print(f"Using: {bos=}, {eos=}, {effective_block_size=}")
 
-    if not max_length:
+    if not effective_block_size:
         update_metadata = False
 
     # First collect all files to process (making preliminary checks)
@@ -124,15 +125,15 @@ def prepare_fn(
                 #     print(text_variant.replace("\n", " ")[:100])
 
                 text_ids = tokenizer.encode(text_variant, bos=bos, eos=eos)
-                if max_length and len(text_ids) > max_length:
+                if effective_block_size and len(text_ids) > effective_block_size:
                     # Cut in several chunks
-                    for i in range(0, len(text_ids), max_length):
-                        a =np.array(text_ids[i:i+max_length], dtype=builder.dtype)
+                    for i in range(0, len(text_ids), effective_block_size):
+                        a =np.array(text_ids[i:i+effective_block_size], dtype=builder.dtype)
                         if len(a) <= 10:
                             # Leave too short tails
                             continue
-                        if padding and len(a) < max_length:
-                            a = np.pad(a, (0, max_length - len(a)), mode="constant", constant_values=tokenizer.eos_id)
+                        if padding and len(a) < effective_block_size:
+                            a = np.pad(a, (0, effective_block_size - len(a)), mode="constant", constant_values=tokenizer.eos_id)
                         min_len = min(min_len, len(a))
                         max_len = max(max_len, len(a))
                         builder.add_array(a)
@@ -142,8 +143,8 @@ def prepare_fn(
                     num_cuts += 1
                 else:
                     a = np.array(text_ids, dtype=builder.dtype)
-                    if padding and len(a) < max_length:
-                        a = np.pad(a, (0, max_length - len(a)), mode="constant", constant_values=tokenizer.eos_id)
+                    if padding and len(a) < effective_block_size:
+                        a = np.pad(a, (0, effective_block_size - len(a)), mode="constant", constant_values=tokenizer.eos_id)
                     min_len = min(min_len, len(a))
                     max_len = max(max_len, len(a))
                     builder.add_array(a)
@@ -162,8 +163,8 @@ def prepare_fn(
             "dataset": set_name,
             "conversations_check": num_convs,
             "conversations_augmented": num_convs_augmented,
-            f"segments_{max_length}": num_segments,
-            f"segments_augmented_{max_length}": num_segments_augmented,
+            f"segments_{effective_block_size}": num_segments,
+            f"segments_augmented_{effective_block_size}": num_segments_augmented,
         }
         print(json.dumps(info, indent=4))
 
@@ -182,7 +183,7 @@ def prepare_fn(
                 with open(metadata_filename_extra, "w", newline='') as file:
                     writer = csv.DictWriter(file, fieldnames=fieldnames, lineterminator='\n')
                     writer.writeheader()
-                    writer.writerows(metadata)
+                    writer.writerows(sorted(metadata, key=lambda x: x["dataset"]))
 
 def prepare(
     source_path: Path = Path("data/source_data_folder"),
@@ -192,20 +193,25 @@ def prepare(
     update_metadata: bool = False,
 ) -> None:
     """Prepare the "Claire" dataset. We assume tokenizer has been trained."""
-    config = Config.from_json(checkpoint_dir / "lit_config.json")
 
-    max_length = None
+    config_file = checkpoint_dir / "lit_config.json"
+    config = Config.from_json(config_file)
+    shutil.copy2(config_file, destination_path / "lit_config.json")
+
+    effective_block_size = config.block_size + 1
     tokenizer_config_file = checkpoint_dir / "tokenizer_config.json"
     if tokenizer_config_file.is_file():
+
+        shutil.copy2(tokenizer_config_file, destination_path / "tokenizer_config.json")
         tokenizer_config = json.load(open(tokenizer_config_file))
-        max_length = tokenizer_config["model_max_length"]
+        assert config.block_size == tokenizer_config["model_max_length"]
 
     prepare_fn(
         source_path=source_path,
         checkpoint_dir=checkpoint_dir,
         destination_path=destination_path,
-        chunk_size=(config.block_size + 1) * 512,  # block size + 1 for causal, 512 blocks
-        max_length=max_length,
+        chunk_size=effective_block_size * 512,  # block size + 1 for causal, 512 blocks
+        effective_block_size=effective_block_size,
         padding=padding,
         update_metadata=update_metadata,
     )
