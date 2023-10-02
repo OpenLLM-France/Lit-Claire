@@ -136,7 +136,7 @@ def create_dataloader(
 
     # Combine datasets
     if use_weights:
-        combined_dataset = CombinedDataset(datasets=datasets, seed=seed, weights=weights)
+        combined_dataset = InfiniteCombinedDataset(datasets=datasets, seed=seed, weights=weights)
     else:
         combined_dataset = ConcatenatedDataset(datasets=datasets)
 
@@ -172,6 +172,26 @@ class ConcatenatedDatasetIterator:
             if self._idataset >= len(self._datasets):
                 raise StopIteration
             return next(self._datasets[self._idataset])
+
+class InfiniteCombinedDataset(CombinedDataset):
+    def __iter__(self):
+        return InfiniteCombinedDatasetIterator(self._datasets, self._seed, self._weights)
+
+class InfiniteCombinedDatasetIterator:
+    def __init__(self, datasets, seed, weights):
+        self._datasets = datasets
+        self._datasets_iter = [iter(el) for el in datasets]
+        self._datasets_indices = list(range(len(datasets)))
+        self._weights = weights
+        self._rng = random.Random(seed)
+
+    def __next__(self):
+        (idataset,) = self._rng.choices(self._datasets_indices, weights=self._weights, k=1)
+        try:
+            return next(self._datasets_iter[idataset])
+        except StopIteration:
+            self._datasets_iter[idataset] = iter(self._datasets[idataset])
+            return next(self._datasets_iter[idataset])
 
 
 if __name__ == "__main__":
