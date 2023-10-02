@@ -50,7 +50,7 @@ training checkpoints and monitoring log can be found under `out_dir`, standard o
 
 on Jean Zay, you can check the status of the job with `squeue -u $USER`
 ```
-             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
-            100813    gpu_p5 pretrain  ugs29jo  R       0:52      1 jean-zay-iam36
+JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+100813    gpu_p5 pretrain  ugs29jo  R       0:52      1 jean-zay-iam36
 ```
 cancel the job with `scancel 100681`, connect to the node with `ssh jean-zay-iam36` (on which you can run `nvidia-smi`)
