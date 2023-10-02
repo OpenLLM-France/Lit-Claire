@@ -67,7 +67,7 @@ def create_dataloaders(
     )
 
     return (
-        create_dataloader(prefixes=prefixes_train, shuffle=shuffle, **kwargs),
+        create_dataloader(prefixes=prefixes_train, shuffle=shuffle, wrap=True, **kwargs),
         create_dataloader(prefixes=prefixes_dev, shuffle=False, use_weights=False, **kwargs)
     )
 
@@ -79,6 +79,7 @@ def create_dataloader(
     shuffle=True,
     num_processes=1,
     process_rank=0,
+    wrap=False,
     seed=51,
     verbose=True,
     return_details=False,
@@ -95,6 +96,7 @@ def create_dataloader(
             ))
 
     datasets = []
+    datasets_nowrap = []
     weights = []
     pseudos = []
     for prefix in prefixes:
@@ -115,8 +117,8 @@ def create_dataloader(
         # Only for printing information
         pseudos.append(metadata["dataset"])
 
-        dataset = PackedDataset(
-            filenames,
+        kwargs = dict(
+            filenames=filenames,
             n_chunks=len(filenames),
             block_size=effective_block_size,
             shuffle=shuffle,
@@ -124,7 +126,16 @@ def create_dataloader(
             num_processes=num_processes,
             process_rank=process_rank,
         )
-        datasets.append(dataset)
+
+        datasets.append(PackedDataset(
+            **kwargs,
+            wrap=wrap,
+        ))
+
+        datasets_nowrap.append(PackedDataset(
+            **kwargs,
+            wrap=False,
+        ))
 
     # Normalize the weights
     sum_weights = sum(weights)
@@ -136,7 +147,11 @@ def create_dataloader(
 
     # Combine datasets
     if use_weights:
-        combined_dataset = InfiniteCombinedDataset(datasets=datasets, seed=seed, weights=weights)
+        if wrap:
+            combined_dataset = CombinedDataset(datasets=datasets, seed=seed, weights=weights)
+            datasets = datasets_nowrap
+        else:
+            combined_dataset = InfiniteCombinedDataset(datasets=datasets, seed=seed, weights=weights)
     else:
         combined_dataset = ConcatenatedDataset(datasets=datasets)
 
