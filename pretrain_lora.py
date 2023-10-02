@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -102,8 +103,8 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path):
     
     if not any((lora_query, lora_key, lora_value, lora_projection, lora_mlp, lora_head)):
         fabric.print("Warning: all LoRA layers are disabled!")
-    config = Config.from_name(  # TODO
-        name=checkpoint_dir.name,
+    config = Config.from_json(
+        checkpoint_dir / "lit_config.json",
         r=lora_r,
         alpha=lora_alpha,
         dropout=lora_dropout,
@@ -114,6 +115,8 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path):
         to_mlp=lora_mlp,
         to_head=lora_head,
     )
+    with open(out_dir / "lora_config.json", "w") as file:
+        json.dump({k.split("lora_")[1]: v for k, v in hparams.items() if k.startswith("lora_")}, file)
 
     train_dataloader, val_dataloader = create_dataloaders(
         batch_size=micro_batch_size,
