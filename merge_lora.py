@@ -19,6 +19,7 @@ from lit_gpt.utils import check_valid_checkpoint_dir, get_default_supported_prec
 def merge_lora(
     checkpoint_dir: Path = Path("checkpoints/tiiuae/falcon-7b"),
     out_dir: Path = Path("out/lora/Claire"),
+    lora_file_name: str ="lit_model_lora_finetuned.pth",
     precision: Optional[str] = None,
 ) -> None:
     """Generates a response based on a given instruction and an optional input.
@@ -40,11 +41,11 @@ def merge_lora(
     with open(out_dir / "lora_config.json", "r") as file:
         lora_config = json.load(file)
     config = Config.from_json(
-        checkpoint_dir / "lit_config.json",
+        path=checkpoint_dir / "lit_config.json",
         **lora_config
     )
 
-    lora_path = out_dir / "lit_model_lora_finetuned.pth"
+    lora_path = out_dir / lora_file_name
     with fabric.init_module(empty_init=True):
         model = GPT(config)
     checkpoint_path = checkpoint_dir / "lit_model.pth"
