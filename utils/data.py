@@ -68,7 +68,7 @@ def create_dataloaders(
 
     return (
         create_dataloader(prefixes=prefixes_train, shuffle=shuffle, **kwargs),
-        create_dataloader(prefixes=prefixes_dev, shuffle=False, **kwargs)
+        create_dataloader(prefixes=prefixes_dev, shuffle=False, use_weights=False, **kwargs)
     )
 
 def create_dataloader(
@@ -110,7 +110,7 @@ def create_dataloader(
             weights.append(metadata["sampling_rate"])
         else:
             # Only for reporting
-            weights.append(metadata["segments_augmented_2048"])
+            weights.append(metadata["words"])
 
         # Only for printing information
         pseudos.append(metadata["dataset"])
@@ -154,14 +154,13 @@ def create_dataloader(
 class ConcatenatedDataset(IterableDataset):
     def __init__(self, datasets):
         self._datasets = datasets
-        n_datasets = len(datasets)
 
     def __iter__(self):
-        return ConcatenatedDatasetIterator(self._datasets, self._seed, self._weights)
+        return ConcatenatedDatasetIterator(self._datasets)
 
 
 class ConcatenatedDatasetIterator:
-    def __init__(self, datasets, seed, weights):
+    def __init__(self, datasets):
         self._datasets = [iter(el) for el in datasets]
         self._idataset = 0
 
