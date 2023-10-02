@@ -20,6 +20,8 @@ from lit_gpt.config import Config
 
 DEFAULT_PATH="/gpfsscratch/rech/qgz/commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae--falcon-7b/"
 
+REDPAJAMA_SETTING = True # Temporary trial
+
 def create_dataloaders(
     batch_size=32,
     path=DEFAULT_PATH,
@@ -68,7 +70,7 @@ def create_dataloaders(
 
     return (
         create_dataloader(prefixes=prefixes_train, shuffle=shuffle, wrap=True, **kwargs),
-        create_dataloader(prefixes=prefixes_dev, shuffle=False, use_weights=False, **kwargs)
+        create_dataloader(prefixes=prefixes_dev, shuffle=False, use_weights=False, wrap=REDPAJAMA_SETTING, **kwargs)
     )
 
 def create_dataloader(
@@ -119,7 +121,7 @@ def create_dataloader(
 
         kwargs = dict(
             filenames=filenames,
-            n_chunks=len(filenames),
+            n_chunks=1 if REDPAJAMA_SETTING else len(filenames),
             block_size=effective_block_size,
             shuffle=shuffle,
             seed=seed,
@@ -149,7 +151,6 @@ def create_dataloader(
     if use_weights:
         if wrap:
             combined_dataset = CombinedDataset(datasets=datasets, seed=seed, weights=weights)
-            datasets = datasets_nowrap
         else:
             combined_dataset = InfiniteCombinedDataset(datasets=datasets, seed=seed, weights=weights)
     else:
@@ -161,7 +162,7 @@ def create_dataloader(
         return {
             "combined_dataset": combined_dataset,
             "pseudos": pseudos,
-            "datasets": datasets,
+            "datasets": datasets_nowrap if wrap else datasets,
         }
     return combined_dataset
 
