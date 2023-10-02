@@ -45,14 +45,15 @@ def create_dataloaders(
 
     prefixes_dev = [p for p in all_prefixes if "--DEV" in p]
     prefixes_train = [p for p in all_prefixes if p not in prefixes_dev]
-    assert len(prefixes_dev) > 0, "No dev set found"
-    assert len(prefixes_train) > 0, "No train set found"
 
     if try_small:
         prefixes_train = [p for p in prefixes_train if ("EN--ASR-ETELECSC" in p or "FR--ParisStories" in p or "FR--UBS" in p)]
         prefixes_dev = [p for p in prefixes_dev if ("SUMM-RE" in p or "OFROM" in p)]
-        assert len(prefixes_dev) > 0, "No dev set found"
-        assert len(prefixes_train) > 0, "No train set found"
+        if len(prefixes_dev) == 0:
+            prefixes_dev = prefixes_train
+
+    assert len(prefixes_dev) > 0, "No dev set found"
+    assert len(prefixes_train) > 0, "No train set found"
 
     kwargs = dict(
         batch_size=batch_size,
@@ -178,21 +179,29 @@ if __name__ == "__main__":
 
     """Test the dataset."""
 
+    import random
+    import argparse
+    parser = argparse.ArgumentParser("Test dataset iterator")
+    parser.add_argument("path", type=str, default=DEFAULT_PATH, nargs="?")
+    parser.add_argument("checkpoint_dir", type=str, default="/gpfswork/rech/qgz/commun/Claire/checkpoints/tiiuae/falcon-7b", nargs="?")
+    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--max_batches", type=int, default=1000)
+    parser.add_argument("--seed", type=int, default=random.randint(1, 1000))
+    args = parser.parse_args()
+
     from lit_gpt.tokenizer import Tokenizer
     from pathlib import Path
     import torch
-    import random
     import time
 
-    batch_size = 4
-    max_batches = 1000
-    shuffle = True
-    seed = random.randint(1, 1000)
+    batch_size = args.batch_size
+    max_batches = args.max_batches
+    shuffle = bool(args.seed)
+    seed = args.seed
     try_small = True
 
-    checkpoint_dir = "/gpfswork/rech/qgz/commun/Claire/checkpoints/tiiuae/falcon-7b"
+    checkpoint_dir = args.checkpoint_dir
     tokenizer = Tokenizer(Path(checkpoint_dir))
-    effective_block_size = 2048
 
     import hashlib
     import pickle
@@ -204,9 +213,9 @@ if __name__ == "__main__":
     # Get the dataset
     tic = time.time()
     train_details, dev_details = create_dataloaders(
+        path=args.path,
         try_small=try_small,
         return_details=True,
-        effective_block_size=effective_block_size,
         batch_size=batch_size,
         shuffle=shuffle,
         seed=seed,
@@ -225,18 +234,18 @@ if __name__ == "__main__":
             all_datas.append([])
             for s in d:
                 all_datas[-1].append(hashmd5(s))
-        NULL_DATA = hashmd5(torch.tensor([tokenizer.eos_id] * effective_block_size, dtype=torch.int64))
+        NULL_DATA = hashmd5(torch.tensor([tokenizer.eos_id] * 2049, dtype=torch.int64)) # 2049 hardcoded
 
         # Sample the combined dataset
         sample_indices = []
         stats = {}
         tic = time.time()
         useless_computation_time = 0
-        for ibatch, batch in tqdm(enumerate(combined_dataset), total=max_batches):
+        for ibatch, batch in tqdm(enumerate(combined_dataset), total=args.max_batches):
             if ibatch == 0:
                 toc = time.time()
             subtic = time.time()
-            if ibatch >= max_batches:
+            if ibatch >= args.max_batches:
                 break
             new_batch = []
             for sample in batch:
