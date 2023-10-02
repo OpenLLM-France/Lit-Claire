@@ -6,7 +6,7 @@
 #SBATCH --ntasks-per-node=2
 #SBATCH --nodes=1
 #SBATCH --hint=nomultithread
-#SBATCH --time=00:10:00
+#SBATCH --time=00:20:00
 #SBATCH --qos=qos_gpu-dev
 #SBATCH --cpus-per-task=4
 #SBATCH -C a100
@@ -22,6 +22,9 @@ set -x
 
 # execute script
 srun python pretrain_lora.py \
+--devices 2 \
+--num_nodes 1 \
 --data_dir $SCRATCH/../commun/lit-redpajama-sample \
 --checkpoint_dir $WORK/../commun/Claire/checkpoints/tiiuae/falcon-7b \
---precision bf16-true
+--out_dir out/lora/Claire \
+--precision bf16-true \

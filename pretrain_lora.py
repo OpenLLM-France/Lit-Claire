@@ -30,8 +30,8 @@ from utils.redpajama_data import create_dataloaders
 
 
 # Action to be taken per n iteration
-eval_interval = 20
-save_interval = 10
+eval_interval = 40
+save_interval = 40
 log_interval = 1
 
 # Learning rate
@@ -47,7 +47,7 @@ assert gradient_accumulation_iters > 0
 
 # Iteration cap, 1 epoch = total number of samples / micro_batch_size
 max_iters = 200
-max_eval_iters = 100
+max_eval_iters = 20
 
 # LORA
 lora_r = 8
