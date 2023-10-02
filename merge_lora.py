@@ -1,6 +1,7 @@
 """This script merges the LoRA weights with the base model"""
 
 import sys
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -8,27 +9,16 @@ import lightning as L
 import torch
 
 # support running without installing as a package
-wd = Path(__file__).parent.parent.resolve()
-sys.path.append(str(wd))
+wd = Path(__file__).parent.resolve()
+sys.path = [str(wd / "lit_gpt")] + sys.path # Prepend to PYTHONPATH
 
 from lit_gpt.lora import GPT, Config, lora_filter, merge_lora_weights
 from lit_gpt.utils import check_valid_checkpoint_dir, get_default_supported_precision, lazy_load
 
-lora_r = 8
-lora_alpha = 16
-lora_dropout = 0.05
-lora_query = True
-lora_key = False
-lora_value = True
-lora_projection = False
-lora_mlp = False
-lora_head = False
-
 
 def merge_lora(
-    lora_path: Path = Path("out/lora/alpaca/lit_model_lora_finetuned.pth"),
-    checkpoint_dir: Path = Path("checkpoints/stabilityai/stablelm-base-alpha-3b"),
-    out_dir: Path = Path("out/lora/checkpoint"),
+    checkpoint_dir: Path = Path("checkpoints/tiiuae/falcon-7b"),
+    out_dir: Path = Path("out/lora/Claire"),
     precision: Optional[str] = None,
 ) -> None:
     """Generates a response based on a given instruction and an optional input.
@@ -47,19 +37,14 @@ def merge_lora(
 
     check_valid_checkpoint_dir(checkpoint_dir)
 
+    with open(out_dir / "lora_config.json", "r") as file:
+        lora_config = json.load(file)
     config = Config.from_json(
         checkpoint_dir / "lit_config.json",
-        r=lora_r,
-        alpha=lora_alpha,
-        dropout=lora_dropout,
-        to_query=lora_query,
-        to_key=lora_key,
-        to_value=lora_value,
-        to_projection=lora_projection,
-        to_mlp=lora_mlp,
-        to_head=lora_head,
+        **lora_config
     )
 
+    lora_path = out_dir / "lit_model_lora_finetuned.pth"
     with fabric.init_module(empty_init=True):
         model = GPT(config)
     checkpoint_path = checkpoint_dir / "lit_model.pth"
