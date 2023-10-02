@@ -180,9 +180,10 @@ def train(
     val_dataloader: DataLoader,
     out_dir: Path,
     speed_monitor: SpeedMonitor,
+    sanity_check: bool = True,
 ) -> None:
-    if val_dataloader is not None:
-        sanity_check_val_loss = validate(fabric, model, val_dataloader)  # sanity check
+    if val_dataloader is not None and sanity_check is True:
+        sanity_check_val_loss = validate(fabric, model, val_dataloader)
         fabric.print({"sanity check val loss:", f"{sanity_check_val_loss.item():.4f}"})
 
     with torch.device("meta"):
