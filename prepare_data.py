@@ -196,6 +196,8 @@ def prepare(
 
     config_file = checkpoint_dir / "lit_config.json"
     config = Config.from_json(config_file)
+
+    destination_path.mkdir(parents=True, exist_ok=True)
     shutil.copy2(config_file, destination_path / "lit_config.json")
 
     effective_block_size = config.block_size + 1
