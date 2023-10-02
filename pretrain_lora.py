@@ -25,8 +25,8 @@ from lit_gpt.utils import (
     step_csv_logger,
 )
 
-# from utils.data import create_dataloaders
-from utils.redpajama_data import create_dataloaders
+from utils.data import create_dataloaders
+# from utils.redpajama_data import create_dataloaders
 
 
 # Action to be taken per n iteration
@@ -115,26 +115,26 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path):
         to_head=lora_head,
     )
 
-    # train_dataloader, val_dataloader = create_dataloaders(
-    #     batch_size=micro_batch_size,
-    #     path=data_dir,
-    #     block_size=config.block_size,
-    #     shuffle=True,
-    #     num_processes=fabric.world_size,
-    #     process_rank=fabric.global_rank,
-    #     seed=(1337 + fabric.global_rank),
-    #     verbose=True,
-    #     try_small=False,
-    #     return_details=False,
-    # )
     train_dataloader, val_dataloader = create_dataloaders(
         batch_size=micro_batch_size,
-        block_size=config.block_size,
-        fabric=fabric,
-        train_data_dir=data_dir,
-        val_data_dir=data_dir,
+        path=data_dir,
+        shuffle=True,
+        num_processes=fabric.world_size,
+        process_rank=fabric.global_rank,
         seed=(1337 + fabric.global_rank),
+        verbose=True,
+        try_small=False,
+        return_details=False,
     )
+    # train_dataloader, val_dataloader = create_dataloaders(
+    #     batch_size=micro_batch_size,
+    #     block_size=config.block_size,
+    #     fabric=fabric,
+    #     train_data_dir=data_dir,
+    #     val_data_dir=data_dir,
+    #     seed=(1337 + fabric.global_rank),
+    # )
+
     if val_dataloader is None:
         train_dataloader = fabric.setup_dataloaders(train_dataloader)
     else:
