@@ -20,9 +20,17 @@ pip install --user --no-cache-dir -r requirements.txt
 ```
 
 ### download then convert Hugging Face model to Lit-GPT format
+
+For Falcon-7B:
 ```
 python lit_gpt/scripts/download.py --repo_id tiiuae/falcon-7b
 python lit_gpt/scripts/convert_hf_checkpoint.py --checkpoint_dir checkpoints/tiiuae/falcon-7b
+```
+
+For Mistral-7B:
+```
+python lit_gpt/scripts/download.py --repo_id mistralai/Mistral-7B-v0.1
+python lit_gpt/scripts/convert_hf_checkpoint.py --checkpoint_dir checkpoints/mistralai/Mistral-7B-v0.1
 ```
 
 ### prepare data

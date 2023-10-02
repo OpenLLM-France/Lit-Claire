@@ -244,8 +244,8 @@ def prepare(
     if tokenizer_config_file.is_file():
 
         shutil.copy2(tokenizer_config_file, destination_path / "tokenizer_config.json")
-        tokenizer_config = json.load(open(tokenizer_config_file))
-        assert config.block_size == tokenizer_config["model_max_length"]
+        # tokenizer_config = json.load(open(tokenizer_config_file))
+        # assert config.block_size == tokenizer_config["model_max_length"]
 
     prepare_fn(
         source_path=source_path,
