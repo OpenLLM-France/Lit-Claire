@@ -12,11 +12,6 @@ sys.path = [str(wd / "lit_gpt")] + sys.path # Prepend to PYTHONPATH
 from lit_gpt.packed_dataset import CombinedDataset, PackedDataset
 
 
-# Hyperparameters
-batch_size = 125
-micro_batch_size = 6
-
-
 # Data proportions from https://arxiv.org/pdf/2302.13971.pdf Table 1
 data_config = [
     ("arxiv", 2.5),

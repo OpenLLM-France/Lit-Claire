@@ -23,4 +23,5 @@ set -x
 # execute script
 srun python pretrain_lora.py \
 --data_dir $SCRATCH/../commun/lit-redpajama-sample \
---checkpoint_dir $WORK/../commun/Claire/checkpoints/tiiuae/falcon-7b
+--checkpoint_dir $WORK/../commun/Claire/checkpoints/tiiuae/falcon-7b \
+--precision bf16-true

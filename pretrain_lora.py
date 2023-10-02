@@ -2,7 +2,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Literal, Optional, Union
+from typing import Optional
 
 import lightning as L
 import torch
@@ -22,30 +22,34 @@ from lit_gpt.utils import (
     get_default_supported_precision,
     load_checkpoint,
     num_parameters,
-    quantization,
     step_csv_logger,
 )
 
 # from utils.data import create_dataloaders
 from utils.redpajama_data import create_dataloaders
 
-eval_interval = 1000
-save_interval = 1000
-eval_iters = 100
+
+# Action to be taken per n iteration
+eval_interval = 20
+save_interval = 10
 log_interval = 1
 
-
-# Hyperparameters
+# Learning rate
 learning_rate = 3e-4
-batch_size = 128
+warmup_steps = 2  # note: this is based on step, not iteration
+weight_decay = 0.01
+
+# Batch
+batch_size = 8
 micro_batch_size = 4
 gradient_accumulation_iters = batch_size // micro_batch_size
 assert gradient_accumulation_iters > 0
 
-max_iters = 50000
-weight_decay = 0.01
-warmup_steps = 100
+# Iteration cap, 1 epoch = total number of samples / micro_batch_size
+max_iters = 200
+max_eval_iters = 100
 
+# LORA
 lora_r = 8
 lora_alpha = 16
 lora_dropout = 0.05
@@ -56,7 +60,6 @@ lora_projection = False
 lora_mlp = False
 lora_head = False
 
-
 hparams = {k: v for k, v in locals().items() if isinstance(v, (int, float, str)) and not k.startswith("_")}
 
 
@@ -65,19 +68,12 @@ def setup(
     num_nodes: int = 1,
     data_dir: Path = Path("data/preprocessed_data"),
     checkpoint_dir: Path = Path("checkpoints/tiiuae/falcon-7b"),
-    out_dir: Path = Path("out/lora/claire"),
+    out_dir: Path = Path("out/lora/Claire"),
     precision: Optional[str] = None,
-    quantize: Optional[Literal["bnb.nf4", "bnb.nf4-dq", "bnb.fp4", "bnb.fp4-dq"]] = None,
-    resume: Union[bool, Path] = False,
 ):
     precision = precision or get_default_supported_precision(training=True)
 
     if devices > 1 or num_nodes > 1:
-        if quantize:
-            raise NotImplementedError(
-                "Quantization is currently not supported for multi-GPU training. "
-                "Please set devices=1 when using the --quantization flag."
-            )
         strategy = FSDPStrategy(
             auto_wrap_policy={Block},
             activation_checkpointing_policy={Block},
@@ -91,10 +87,10 @@ def setup(
     logger = step_csv_logger(out_dir.parent, out_dir.name, flush_logs_every_n_steps=log_interval)
     fabric = L.Fabric(devices=devices, num_nodes=num_nodes, strategy=strategy, precision=precision, loggers=logger)
     fabric.print(hparams)
-    fabric.launch(main, data_dir, checkpoint_dir, out_dir, quantize, resume)
+    fabric.launch(main, data_dir, checkpoint_dir, out_dir)
 
 
-def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, quantize: Optional[str] = None, resume: Union[bool, Path] = False):
+def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path):
     check_valid_checkpoint_dir(checkpoint_dir)  # check if there is lit-gpt format model
 
     speed_monitor = SpeedMonitor(fabric, window_size=50, time_unit="seconds")
@@ -103,10 +99,10 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
 
     if fabric.global_rank == 0:
         os.makedirs(out_dir, exist_ok=True)
-
+    
     if not any((lora_query, lora_key, lora_value, lora_projection, lora_mlp, lora_head)):
         fabric.print("Warning: all LoRA layers are disabled!")
-    config = Config.from_name(
+    config = Config.from_name(  # TODO
         name=checkpoint_dir.name,
         r=lora_r,
         alpha=lora_alpha,
@@ -145,46 +141,34 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
         train_dataloader, val_dataloader = fabric.setup_dataloaders(train_dataloader, val_dataloader)
 
     checkpoint_path = checkpoint_dir / "lit_model.pth"
-    if resume is True:
-        checkpoint_path = out_dir / sorted(out_dir.glob("*.pth"))[-1]
 
     fabric.print(f"Loading model {str(checkpoint_path)!r} with {config.__dict__}")
-    with fabric.init_module(empty_init=True), quantization(quantize):
+    with fabric.init_module(empty_init=True):
         model = GPT(config)
     mark_only_lora_as_trainable(model)
 
     fabric.print(f"Number of trainable parameters: {num_parameters(model, requires_grad=True):,}")
     fabric.print(f"Number of non trainable parameters: {num_parameters(model, requires_grad=False):,}")
 
-    if quantize:
-        # for quantization, need to load before moving to device
-        load_checkpoint(fabric, model, checkpoint_path, strict=False)
-
     model = fabric.setup_module(model)
 
     trainable_params = [p for p in model.parameters() if p.requires_grad]
-    if quantize and quantize.startswith("bnb."):
-        import bitsandbytes as bnb
-
-        optimizer = bnb.optim.PagedAdamW(trainable_params, lr=learning_rate, weight_decay=weight_decay)
-    else:
-        optimizer = torch.optim.AdamW(trainable_params, lr=learning_rate, weight_decay=weight_decay)
+    optimizer = torch.optim.AdamW(trainable_params, lr=learning_rate, weight_decay=weight_decay)  # TODO: check foreach=False
     optimizer = fabric.setup_optimizers(optimizer)
 
-    if not quantize:
-        # strict=False because missing keys due to LoRA weights not contained in state dict
-        load_checkpoint(fabric, model, checkpoint_path, strict=False)
+    # strict=False because missing keys due to LoRA weights not contained in state dict
+    load_checkpoint(fabric, model, checkpoint_path, strict=False)
 
     fabric.seed_everything(1337 + fabric.global_rank)
 
     train_time = time.perf_counter()
-    train(fabric, model, optimizer, train_dataloader, val_dataloader, checkpoint_dir, out_dir, speed_monitor)
+    train(fabric, model, optimizer, train_dataloader, val_dataloader, out_dir, speed_monitor)
     fabric.print(f"Training time: {(time.perf_counter()-train_time):.2f}s")
     if fabric.device.type == "cuda":
         fabric.print(f"Memory used: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
     # Save the final LoRA checkpoint at the end of training
-    save_path = out_dir / "lit_model_lora_finetuned.pth"
+    save_path = out_dir / "lit_model_lora_finetuned.pth"  # TODO
     save_lora_checkpoint(fabric, model, save_path)
 
 
@@ -194,7 +178,6 @@ def train(
     optimizer: torch.optim.Optimizer,
     train_dataloader: DataLoader,
     val_dataloader: DataLoader,
-    checkpoint_dir: Path,
     out_dir: Path,
     speed_monitor: SpeedMonitor,
 ) -> None:
@@ -237,12 +220,12 @@ def train(
 
         is_accumulating = (iter_num + 1) % gradient_accumulation_iters != 0
         with fabric.no_backward_sync(model, enabled=is_accumulating):
-            logits = model(input_ids, lm_head_chunk_size=128)  # check what is lm_head_chunk_size
-            loss = chunked_cross_entropy(logits, targets)
+            logits = model(input_ids, lm_head_chunk_size=128)  # TODO: check lm_head_chunk_size
+            loss = chunked_cross_entropy(logits, targets)  # TODO: check chunk_size
             fabric.backward(loss / gradient_accumulation_iters)
 
         if not is_accumulating:
-            # fabric.clip_gradients(model, optimizer, max_norm=grad_clip)
+            # TODO: fabric.clip_gradients(model, optimizer, max_norm=grad_clip)
             optimizer.step()
             optimizer.zero_grad()
             step_count += 1
@@ -262,13 +245,15 @@ def train(
                 f"iter {iter_num} step {step_count}: loss {loss.item():.4f}, iter time:"
                 f" {(t1 - iter_t0) * 1000:.2f}ms{' (optimizer.step)' if not is_accumulating else ''}"
             )
+            fabric.logger.log_metrics({"loss": f"{loss.item():.4f}"})
 
         if val_dataloader is not None and not is_accumulating and step_count % eval_interval == 0:
             t0 = time.perf_counter()
             val_loss = validate(fabric, model, val_dataloader)
             t1 = time.perf_counter() - t0
             speed_monitor.eval_end(t1)
-            fabric.print(f"step {iter_num}: val loss {val_loss.item():.4f}, val time: {t1 * 1000:.2f}ms")
+            fabric.print(f"iter {iter_num}: val loss {val_loss.item():.4f}, val time: {t1 * 1000:.2f}ms")
+            fabric.logger.log_metrics({"val_loss": f"{val_loss.item():.4f}"})
             fabric.barrier()
         if not is_accumulating and step_count % save_interval == 0:
             checkpoint_path = out_dir / f"iter-{iter_num:06d}-ckpt.pth"
@@ -282,12 +267,14 @@ def validate(
     fabric.print("Validating ...")
     model.eval()
 
-    losses = torch.zeros(eval_iters, device=fabric.device)
-    for k, val_data in enumerate(val_dataloader):
+    losses = torch.zeros(max_eval_iters, device=fabric.device)
+    for eval_iter_num, val_data in enumerate(val_dataloader):
+        if eval_iter_num >= max_eval_iters:
+            break
         input_ids = val_data[:, 0 : model.max_seq_length].contiguous()
         targets = val_data[:, 1 : model.max_seq_length + 1].contiguous()
         logits = model(input_ids, lm_head_chunk_size=128)
-        losses[k] = chunked_cross_entropy(logits, targets)
+        losses[eval_iter_num] = chunked_cross_entropy(logits, targets)
     val_loss = losses.mean()
 
     model.train()
