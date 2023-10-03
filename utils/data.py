@@ -26,6 +26,7 @@ def create_dataloaders(
     process_rank=0,
     wrap_train=True,
     wrap_validation=True,
+    max_validation_samples=None,
     seed=51,
     verbose=True,
     try_small=False,
@@ -47,8 +48,9 @@ def create_dataloaders(
     prefixes_train = [p for p in all_prefixes if p not in prefixes_dev]
 
     if try_small:
-        prefixes_train = [p for p in prefixes_train if ("EN--ASR-ETELECSC" in p or "FR--ParisStories" in p or "FR--UBS" in p)]
-        prefixes_dev = [p for p in prefixes_dev if ("SUMM-RE" in p or "OFROM" in p or "EN--ASR-ETELECSC" in p)]
+        selection = ["ACSYNT", "SUMM-RE", "FreD", "OFROM"]
+        prefixes_train = [p for p in prefixes_train if any([s in p for s in selection])]
+        prefixes_dev = [p for p in prefixes_dev if any([s in p for s in selection])]
         if len(prefixes_dev) == 0:
             prefixes_dev = prefixes_train
 
@@ -68,7 +70,7 @@ def create_dataloaders(
 
     return (
         create_dataloader(prefixes=prefixes_train, shuffle=shuffle, wrap=wrap_train, **kwargs),
-        create_dataloader(prefixes=prefixes_dev, shuffle=False, use_weights=False, wrap=wrap_validation, **kwargs)
+        create_dataloader(prefixes=prefixes_dev, shuffle=False, use_weights=False, wrap=wrap_validation, max_samples=max_validation_samples, **kwargs)
     )
 
 def create_dataloader(
@@ -83,28 +85,36 @@ def create_dataloader(
     seed=51,
     verbose=True,
     return_details=False,
-    try_small=False,
     use_weights=True,
     use_progress_bar=True,
+    max_samples=None,
 ):
     if prefixes is None:
-        if try_small:
-            prefixes = ["EN--ASR-ETELECSC", "FR--ParisStories", "FR--UBS"]
-        else:
-            prefixes = list(set(
-                [get_filename_prefix(filename) for filename in os.listdir(path) \
-                if os.path.isfile(os.path.join(path, filename)) and filename.endswith(".bin")]
-            ))
+        prefixes = list(set(
+            [get_filename_prefix(filename) for filename in os.listdir(path) \
+            if os.path.isfile(os.path.join(path, filename)) and filename.endswith(".bin")]
+        ))
 
     datasets = []
     datasets_nowrap = []
     weights = []
-    pseudos = []
     num_samples_per_dataset = []
+    metadatas = []
     for prefix in prefixes:
-        filenames = glob.glob(os.path.join(path, f"{prefix}*.bin"))
-        assert len(filenames) > 0, f"No files found for prefix {prefix} in {path}"
+        
+        if isinstance(prefix, str):
+            filenames = glob.glob(os.path.join(path, f"{prefix}*.bin"))
+            assert len(filenames) > 0, f"No files found in {path} (for prefix: {prefix})"
 
+            metadata_file = os.path.join(path, f"{prefix}_metadata.json")
+            assert os.path.isfile(metadata_file), f"Metadata file {metadata_file} does not exist"
+            with open(metadata_file, "r") as f:
+                metadata = json.load(f)
+        else:
+            # See below: when recursive call to reach a maximum number of samples
+            assert isinstance(prefix, dict)
+            filenames = prefix["filenames"]
+            metadata = prefix["metadata"]
 
         # DEPRECATED: some metadata depends on how the files were created (number of segments, etc.)
         # try:
@@ -112,10 +122,7 @@ def create_dataloader(
         # except Exception as e:
         #     raise RuntimeError(f"Error while getting metadata for {filenames[0]}") from e
 
-        metadata_file = os.path.join(path, f"{prefix}_metadata.json")
-        assert os.path.isfile(metadata_file), f"Metadata file {metadata_file} does not exist"
-        with open(metadata_file, "r") as f:
-            metadata = json.load(f)
+        metadatas.append(metadata)
 
         # Get the weight
         if use_weights:
@@ -124,10 +131,6 @@ def create_dataloader(
             # Only for reporting
             weights.append(metadata["num_samples"])
 
-        # Only for printing information
-        pseudos.append(metadata["dataset"])
-
-        # A bit dirty...
         num_samples = metadata["num_samples_rounded"]
         num_samples_per_dataset.append(num_samples)
 
@@ -155,24 +158,76 @@ def create_dataloader(
     sum_weights = sum(weights)
     weights = [el / sum_weights for el in weights]
 
+    # Get totals
+    total_samples_with_padding = sum(num_samples_per_dataset)
+    total_samples = sum([metadata["num_samples"] for metadata in metadatas])
+
+    # Print proportions and weights
     if verbose:
-        print(f"Dataset composition:")
-        for w, p in sorted(zip(weights, pseudos)):
-            print(f"* {p:30}: {w*100} %")
+        print(f"Dataset composition ({total_samples} samples):")
+        for w, metadata in sorted(zip(weights, metadatas)):
+            ratio = metadata["num_samples"] / total_samples
+            if use_weights:
+                w_string = f" -- weights = {w*100:5.2f} %"
+            else:
+                w_string = ""
+            print(f"* {metadata['dataset']:30}: {ratio*100:5.2f} % ({metadata['num_samples']} samples){w_string}")
+
+    # Cut data if higher than max_samples
+    if max_samples and max_samples < total_samples_with_padding:
+        assert not use_weights, "Cannot use weights and max_samples at the same time"
+
+        # We'll take the first samples of each dataset until we reach max_samples
+        max_samples_per_dataset = max_samples / len(datasets)
+
+        new_prefixes = []
+        for prefix, metadata in zip(prefixes, metadatas):
+            filenames = glob.glob(os.path.join(path, f"{prefix}*.bin"))
+            assert len(filenames) > 0
+            num_files = max(1, int((len(filenames) * max_samples_per_dataset) // metadata["num_samples"]))
+            num_samples = num_files * metadata["num_samples_per_file"]
+            new_prefixes.append({
+                "filenames": filenames[:num_files],
+                "metadata": metadata | {
+                    "num_samples": num_samples,
+                    "num_samples_rounded": num_samples,
+                    "num_files": num_files,
+                    "num_padded" : metadata["num_padded"] if (num_files == len(filenames)) else 0,
+                },
+            })
+
+        return create_dataloader(
+            path,
+            max_samples=None,
+            prefixes=new_prefixes,
+            # Rest of the arguments are the same
+            effective_block_size=effective_block_size,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            num_processes=num_processes,
+            process_rank=process_rank,
+            wrap=wrap,
+            seed=seed,
+            verbose=verbose,
+            return_details=return_details,
+            use_weights=use_weights,
+            use_progress_bar=use_progress_bar,
+        )
 
     # Combine datasets
     if use_weights:
         combined_dataset = CombinedDataset(datasets=datasets, seed=seed, weights=weights)
         epoch_size = sum([w*s for (w,s) in zip(weights, num_samples_per_dataset)])
     else:
-        epoch_size = sum(num_samples_per_dataset)
+        epoch_size = total_samples_with_padding
         combined_dataset = ConcatenatedDataset(datasets=datasets, num_samples=epoch_size if use_progress_bar else None)
 
     combined_dataset = DataLoader(combined_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
 
+    # Return results
     if return_details:
         return combined_dataset, {
-            "pseudos": pseudos,
+            "pseudos": [metadata["dataset"] for metadata in metadatas],
             "datasets": datasets_nowrap if wrap else datasets,
             "num_samples_per_dataset": num_samples_per_dataset,
             "epoch_size": epoch_size,
@@ -226,6 +281,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--max_batches", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=random.randint(1, 1000))
+    parser.add_argument("--max_validation_samples", type=int, default=None, help="Maximum number of validation samples (approximative)")
     args = parser.parse_args()
 
     from lit_gpt.tokenizer import Tokenizer
@@ -253,6 +309,7 @@ if __name__ == "__main__":
     tic = time.time()
     train_details, dev_details = create_dataloaders(
         path=args.path,
+        max_validation_samples=args.max_validation_samples,
         try_small=try_small,
         return_details=True,
         batch_size=batch_size,
