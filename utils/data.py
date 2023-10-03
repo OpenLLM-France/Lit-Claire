@@ -2,6 +2,7 @@ import glob
 import os
 import sys
 import json
+import math
 from tqdm import tqdm
 
 from torch.utils.data import DataLoader
@@ -89,6 +90,7 @@ def create_dataloader(
     use_progress_bar=True,
     max_samples=None,
 ):
+    assert num_processes > 0, "num_processes must be > 0"
     if prefixes is None:
         prefixes = list(set(
             [get_filename_prefix(filename) for filename in os.listdir(path) \
@@ -116,13 +118,8 @@ def create_dataloader(
             filenames = prefix["filenames"]
             metadata = prefix["metadata"]
 
-        # DEPRECATED: some metadata depends on how the files were created (number of segments, etc.)
-        # try:
-        #     metadata = get_metadata(filenames[0])
-        # except Exception as e:
-        #     raise RuntimeError(f"Error while getting metadata for {filenames[0]}") from e
-
-        metadatas.append(metadata)
+        assert len(filenames) % num_processes == 0, \
+            f"Number of files ({len(filenames)}) must be a multiple of the number of processes ({num_processes}) : not fullfilled for {prefix}"
 
         # Get the weight
         if use_weights:
@@ -134,13 +131,21 @@ def create_dataloader(
         num_samples = metadata["num_samples_rounded"]
         num_samples_per_dataset.append(num_samples)
 
+        n_chunks = max(1, len(filenames) // num_processes)
+        num_processes_this = min(num_processes, len(filenames))
+        metadata.update({
+            "num_files": len(filenames),
+            "n_chunks": n_chunks,
+            "num_processes": num_processes_this,
+        })
+
         kwargs = dict(
             filenames=filenames,
-            n_chunks=1, # len(filenames), # TODO: clarify that
+            n_chunks=n_chunks,
             block_size=effective_block_size,
             shuffle=shuffle,
             seed=seed,
-            num_processes=num_processes,
+            num_processes=num_processes_this,
             process_rank=process_rank,
         )
 
@@ -153,6 +158,8 @@ def create_dataloader(
             **kwargs,
             wrap=False,
         ))
+
+        metadatas.append(metadata)
 
     # Normalize the weights
     sum_weights = sum(weights)
@@ -167,11 +174,13 @@ def create_dataloader(
         print(f"Dataset composition ({total_samples} samples):")
         for w, metadata in sorted(zip(weights, metadatas)):
             ratio = metadata["num_samples"] / total_samples
+            detail_string = ""
             if use_weights:
-                w_string = f" -- weights = {w*100:5.2f} %"
-            else:
-                w_string = ""
-            print(f"* {metadata['dataset']:30}: {ratio*100:5.2f} % ({metadata['num_samples']} samples){w_string}")
+                detail_string += f" -- weights = {w*100:5.2f} %"
+            detail_string += f" -- {metadata['num_files']} files"
+            detail_string += f" / {metadata['n_chunks']} chunks"
+            detail_string += f" / {metadata['num_processes']} processes"
+            print(f"* {metadata['dataset']:30}: {ratio*100:5.2f} % ({metadata['num_samples']} samples){detail_string}")
 
     # Cut data if higher than max_samples
     if max_samples and max_samples < total_samples_with_padding:
@@ -185,6 +194,8 @@ def create_dataloader(
             filenames = glob.glob(os.path.join(path, f"{prefix}*.bin"))
             assert len(filenames) > 0
             num_files = max(1, int((len(filenames) * max_samples_per_dataset) // metadata["num_samples"]))
+            # The number of files must be a multiple of the number of processes
+            num_files = min(math.ceil(num_files / num_processes) * num_processes, len(filenames))
             num_samples = num_files * metadata["num_samples_per_file"]
             new_prefixes.append({
                 "filenames": filenames[:num_files],
@@ -192,7 +203,7 @@ def create_dataloader(
                     "num_samples": num_samples,
                     "num_samples_rounded": num_samples,
                     "num_files": num_files,
-                    "num_padded" : metadata["num_padded"] if (num_files == len(filenames)) else 0,
+                    "num_padded" : metadata["num_padded"] if (num_files == len(filenames)) else 0, # Only last file can contain padded-only tensors
                 },
             })
 
@@ -227,9 +238,8 @@ def create_dataloader(
     # Return results
     if return_details:
         return combined_dataset, {
-            "pseudos": [metadata["dataset"] for metadata in metadatas],
+            "metadata": metadatas,
             "datasets": datasets_nowrap if wrap else datasets,
-            "num_samples_per_dataset": num_samples_per_dataset,
             "epoch_size": epoch_size,
         }
     return combined_dataset
@@ -281,7 +291,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--max_batches", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=random.randint(1, 1000))
-    parser.add_argument("--max_validation_samples", type=int, default=None, help="Maximum number of validation samples (approximative)")
+    parser.add_argument("--try_small", default=False, action="store_true")
     args = parser.parse_args()
 
     from lit_gpt.tokenizer import Tokenizer
@@ -293,9 +303,12 @@ if __name__ == "__main__":
     max_batches = args.max_batches
     shuffle = bool(args.seed)
     seed = args.seed
-    try_small = True
+    try_small = args.try_small
+
+    max_validation_samples = 200 if try_small else 4000
 
     checkpoint_dir = args.checkpoint_dir
+    assert os.path.isdir(checkpoint_dir), f"Checkpoint dir {checkpoint_dir} does not exist"
     tokenizer = Tokenizer(Path(checkpoint_dir))
 
     import hashlib
@@ -309,7 +322,7 @@ if __name__ == "__main__":
     tic = time.time()
     train_details, dev_details = create_dataloaders(
         path=args.path,
-        max_validation_samples=args.max_validation_samples,
+        max_validation_samples=max_validation_samples,
         try_small=try_small,
         return_details=True,
         batch_size=batch_size,
@@ -322,7 +335,7 @@ if __name__ == "__main__":
     for combined_dataset, details in [train_details, dev_details]:
 
         datasets = details["datasets"]
-        pseudos = details["pseudos"]
+        pseudos = [m["dataset"] for m in details["metadata"]]
 
         # Collect all the data from each dataset naively
         all_datas = []
