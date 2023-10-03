@@ -24,7 +24,7 @@ set -x
 srun python pretrain_lora.py \
 --devices 2 \
 --num_nodes 1 \
---data_dir $SCRATCH/../commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae--falcon-7b \
+--data_dir $SCRATCH/../commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae/falcon-7b \
 --checkpoint_dir $WORK/../commun/Claire/checkpoints/tiiuae/falcon-7b \
 --out_dir out/lora/Claire \
 --precision bf16-true \

@@ -36,9 +36,9 @@ python lit_gpt/scripts/convert_hf_checkpoint.py --checkpoint_dir checkpoints/mis
 ### prepare data
 ```
 python prepare_data.py \
-    --source_path       $WORK/../commun/Corpus_text/MULTILANG/OpenLLM \
+    --source_path       $WORK/../commun/Claire/data_raw/full \
     --checkpoint_dir    $WORK/../commun/Claire/checkpoints/tiiuae/falcon-7b \
-    --destination_path  $SCRATCH/../commun/preprocessed_data/Claire/falcon-7b
+    --destination_path  $SCRATCH/../commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae/falcon-7b
 ```
 
 ### launch training

@@ -18,11 +18,9 @@ from utils.metadata import get_metadata, get_filename_prefix
 from lit_gpt.packed_dataset import CombinedDataset, PackedDataset
 from lit_gpt.config import Config
 
-DEFAULT_PATH="/gpfsscratch/rech/qgz/commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae--falcon-7b/"
-
 def create_dataloaders(
+    path,
     batch_size=32,
-    path=DEFAULT_PATH,
     shuffle=True,
     num_processes=1,
     process_rank=0,
@@ -58,8 +56,8 @@ def create_dataloaders(
     assert len(prefixes_train) > 0, "No train set found"
 
     kwargs = dict(
-        batch_size=batch_size,
         path=path,
+        batch_size=batch_size,
         effective_block_size=effective_block_size,
         num_processes=num_processes,
         process_rank=process_rank,
@@ -74,9 +72,9 @@ def create_dataloaders(
     )
 
 def create_dataloader(
+    path,
     effective_block_size,
     batch_size=32,
-    path=DEFAULT_PATH,
     prefixes=None,
     shuffle=True,
     num_processes=1,
@@ -222,7 +220,7 @@ if __name__ == "__main__":
     import random
     import argparse
     parser = argparse.ArgumentParser("Test dataset iterator")
-    parser.add_argument("path", type=str, default=DEFAULT_PATH, nargs="?")
+    parser.add_argument("path", type=str, default="/gpfsscratch/rech/qgz/commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae/falcon-7b/", nargs="?")
     parser.add_argument("checkpoint_dir", type=str, default="/gpfswork/rech/qgz/commun/Claire/checkpoints/tiiuae/falcon-7b", nargs="?")
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--max_batches", type=int, default=1000)
