@@ -135,6 +135,7 @@ def prepare_fn(
                     "num_samples_per_file" : num_segments_per_file,
                     "num_files" : num_files,
                     "num_padded" : num_padded,
+                    "block_size" : effective_block_size,
                 })
                 metadata_filename = destination_path / f"{prefix}_metadata.json"
                 metadata_filename.write_text(json.dumps(metadata, indent=4))

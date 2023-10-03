@@ -156,6 +156,7 @@ def create_dataloader(
     weights = [el / sum_weights for el in weights]
 
     if verbose:
+        print(f"Dataset composition:")
         for w, p in sorted(zip(weights, pseudos)):
             print(f"* {p:30}: {w*100} %")
 
