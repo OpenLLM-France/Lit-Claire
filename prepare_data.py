@@ -125,8 +125,19 @@ def prepare_fn(
                 chunk_size = effective_block_size * num_segments_per_file
                 
                 num_files = math.ceil(num_segments_augmented/num_segments_per_file)
-                num_reminders = num_segments_augmented % num_segments_per_file
-                print(f"Will cut in {num_files} files of {num_segments_per_file} samples each ({num_reminders} reminders)")
+                num_padded = num_segments_per_file * num_files - num_segments_augmented
+                print(f"Will cut in {num_files} files of {num_segments_per_file} samples each ({num_padded} padded)")
+
+                # Write metadata
+                metadata.update({
+                    "num_samples" : num_segments_augmented,
+                    "num_samples_rounded" : num_segments_per_file * num_files,
+                    "num_samples_per_file" : num_segments_per_file,
+                    "num_files" : num_files,
+                    "num_padded" : num_padded,
+                })
+                metadata_filename = destination_path / f"{prefix}_metadata.json"
+                metadata_filename.write_text(json.dumps(metadata, indent=4))
             
             else:
 
