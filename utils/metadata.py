@@ -25,11 +25,12 @@ with open(metadata_filename, "r") as csvfile:
     for row in metadata_rows:
         METADATA_DICT[row["dataset"]] = format_dict_values(row)
 
-if os.path.isfile(metadata_filename_extra):
-    with open(metadata_filename_extra, "r") as csvfile:
-        metadata_rows = csv.DictReader(csvfile)
-        for row in metadata_rows:
-            METADATA_DICT[row["dataset"]].update(format_dict_values(row))
+# DEPRECATED
+# if os.path.isfile(metadata_filename_extra):
+#     with open(metadata_filename_extra, "r") as csvfile:
+#         metadata_rows = csv.DictReader(csvfile)
+#         for row in metadata_rows:
+#             METADATA_DICT[row["dataset"]].update(format_dict_values(row))
 
 # Add sampling weights
 def get_scaled_num_samples(metadata):

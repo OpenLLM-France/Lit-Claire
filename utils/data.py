@@ -1,7 +1,7 @@
 import glob
 import os
 import sys
-import re
+import json
 from tqdm import tqdm
 
 from torch.utils.data import DataLoader
@@ -20,14 +20,14 @@ from lit_gpt.config import Config
 
 DEFAULT_PATH="/gpfsscratch/rech/qgz/commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae--falcon-7b/"
 
-REDPAJAMA_SETTING = True # Temporary trial
-
 def create_dataloaders(
     batch_size=32,
     path=DEFAULT_PATH,
     shuffle=True,
     num_processes=1,
     process_rank=0,
+    wrap_train=True,
+    wrap_validation=True,
     seed=51,
     verbose=True,
     try_small=False,
@@ -50,7 +50,7 @@ def create_dataloaders(
 
     if try_small:
         prefixes_train = [p for p in prefixes_train if ("EN--ASR-ETELECSC" in p or "FR--ParisStories" in p or "FR--UBS" in p)]
-        prefixes_dev = [p for p in prefixes_dev if ("SUMM-RE" in p or "OFROM" in p)]
+        prefixes_dev = [p for p in prefixes_dev if ("SUMM-RE" in p or "OFROM" in p or "EN--ASR-ETELECSC" in p)]
         if len(prefixes_dev) == 0:
             prefixes_dev = prefixes_train
 
@@ -69,8 +69,8 @@ def create_dataloaders(
     )
 
     return (
-        create_dataloader(prefixes=prefixes_train, shuffle=shuffle, wrap=True, **kwargs),
-        create_dataloader(prefixes=prefixes_dev, shuffle=False, use_weights=False, wrap=REDPAJAMA_SETTING, **kwargs)
+        create_dataloader(prefixes=prefixes_train, shuffle=shuffle, wrap=wrap_train, **kwargs),
+        create_dataloader(prefixes=prefixes_dev, shuffle=False, use_weights=False, wrap=wrap_validation, **kwargs)
     )
 
 def create_dataloader(
@@ -87,6 +87,7 @@ def create_dataloader(
     return_details=False,
     try_small=False,
     use_weights=True,
+    use_progress_bar=True,
 ):
     if prefixes is None:
         if try_small:
@@ -101,27 +102,40 @@ def create_dataloader(
     datasets_nowrap = []
     weights = []
     pseudos = []
+    num_samples_per_dataset = []
     for prefix in prefixes:
-        filenames = glob.glob(os.path.join(path, f"{prefix}*"))
+        filenames = glob.glob(os.path.join(path, f"{prefix}*.bin"))
         assert len(filenames) > 0, f"No files found for prefix {prefix} in {path}"
 
+
+        # DEPRECATED: some metadata depends on how the files were created (number of segments, etc.)
+        # try:
+        #     metadata = get_metadata(filenames[0])
+        # except Exception as e:
+        #     raise RuntimeError(f"Error while getting metadata for {filenames[0]}") from e
+
+        metadata_file = os.path.join(path, f"{prefix}_metadata.json")
+        assert os.path.isfile(metadata_file), f"Metadata file {metadata_file} does not exist"
+        with open(metadata_file, "r") as f:
+            metadata = json.load(f)
+
         # Get the weight
-        try:
-            metadata = get_metadata(filenames[0])
-        except Exception as e:
-            raise RuntimeError(f"Error while getting metadata for {filenames[0]}") from e
         if use_weights:
             weights.append(metadata["sampling_rate"])
         else:
             # Only for reporting
-            weights.append(metadata["words"])
+            weights.append(metadata["num_samples"])
 
         # Only for printing information
         pseudos.append(metadata["dataset"])
 
+        # A bit dirty...
+        num_samples = metadata["num_samples_rounded"]
+        num_samples_per_dataset.append(num_samples)
+
         kwargs = dict(
             filenames=filenames,
-            n_chunks=1 if REDPAJAMA_SETTING else len(filenames),
+            n_chunks=1, # len(filenames), # TODO: clarify that
             block_size=effective_block_size,
             shuffle=shuffle,
             seed=seed,
@@ -149,65 +163,56 @@ def create_dataloader(
 
     # Combine datasets
     if use_weights:
-        if wrap:
-            combined_dataset = CombinedDataset(datasets=datasets, seed=seed, weights=weights)
-        else:
-            combined_dataset = InfiniteCombinedDataset(datasets=datasets, seed=seed, weights=weights)
+        combined_dataset = CombinedDataset(datasets=datasets, seed=seed, weights=weights)
+        epoch_size = sum([w*s for (w,s) in zip(weights, num_samples_per_dataset)])
     else:
-        combined_dataset = ConcatenatedDataset(datasets=datasets)
+        epoch_size = sum(num_samples_per_dataset)
+        combined_dataset = ConcatenatedDataset(datasets=datasets, num_samples=epoch_size if use_progress_bar else None)
 
     combined_dataset = DataLoader(combined_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
 
     if return_details:
-        return {
-            "combined_dataset": combined_dataset,
+        return combined_dataset, {
             "pseudos": pseudos,
             "datasets": datasets_nowrap if wrap else datasets,
+            "num_samples_per_dataset": num_samples_per_dataset,
+            "epoch_size": epoch_size,
         }
     return combined_dataset
 
 
 class ConcatenatedDataset(IterableDataset):
-    def __init__(self, datasets):
+    def __init__(self, datasets, num_samples=None):
         self._datasets = datasets
+        self._num_samples = num_samples
 
     def __iter__(self):
-        return ConcatenatedDatasetIterator(self._datasets)
+        return ConcatenatedDatasetIterator(self._datasets, self._num_samples)
 
 
 class ConcatenatedDatasetIterator:
-    def __init__(self, datasets):
+    def __init__(self, datasets, num_samples=None):
         self._datasets = [iter(el) for el in datasets]
         self._idataset = 0
+        # Progress bar only
+        if num_samples:
+            # + 1 because the progress bar is incremented at the start of each iter, including the last StopIteration
+            self._pbar = tqdm(total=num_samples+1, unit="samples", desc="Serving data", initial=0)
+        else:
+            self._pbar = None
 
     def __next__(self):
+        if self._pbar:
+            self._pbar.update()
         try:
             return next(self._datasets[self._idataset])
         except (StopIteration, IndexError):
             self._idataset += 1
             if self._idataset >= len(self._datasets):
+                # if self._pbar:
+                #     self._pbar.close()
                 raise StopIteration
             return next(self._datasets[self._idataset])
-
-class InfiniteCombinedDataset(CombinedDataset):
-    def __iter__(self):
-        return InfiniteCombinedDatasetIterator(self._datasets, self._seed, self._weights)
-
-class InfiniteCombinedDatasetIterator:
-    def __init__(self, datasets, seed, weights):
-        self._datasets = datasets
-        self._datasets_iter = [iter(el) for el in datasets]
-        self._datasets_indices = list(range(len(datasets)))
-        self._weights = weights
-        self._rng = random.Random(seed)
-
-    def __next__(self):
-        (idataset,) = self._rng.choices(self._datasets_indices, weights=self._weights, k=1)
-        try:
-            return next(self._datasets_iter[idataset])
-        except StopIteration:
-            self._datasets_iter[idataset] = iter(self._datasets[idataset])
-            return next(self._datasets_iter[idataset])
 
 
 if __name__ == "__main__":
@@ -252,14 +257,14 @@ if __name__ == "__main__":
         try_small=try_small,
         return_details=True,
         batch_size=batch_size,
+        wrap_validation=False,
         shuffle=shuffle,
         seed=seed,
     )
     print(f"Intantiation time: {time.time() - tic} seconds")
 
-    for details in [train_details, dev_details]:
+    for combined_dataset, details in [train_details, dev_details]:
 
-        combined_dataset = details["combined_dataset"]
         datasets = details["datasets"]
         pseudos = details["pseudos"]
 
@@ -308,7 +313,8 @@ if __name__ == "__main__":
             sample_indices += new_batch
             useless_computation_time += time.time() - subtic
         print(f"Sampling time (first)  : {toc - tic} seconds")
-        print(f"Sampling time (average): {(time.time() - tic - useless_computation_time)/(min(ibatch+1, max_batches)-1)} seconds")
+        if ibatch > 0:
+            print(f"Sampling time (average): {(time.time() - tic - useless_computation_time)/(min(ibatch+1, max_batches)-1)} seconds")
 
         if len(new_batch) != batch_size:
             print(f"WARNING: Batch size is {len(new_batch)} instead of {batch_size}")
