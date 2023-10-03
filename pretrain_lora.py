@@ -86,7 +86,7 @@ def setup(
     else:
         strategy = "auto"
         if devices == 0: # CPU
-            devices = 4
+            devices = 1 # Using more causes "libgomp: Thread creation failed: Resource temporarily unavailable"
             accelerator = "cpu"
 
     logger = CSVLogger(out_dir.parent, out_dir.name, flush_logs_every_n_steps=log_interval)
