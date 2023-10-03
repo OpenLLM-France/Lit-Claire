@@ -76,12 +76,11 @@ def prepare_fn(
                 for f in files_for_this_dataset:
                     filepath = os.path.join(root, f)
                     metadata = get_metadata(filepath)
+                    metadata["is_dev"] = (f == filename_dev)
                     all_files[filepath] = metadata
 
     if len(all_files) == 0:
-        raise RuntimeError(
-            f"No input files found at {source_path}."
-        )
+        raise RuntimeError(f"No input files found at {source_path}.")
     
     for filepath, metadata in all_files.items(): # tqdm(all_files.items(), unit="dataset"):
 
@@ -92,6 +91,10 @@ def prepare_fn(
         is_spontaneous = metadata["spontaneous"]
         assert is_spontaneous in [True, False]
         augmentation_level = 4 if is_spontaneous else 0
+
+        # Do not augment validation
+        if metadata["is_dev"]:
+            augmentation_level = 0
 
         prefix = set_name.replace("/", "--")
         print(f"Processing:\n{filepath} -> {destination_path}/{prefix}*\n{augmentation_level=}")
