@@ -23,8 +23,8 @@ from lit_gpt.utils import (
     get_default_supported_precision,
     load_checkpoint,
     num_parameters,
-    step_csv_logger,
 )
+from lightning.fabric.loggers import CSVLogger
 
 from utils.data import create_dataloaders
 # from utils.redpajama_data import create_dataloaders
@@ -85,7 +85,7 @@ def setup(
     else:
         strategy = "auto"
 
-    logger = step_csv_logger(out_dir.parent, out_dir.name, flush_logs_every_n_steps=log_interval)
+    logger = CSVLogger(out_dir.parent, out_dir.name, flush_logs_every_n_steps=log_interval)
     fabric = L.Fabric(devices=devices, num_nodes=num_nodes, strategy=strategy, precision=precision, loggers=logger)
     fabric.print(hparams)
     fabric.launch(main, data_dir, checkpoint_dir, out_dir)
