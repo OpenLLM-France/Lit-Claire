@@ -142,6 +142,7 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
         seed=(1337 + fabric.global_rank),
         verbose=True,
         try_small=try_small,
+        max_validation_samples=4000,
         return_details=True,
     )
     max_train_iters = num_epochs * train_details["epoch_size"] // micro_batch_size
@@ -172,6 +173,25 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
     load_checkpoint(fabric, model, checkpoint_path, strict=False)
 
     fabric.seed_everything(1337 + fabric.global_rank)
+
+    if try_small:
+        print("QUICK TEST")
+
+        # Reduce max values
+        small_max_batches = 2 * batch_size // micro_batch_size
+        print(f"* {max_train_iters=} -> {small_max_batches}")
+        max_train_iters = small_max_batches
+        print(f"* {max_eval_iters=} -> {small_max_batches}")
+        max_eval_iters = small_max_batches
+
+        # Reduce intervals
+        global eval_interval, save_interval, log_interval
+        print(f"* {eval_interval=} -> 2")
+        eval_interval = 2
+        print(f"* {save_interval=} -> 2")
+        save_interval = 2
+        print(f"* {log_interval=} -> 1")
+        log_interval = 1
 
     train_time = time.perf_counter()
     train(
