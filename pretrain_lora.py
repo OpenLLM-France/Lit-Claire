@@ -102,8 +102,7 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
 
     fabric.seed_everything(1337)  # same seed for every process to init model (FSDP)
 
-    if fabric.global_rank == 0:
-        os.makedirs(out_dir, exist_ok=True)
+    os.makedirs(out_dir, exist_ok=True)
     
     if not any((lora_query, lora_key, lora_value, lora_projection, lora_mlp, lora_head)):
         fabric.print("Warning: all LoRA layers are disabled!")
