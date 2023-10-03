@@ -142,7 +142,7 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
         seed=(1337 + fabric.global_rank),
         verbose=True,
         try_small=try_small,
-        max_validation_samples=4000,
+        max_validation_samples=200 if try_small else 4000,
         return_details=True,
     )
     max_train_iters = num_epochs * train_details["epoch_size"] // micro_batch_size
