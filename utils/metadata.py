@@ -25,19 +25,9 @@ with open(metadata_filename, "r") as csvfile:
     for row in metadata_rows:
         METADATA_DICT[row["dataset"]] = format_dict_values(row)
 
-# DEPRECATED
-# if os.path.isfile(metadata_filename_extra):
-#     with open(metadata_filename_extra, "r") as csvfile:
-#         metadata_rows = csv.DictReader(csvfile)
-#         for row in metadata_rows:
-#             METADATA_DICT[row["dataset"]].update(format_dict_values(row))
-
 # Add sampling weights
 def get_scaled_num_samples(metadata):
-    # num_samples = metadata.get("segments_augmented_2048", 0)
     num_samples = metadata["words"]
-    # augmentation_factor = metadata.get("segments_augmented_2048", 1) / metadata.get("segments_2048", 1)
-    # num_samples *= augmentation_factor
     if not metadata["spontaneous"]:
         num_samples /= 5
     return num_samples
@@ -56,7 +46,6 @@ def get_metadata(path):
     """Get metadata from a path."""
     if os.path.sep != "/":
         path = path.replace(os.path.sep, "/")
-    # path = os.path.realpath(path) if os.path.exists(path) else path
     if max(path.endswith(ext) for ext in [".txt", ".bin"]):
         filename = os.path.basename(path)
         filename = get_filename_prefix(filename)
@@ -68,7 +57,10 @@ def get_metadata(path):
             foldername += "/TRAIN"
         elif filename in ["dev"]:
             foldername += "/DEV"
-        return get_metadata(foldername)
+        try:
+            return get_metadata(foldername)
+        except RuntimeError as e:
+            raise RuntimeError(f"Could not find a correspondance for {path} in metadata file.") from e
     fields = path.rstrip("/").split("/")
     for k in range(1, 4):
         set_name = "/".join(fields[-k:])
