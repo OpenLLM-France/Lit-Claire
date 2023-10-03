@@ -71,6 +71,7 @@ def setup(
     checkpoint_dir: Path = Path("checkpoints/tiiuae/falcon-7b"),
     out_dir: Path = Path("out/lora/Claire"),
     precision: Optional[str] = None,
+    try_small: bool = False,
 ):
     precision = precision or get_default_supported_precision(training=True)
 
@@ -90,10 +91,10 @@ def setup(
     logger = CSVLogger(out_dir.parent, out_dir.name, flush_logs_every_n_steps=log_interval)
     fabric = L.Fabric(devices=devices, num_nodes=num_nodes, strategy=strategy, precision=precision, loggers=logger)
     fabric.print(hparams)
-    fabric.launch(main, data_dir, checkpoint_dir, out_dir)
+    fabric.launch(main, data_dir, checkpoint_dir, out_dir, try_small)
 
 
-def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path):
+def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, try_small: bool):
     check_valid_checkpoint_dir(checkpoint_dir)  # check if there is lit-gpt format model
 
     speed_monitor = SpeedMonitor(fabric, window_size=50, time_unit="seconds")
@@ -130,7 +131,7 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path):
         process_rank=fabric.global_rank,
         seed=(1337 + fabric.global_rank),
         verbose=True,
-        try_small=False,
+        try_small=try_small,
         return_details=False,
     )
     # train_dataloader, val_dataloader = create_dataloaders(
