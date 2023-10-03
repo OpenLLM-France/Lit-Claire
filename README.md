@@ -3,35 +3,42 @@
 ### clone the repo
 ```
 git clone --recurse-submodules https://github.com/OpenLLM-France/Claire
-cd Claire
 ```
 
 ### create environment
-```
+
+First create a virtual environment.
+Example on Jean Zay:
+```bash
 module load cpuarch/amd
 module load anaconda-py3/2023.03
-```
 
-```
 conda create -y -n claire python=3.10
 conda activate claire
-pip install --user --no-cache-dir --index-url https://download.pytorch.org/whl/nightly/cu118 --pre 'torch>=2.1.0dev'
-pip install --user --no-cache-dir -r requirements.txt
+```
+Example on your own machine:
+```bash
+python3.10 -m venv env
+source env/bin/activate
+```
+
+Then, install the dependencies (on Jean Zay, you may want to use `--user` if you ):
+```bash
+pip install --no-cache-dir --index-url https://download.pytorch.org/whl/nightly/cu118 --pre 'torch>=2.1.0dev'
+pip install --no-cache-dir -r requirements.txt
 ```
 
 ### download then convert Hugging Face model to Lit-GPT format
 
-For Falcon-7B:
-```
-python lit_gpt/scripts/download.py --repo_id tiiuae/falcon-7b
-python lit_gpt/scripts/convert_hf_checkpoint.py --checkpoint_dir checkpoints/tiiuae/falcon-7b
+```bash
+# MODEL=mistralai/Mistral-7B-v0.1
+MODEL=tiiuae/falcon-7b
+
+python lit_gpt/scripts/download.py --repo_id $MODEL
+python lit_gpt/scripts/convert_hf_checkpoint.py --checkpoint_dir checkpoints/$MODEL
 ```
 
-For Mistral-7B:
-```
-python lit_gpt/scripts/download.py --repo_id mistralai/Mistral-7B-v0.1
-python lit_gpt/scripts/convert_hf_checkpoint.py --checkpoint_dir checkpoints/mistralai/Mistral-7B-v0.1
-```
+On Jean Zay, you can do that from the folder `$WORK/../commun/Claire`.
 
 ### prepare data
 ```
