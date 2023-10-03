@@ -1,9 +1,9 @@
 dataset,language,named,asr,text,spontaneous,conversations,turns,words,punctuation,special
 FR/ACSYNT,fr,False,False,False,True,144,2718,61727,2690,3204
 FR/ASR_Old_MINEFI,fr,False,True,False,True,27,6587,925769,38616,6587
-FR/ASR_Whisper_SUMM-RE,fr,False,True,False,True,281,38368,1296751,98626,38368
-FR/ASR_Whisper_SUMM-RE/TRAIN,fr,False,True,False,True,209,27413,954916,72364,38368
-FR/ASR_Whisper_SUMM-RE/DEV,fr,False,True,False,True,72,10955,341835,26262,10955
+FR/ASR_Whisper_SUMM-RE,fr,False,True,False,True,283,38577,1306988,99458,38577
+FR/ASR_Whisper_SUMM-RE/TRAIN,fr,False,True,False,True,210,27482,960466,72730,38577
+FR/ASR_Whisper_SUMM-RE/DEV,fr,False,True,False,True,73,11095,346522,26728,11095
 FR/CFPB,fr,False,False,False,True,12,10680,138416,2645,10680
 FR/CFPP,fr,False,False,False,True,42,47913,608358,476,66605
 FR/CID,fr,False,False,False,True,8,8610,117874,27076,10458
