@@ -27,7 +27,7 @@ from lit_gpt.utils import (
 from lightning.fabric.loggers import CSVLogger
 
 from utils.data import create_dataloaders
-# from utils.redpajama_data import create_dataloaders
+# from utils.redpajama_data import create_dataloaders as create_dataloaders_redpajama
 
 
 # Action to be taken per n iteration
@@ -46,9 +46,8 @@ micro_batch_size = 4
 gradient_accumulation_iters = batch_size // micro_batch_size
 assert gradient_accumulation_iters > 0
 
-# Iteration cap, 1 epoch = total number of samples / micro_batch_size
-max_iters = 200
-max_eval_iters = 20
+# Number of epochs
+num_epochs = 3
 
 # LORA
 lora_r = 8
@@ -75,6 +74,7 @@ def setup(
 ):
     precision = precision or get_default_supported_precision(training=True)
 
+    accelerator = "auto"
     if devices > 1 or num_nodes > 1:
         strategy = FSDPStrategy(
             auto_wrap_policy={Block},
@@ -86,10 +86,11 @@ def setup(
     else:
         strategy = "auto"
         if devices == 0: # CPU
-            devices = "auto"
+            devices = 4
+            accelerator = "cpu"
 
     logger = CSVLogger(out_dir.parent, out_dir.name, flush_logs_every_n_steps=log_interval)
-    fabric = L.Fabric(devices=devices, num_nodes=num_nodes, strategy=strategy, precision=precision, loggers=logger)
+    fabric = L.Fabric(devices=devices, accelerator=accelerator, num_nodes=num_nodes, strategy=strategy, precision=precision, loggers=logger)
     fabric.print(hparams)
     fabric.launch(main, data_dir, checkpoint_dir, out_dir, try_small)
 
@@ -123,7 +124,17 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
     with open(out_dir / "lora_config.json", "w") as file:
         json.dump(lora_config, file)
 
-    train_dataloader, val_dataloader = create_dataloaders(
+    # DEPRECATED for debug
+    # train_dataloader, val_dataloader = create_dataloaders_redpajama(
+    #     batch_size=micro_batch_size,
+    #     block_size=config.block_size,
+    #     fabric=fabric,
+    #     train_data_dir=data_dir,
+    #     val_data_dir=data_dir,
+    #     seed=(1337 + fabric.global_rank),
+    # )
+
+    (train_dataloader, train_details), (val_dataloader, val_details) = create_dataloaders(
         batch_size=micro_batch_size,
         path=data_dir,
         shuffle=True,
@@ -132,16 +143,10 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
         seed=(1337 + fabric.global_rank),
         verbose=True,
         try_small=try_small,
-        return_details=False,
+        return_details=True,
     )
-    # train_dataloader, val_dataloader = create_dataloaders(
-    #     batch_size=micro_batch_size,
-    #     block_size=config.block_size,
-    #     fabric=fabric,
-    #     train_data_dir=data_dir,
-    #     val_data_dir=data_dir,
-    #     seed=(1337 + fabric.global_rank),
-    # )
+    max_train_iters = num_epochs * train_details["epoch_size"] // micro_batch_size
+    max_eval_iters = max(1, val_details["epoch_size"] // micro_batch_size)
 
     if val_dataloader is None:
         train_dataloader = fabric.setup_dataloaders(train_dataloader)
@@ -170,7 +175,11 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
     fabric.seed_everything(1337 + fabric.global_rank)
 
     train_time = time.perf_counter()
-    train(fabric, model, optimizer, train_dataloader, val_dataloader, out_dir, speed_monitor)
+    train(
+        fabric, model, optimizer, train_dataloader, val_dataloader, out_dir, speed_monitor,
+        max_train_iters=max_train_iters,
+        max_eval_iters=max_eval_iters,
+    )
     fabric.print(f"Training time: {(time.perf_counter()-train_time):.2f}s")
     if fabric.device.type == "cuda":
         fabric.print(f"Memory used: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
@@ -188,10 +197,12 @@ def train(
     val_dataloader: DataLoader,
     out_dir: Path,
     speed_monitor: SpeedMonitor,
+    max_eval_iters: int,
+    max_train_iters: int,
     sanity_check: bool = True,
 ) -> None:
-    if val_dataloader is not None and sanity_check is True:
-        sanity_check_val_loss = validate(fabric, model, val_dataloader)
+    if val_dataloader is not None and sanity_check:
+        sanity_check_val_loss = validate(fabric, model, val_dataloader, max_eval_iters=1)
         fabric.print({"sanity check val loss:", f"{sanity_check_val_loss.item():.4f}"})
 
     with torch.device("meta"):
@@ -214,7 +225,7 @@ def train(
     total_t0 = time.perf_counter()
 
     for iter_num, train_data in enumerate(train_dataloader):
-        if iter_num >= max_iters:
+        if iter_num >= max_train_iters:
             break
         
         if step_count <= warmup_steps:
@@ -259,7 +270,7 @@ def train(
 
         if val_dataloader is not None and not is_accumulating and step_count % eval_interval == 0:
             t0 = time.perf_counter()
-            val_loss = validate(fabric, model, val_dataloader)
+            val_loss = validate(fabric, model, val_dataloader, max_eval_iters)
             t1 = time.perf_counter() - t0
             speed_monitor.eval_end(t1)
             fabric.print(f"iter {iter_num}: val loss {val_loss.item():.4f}, val time: {t1 * 1000:.2f}ms")
@@ -272,7 +283,7 @@ def train(
 
 @torch.inference_mode()
 def validate(
-    fabric: L.Fabric, model: GPT, val_dataloader: DataLoader
+    fabric: L.Fabric, model: GPT, val_dataloader: DataLoader, max_eval_iters: int
 ) -> torch.Tensor:
     fabric.print("Validating ...")
     model.eval()
