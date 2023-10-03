@@ -84,6 +84,8 @@ def setup(
         )
     else:
         strategy = "auto"
+        if devices == 0: # CPU
+            devices = "auto"
 
     logger = CSVLogger(out_dir.parent, out_dir.name, flush_logs_every_n_steps=log_interval)
     fabric = L.Fabric(devices=devices, num_nodes=num_nodes, strategy=strategy, precision=precision, loggers=logger)
