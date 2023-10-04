@@ -36,7 +36,7 @@ save_interval = 40
 log_interval = 1
 
 # Learning rate
-learning_rate = 3e-4
+learning_rate = 1e-4
 warmup_steps = 2  # note: this is based on step, not iteration
 weight_decay = 0.01
 grad_clip = 1.0
@@ -55,11 +55,11 @@ lora_r = 8
 lora_alpha = 16
 lora_dropout = 0.05
 lora_query = True
-lora_key = False
+lora_key = True
 lora_value = True
-lora_projection = False
-lora_mlp = False
-lora_head = False
+lora_projection = True
+lora_mlp = True
+lora_head = True
 
 hparams = {k: v for k, v in locals().items() if isinstance(v, (int, float, str)) and not k.startswith("_")}
 
