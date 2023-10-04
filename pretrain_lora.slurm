@@ -21,6 +21,7 @@ conda activate claire
 set -x
 
 MODEL=tiiuae/falcon-7b
+OUTDIR=$WORK/../commun/Claire/pretrain/lora/$MODEL
 
 # execute script
 srun python pretrain_lora.py \
@@ -28,5 +29,5 @@ srun python pretrain_lora.py \
 --num_nodes 1 \
 --data_dir $SCRATCH/../commun/preprocessed_data/Claire/lit-gpt/padded/$MODEL \
 --checkpoint_dir $WORK/../commun/Claire/checkpoints/$MODEL \
---out_dir $WORK/../commun/Claire/pretrain/lora/$MODEL \
+--out_dir $OUTDIR \
 --precision bf16-true \
