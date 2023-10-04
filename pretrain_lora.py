@@ -30,7 +30,7 @@ from utils.data import create_dataloaders
 # from utils.redpajama_data import create_dataloaders as create_dataloaders_redpajama
 
 
-# Action to be taken per n iteration
+# Action to be taken per n interval
 eval_interval = 40
 save_interval = 40
 log_interval = 1
@@ -39,6 +39,7 @@ log_interval = 1
 learning_rate = 3e-4
 warmup_steps = 2  # note: this is based on step, not iteration
 weight_decay = 0.01
+grad_clip = 1.0
 
 # Batch
 batch_size = 8
@@ -166,7 +167,7 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
     model = fabric.setup_module(model)
 
     trainable_params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.AdamW(trainable_params, lr=learning_rate, weight_decay=weight_decay)  # TODO: check foreach=False
+    optimizer = torch.optim.AdamW(trainable_params, lr=learning_rate, weight_decay=weight_decay)  # set foreach=False may reduce peak vram
     optimizer = fabric.setup_optimizers(optimizer)
 
     # strict=False because missing keys due to LoRA weights not contained in state dict
@@ -204,7 +205,7 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
         fabric.print(f"Memory used: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
     # Save the final LoRA checkpoint at the end of training
-    save_path = out_dir / "lit_model_lora_finetuned.pth"  # TODO
+    save_path = out_dir / "lit_model_lora_finetuned.pth"
     save_lora_checkpoint(fabric, model, save_path)
 
 
@@ -260,12 +261,12 @@ def train(
 
         is_accumulating = (iter_num + 1) % gradient_accumulation_iters != 0
         with fabric.no_backward_sync(model, enabled=is_accumulating):
-            logits = model(input_ids, lm_head_chunk_size=128)  # TODO: check lm_head_chunk_size
-            loss = chunked_cross_entropy(logits, targets)  # TODO: check chunk_size
+            logits = model(input_ids)  # set lm_head_chunk_size=128 may reduce peak vram
+            loss = chunked_cross_entropy(logits, targets, chunk_size=0)  # set chunk_size=128 may reduce peak vram
             fabric.backward(loss / gradient_accumulation_iters)
 
         if not is_accumulating:
-            # TODO: fabric.clip_gradients(model, optimizer, max_norm=grad_clip)
+            fabric.clip_gradients(model, optimizer, max_norm=grad_clip)
             optimizer.step()
             optimizer.zero_grad()
             step_count += 1
@@ -315,8 +316,8 @@ def validate(
             break
         input_ids = val_data[:, 0 : model.max_seq_length].contiguous()
         targets = val_data[:, 1 : model.max_seq_length + 1].contiguous()
-        logits = model(input_ids, lm_head_chunk_size=128)
-        losses[eval_iter_num] = chunked_cross_entropy(logits, targets)
+        logits = model(input_ids)  # set lm_head_chunk_size=128 may reduce peak vram
+        losses[eval_iter_num] = chunked_cross_entropy(logits, targets, chunk_size=0)  # set chunk_size=128 may reduce peak vram
     val_loss = losses.mean()
 
     model.train()
