@@ -18,8 +18,8 @@ from lit_gpt.utils import check_valid_checkpoint_dir, get_default_supported_prec
 
 def merge_lora(
     checkpoint_dir: Path = Path("checkpoints/tiiuae/falcon-7b"),
-    out_dir: Path = Path("out/lora/Claire"),
-    lora_file_name: str ="lit_model_lora_finetuned.pth",
+    lora_dir: Path = Path("out/lora/Claire"),
+    lora_pth_name: str = "lit_model_lora_finetuned.pth",
     precision: Optional[str] = None,
 ) -> None:
     """Generates a response based on a given instruction and an optional input.
@@ -27,10 +27,9 @@ def merge_lora(
     See `finetune/lora.py`.
 
     Args:
-        lora_path: Path to the checkpoint with trained adapter weights, which are the output of
-            `finetune/lora.py`.
         checkpoint_dir: The path to the checkpoint folder with pretrained GPT weights.
-        out_dir: The path to the merged model that is created by this script.
+        lora_dir: Path to the checkpoint folder with trained adapter weights, which are the output of `finetune/lora.py`
+        lora_pth_name: File name of the lora weights
         precision: Indicates the Fabric precision setting to use.
     """
     precision = precision or get_default_supported_precision(training=False)
@@ -38,14 +37,14 @@ def merge_lora(
 
     check_valid_checkpoint_dir(checkpoint_dir)
 
-    with open(out_dir / "lora_config.json", "r") as file:
+    with open(lora_dir / "lora_config.json", "r") as file:
         lora_config = json.load(file)
     config = Config.from_json(
         path=checkpoint_dir / "lit_config.json",
         **lora_config
     )
 
-    lora_path = out_dir / lora_file_name
+    lora_path = lora_dir / lora_pth_name
     with fabric.init_module(empty_init=True):
         model = GPT(config)
     checkpoint_path = checkpoint_dir / "lit_model.pth"
@@ -55,7 +54,7 @@ def merge_lora(
 
     merge_lora_weights(model)
 
-    save_path = out_dir / "lit_model.pth"
+    save_path = lora_dir / "lit_model.pth"
     fabric.print(f"Saving weights to {str(save_path)!r}")
     # remove lora parameters and the lora linear substring
     state_dict = {k.replace("linear.", ""): v for k, v in model.state_dict().items() if not lora_filter(k, v)}

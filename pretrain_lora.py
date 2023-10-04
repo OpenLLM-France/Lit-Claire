@@ -222,7 +222,7 @@ def train(
 ) -> None:
     if val_dataloader is not None and sanity_check:
         sanity_check_val_loss = validate(fabric, model, val_dataloader, max_eval_iters=1)
-        fabric.print({"sanity check val loss:", f"{sanity_check_val_loss.item():.4f}"})
+        fabric.print(f"sanity check val loss: {sanity_check_val_loss.item():.4f}")
 
     with torch.device("meta"):
         meta_model = GPT(model.config)
@@ -295,6 +295,8 @@ def train(
             fabric.print(f"iter {iter_num}: val loss {val_loss.item():.4f}, val time: {t1 * 1000:.2f}ms")
             fabric.logger.log_metrics({"val_loss": f"{val_loss.item():.4f}"})
             fabric.barrier()
+            if fabric.device.type == "cuda":
+                fabric.logger.log_metrics({"peak_vram": f"{torch.cuda.max_memory_allocated() / 1e9:.02f} GB"})
         if not is_accumulating and step_count % save_interval == 0:
             checkpoint_path = out_dir / f"iter-{iter_num:06d}-ckpt.pth"
             save_lora_checkpoint(fabric, model, checkpoint_path)
