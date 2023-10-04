@@ -31,24 +31,24 @@ from utils.data import create_dataloaders
 
 
 # Action to be taken per n interval
-eval_interval = 40
-save_interval = 40
+eval_interval = 50
+save_interval = 50
 log_interval = 1
 
 # Learning rate
 learning_rate = 1e-4
-warmup_steps = 2  # note: this is based on step, not iteration
+warmup_steps = 50  # note: this is based on step, not iteration
 weight_decay = 0.01
 grad_clip = 1.0
 
 # Batch
-batch_size = 8
-micro_batch_size = 4
+batch_size = 384
+micro_batch_size = 12
 gradient_accumulation_iters = batch_size // micro_batch_size
 assert gradient_accumulation_iters > 0
 
 # Number of epochs
-num_epochs = 3
+num_epochs = 1
 
 # LORA
 lora_r = 8
@@ -148,6 +148,8 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
     )
     max_train_iters = num_epochs * train_details["epoch_size"] // micro_batch_size
     max_eval_iters = max(1, val_details["epoch_size"] // micro_batch_size)
+    fabric.print(f"max train iters: {max_train_iters}")
+    fabric.print(f"max eval iters: {max_eval_iters}")
 
     if val_dataloader is None:
         train_dataloader = fabric.setup_dataloaders(train_dataloader)
@@ -219,7 +221,7 @@ def train(
     speed_monitor: SpeedMonitor,
     max_eval_iters: int,
     max_train_iters: int,
-    sanity_check: bool = True,
+    sanity_check: bool = False,
 ) -> None:
     if val_dataloader is not None and sanity_check:
         sanity_check_val_loss = validate(fabric, model, val_dataloader, max_eval_iters=1)
