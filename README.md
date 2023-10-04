@@ -69,3 +69,39 @@ JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
 100813    gpu_p5 pretrain  ugs29jo  R       0:52      1 jean-zay-iam36
 ```
 cancel the job with `scancel 100681`, connect to the node with `ssh jean-zay-iam36` (on which you can run `nvidia-smi`)
+
+
+### merge lora
+```
+MODEL=tiiuae/falcon-7b
+srun --ntasks=1 --gres=gpu:1 -C=a100 \
+python merge_lora.py \
+    --checkpoint_dir $WORK/../commun/Claire/checkpoints/$MODEL \
+    --lora_dir       $WORK/../commun/Claire/pretrain/lora/$MODEL \
+    --lora_pth_name  lit_model_lora_finetuned.pth \
+    --precision      bf16-true \
+```
+The merged model `lit_model.pth` can be found under `$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b`
+
+copy the *.json files from Falcon-7b to Claire-7b, which are required for the configuration and tokenizer information.
+```
+cp checkpoints/$WORK/../commun/Claire/checkpoints/tiiuae/falcon-7b/*.json \
+    $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b/
+```
+
+### test the merged model
+
+test the model with a single prompt
+```
+srun --ntasks=1 --gres=gpu:1 -C=a100 \
+python generate/base.py \
+    --prompt "Hello, my name is" \
+    --checkpoint_dir "$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b"
+```
+
+test the model interactively
+```
+srun --ntasks=1 --gres=gpu:1 -C=a100 --pty \
+python chat/base.py \
+    --checkpoint_dir "$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b"
+```

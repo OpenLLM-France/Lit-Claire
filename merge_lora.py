@@ -1,5 +1,6 @@
 """This script merges the LoRA weights with the base model"""
 
+import os
 import sys
 import json
 from pathlib import Path
@@ -54,7 +55,8 @@ def merge_lora(
 
     merge_lora_weights(model)
 
-    save_path = lora_dir / "lit_model.pth"
+    save_path = checkpoint_dir.parent.parent / "OpenLLM-France" / "Claire-7b" / "lit_model.pth"
+    os.makedirs(save_path.parent, exist_ok=False)
     fabric.print(f"Saving weights to {str(save_path)!r}")
     # remove lora parameters and the lora linear substring
     state_dict = {k.replace("linear.", ""): v for k, v in model.state_dict().items() if not lora_filter(k, v)}
