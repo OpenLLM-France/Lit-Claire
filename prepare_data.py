@@ -41,6 +41,7 @@ def prepare_fn(
     filename_full="full.txt",
     filename_train="train.txt",
     filename_dev="dev.txt",
+    skip_if_exists=True,
     update_metadata=False,
 ) -> None:
     """Prepare the dataset using the tokenizer."""
@@ -84,8 +85,6 @@ def prepare_fn(
     
     for filepath, metadata in all_files.items(): # tqdm(all_files.items(), unit="dataset"):
 
-        random.seed(51) # For deterministic text augmentation
-
         set_name = metadata["dataset"]
         num_conversations = int(metadata["conversations"])
         is_spontaneous = metadata["spontaneous"]
@@ -97,27 +96,29 @@ def prepare_fn(
             augmentation_level = 0
 
         prefix = set_name.replace("/", "--")
+
+        filenames = glob.glob(f"{destination_path}/{prefix}*bin")
+        if len(filenames) > 0:
+            # Skip, or remove existing files, if any
+            if skip_if_exists:
+                print(f"Skipping {filepath} because {prefix}*bin files already exist")
+                continue
+            else:
+                for fn in glob.glob(f"{destination_path}/{prefix}*"):
+                    os.remove(fn)
+        elif skip_if_exists:
+            # Create a dummy file to avoid other processes to process the same dataset
+            Path(f"{destination_path}/{prefix}_0000000000.bin").touch()
+
         print(f"Processing:\n{filepath} -> {destination_path}/{prefix}*\n{augmentation_level=}")
 
         dataset_hf = load_dataset("text", data_files={"train": filepath}, sample_by="paragraph", streaming=True)
-
-        num_cuts = 0
-        num_convs = 0
-        num_convs_augmented = 0
-        num_segments_augmented = 0
-        num_segments = 0
-        min_len = 1e10
-        max_len = 0
 
         # First get the number of samples, then build files
 
         for build_it in False, True:
 
             if build_it:
-
-                # First remove files that can be there
-                for fn in glob.glob(str(destination_path / f"{prefix}*")):
-                    os.remove(fn)
 
                 # Get the right number of chunks
                 num_segments_per_file = math.ceil(num_segments_augmented / multiple_of)
@@ -129,7 +130,7 @@ def prepare_fn(
                 
                 num_files = math.ceil(num_segments_augmented/num_segments_per_file)
                 num_padded = num_segments_per_file * num_files - num_segments_augmented
-                print(f"Will cut in {num_files} files of {num_segments_per_file} samples each ({num_padded} padded)")
+                print(f"Will cut in {num_files} files of {num_segments_per_file} samples each ({num_segments_augmented} + {num_padded} padded)")
 
                 # Write metadata
                 metadata.update({
@@ -158,6 +159,17 @@ def prepare_fn(
                 vocab_size=tokenizer.vocab_size,
             )
 
+            # Init counters
+            num_cuts = 0
+            num_convs = 0
+            num_convs_augmented = 0
+            num_segments_augmented = 0
+            num_segments = 0
+            min_len = 1e10
+            max_len = 0
+
+            random.seed(51) # For deterministic text augmentation
+
             for sample in tqdm(dataset_hf["train"], total=num_conversations, unit="conversations", desc=f"{prefix} ({2 if build_it else 1}/2)"):
                 text = sample["text"]
 
@@ -184,12 +196,10 @@ def prepare_fn(
                             max_len = max(max_len, len(a))
                             if build_it:
                                 builder.add_array(a)
-                            else:
-                                if ivariant == 0:
-                                    num_segments += 1
-                                num_segments_augmented += 1
-                        if not build_it:
-                            num_cuts += 1
+                            if ivariant == 0:
+                                num_segments += 1
+                            num_segments_augmented += 1
+                        num_cuts += 1
                     else:
                         a = np.array(text_ids, dtype=builder.dtype)
                         if padding and len(a) < effective_block_size:
@@ -198,14 +208,11 @@ def prepare_fn(
                         max_len = max(max_len, len(a))
                         if build_it:
                             builder.add_array(a)
-                        else:
-                            if ivariant == 0:
-                                num_segments += 1
-                            num_segments_augmented += 1
-                    if not build_it:
-                        num_convs_augmented+= 1
-                if not build_it: 
-                    num_convs += 1
+                        if ivariant == 0:
+                            num_segments += 1
+                        num_segments_augmented += 1
+                    num_convs_augmented+= 1
+                num_convs += 1
 
             if build_it:
                 builder.write_reminder()

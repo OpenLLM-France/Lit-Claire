@@ -112,6 +112,8 @@ def create_dataloader(
             assert os.path.isfile(metadata_file), f"Metadata file {metadata_file} does not exist"
             with open(metadata_file, "r") as f:
                 metadata = json.load(f)
+            expected_num_files = metadata["num_files"]
+            assert expected_num_files  == len(filenames), f"Metadata file {metadata_file} specifies {expected_num_files} files but {len(filenames)} found for prefix {prefix}"
         else:
             # See below: when recursive call to reach a maximum number of samples
             assert isinstance(prefix, dict)
