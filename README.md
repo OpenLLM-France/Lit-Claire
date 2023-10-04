@@ -100,7 +100,7 @@ cp $WORK/../commun/Claire/checkpoints/tiiuae/falcon-7b/*.json \
 test the model with a single prompt
 ```
 srun --ntasks=1 --gres=gpu:1 --constraint=a100 \
-python generate/base.py \
+python lit_gpt/generate/base.py \
     --prompt "Hello, my name is" \
     --checkpoint_dir "$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b"
 ```
@@ -108,6 +108,6 @@ python generate/base.py \
 test the model interactively
 ```
 srun --ntasks=1 --gres=gpu:1 --constraint=a100 --pty \
-python chat/base.py \
+python lit_gpt/chat/base.py \
     --checkpoint_dir "$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b"
 ```
