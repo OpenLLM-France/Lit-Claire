@@ -91,7 +91,7 @@ The merged model `lit_model.pth` can be found under `$WORK/../commun/Claire/chec
 
 copy the *.json files from Falcon-7b to Claire-7b, which are required for the configuration and tokenizer information.
 ```
-cp checkpoints/$WORK/../commun/Claire/checkpoints/tiiuae/falcon-7b/*.json \
+cp $WORK/../commun/Claire/checkpoints/tiiuae/falcon-7b/*.json \
     $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b/
 ```
 
