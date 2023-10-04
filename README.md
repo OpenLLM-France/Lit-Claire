@@ -80,12 +80,12 @@ cancel the job with `scancel 100681`, connect to the node with `ssh jean-zay-iam
 ### merge lora
 ```
 MODEL=tiiuae/falcon-7b
-srun --ntasks=1 --gres=gpu:1 -C=a100 \
+srun --ntasks=1 --gres=gpu:1 --constraint=a100 \
 python merge_lora.py \
     --checkpoint_dir $WORK/../commun/Claire/checkpoints/$MODEL \
     --lora_dir       $WORK/../commun/Claire/pretrain/lora/$MODEL \
     --lora_pth_name  lit_model_lora_finetuned.pth \
-    --precision      bf16-true \
+    --precision      bf16-true
 ```
 The merged model `lit_model.pth` can be found under `$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b`
 
@@ -99,7 +99,7 @@ cp checkpoints/$WORK/../commun/Claire/checkpoints/tiiuae/falcon-7b/*.json \
 
 test the model with a single prompt
 ```
-srun --ntasks=1 --gres=gpu:1 -C=a100 \
+srun --ntasks=1 --gres=gpu:1 --constraint=a100 \
 python generate/base.py \
     --prompt "Hello, my name is" \
     --checkpoint_dir "$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b"
@@ -107,7 +107,7 @@ python generate/base.py \
 
 test the model interactively
 ```
-srun --ntasks=1 --gres=gpu:1 -C=a100 --pty \
+srun --ntasks=1 --gres=gpu:1 --constraint=a100 --pty \
 python chat/base.py \
     --checkpoint_dir "$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b"
 ```
