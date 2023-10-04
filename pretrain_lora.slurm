@@ -6,7 +6,7 @@
 #SBATCH --hint=nomultithread
 #SBATCH --time=00:20:00
 #SBATCH --qos=qos_gpu-dev
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=8
 #SBATCH -C a100
 
 ## load environment

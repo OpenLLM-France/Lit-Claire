@@ -42,7 +42,7 @@ weight_decay = 0.01
 grad_clip = 1.0
 
 # Batch
-batch_size = 384
+batch_size = 192
 micro_batch_size = 12
 gradient_accumulation_iters = batch_size // micro_batch_size
 assert gradient_accumulation_iters > 0
