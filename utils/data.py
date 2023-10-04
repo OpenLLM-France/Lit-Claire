@@ -174,7 +174,7 @@ def create_dataloader(
     # Print proportions and weights
     if verbose:
         print(f"Dataset composition ({total_samples} samples):")
-        for w, metadata in sorted(zip(weights, metadatas)):
+        for w, metadata in sorted(zip(weights, metadatas), key=lambda x: (x[0], x[1]["dataset"])):
             ratio = metadata["num_samples"] / total_samples
             detail_string = ""
             if use_weights:
