@@ -5,6 +5,12 @@
 git clone --recurse-submodules https://github.com/OpenLLM-France/Claire
 ```
 
+### specify Lit-GPT version
+```
+cd Claire/lit_gpt
+git checkout a21d46ae80f84c350ad871578d0348b470c83021
+```
+
 ### create environment
 
 First create a virtual environment.
