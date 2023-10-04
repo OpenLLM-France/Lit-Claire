@@ -289,9 +289,12 @@ if __name__ == "__main__":
     parser.add_argument("path", type=str, default="/gpfsscratch/rech/qgz/commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae/falcon-7b/", nargs="?")
     parser.add_argument("checkpoint_dir", type=str, default="/gpfswork/rech/qgz/commun/Claire/checkpoints/tiiuae/falcon-7b", nargs="?")
     parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--max_batches", type=int, default=1000)
-    parser.add_argument("--seed", type=int, default=random.randint(1, 1000))
+    parser.add_argument("--max_batches_train", type=int, default=1000)
+    parser.add_argument("--max_batches_dev", type=int, default=1000)
+    parser.add_argument("--seed", type=int, default=random.randint(1, 1000), help="Use 0 to disable shuffling")
     parser.add_argument("--try_small", default=False, action="store_true")
+    parser.add_argument("--wrap_validation", default=False, action="store_true")
+    parser.add_argument("--show_samples", type=int, nargs="*", help="Index of dataset from which to show samples")
     args = parser.parse_args()
 
     from lit_gpt.tokenizer import Tokenizer
@@ -300,10 +303,10 @@ if __name__ == "__main__":
     import time
 
     batch_size = args.batch_size
-    max_batches = args.max_batches
     shuffle = bool(args.seed)
     seed = args.seed
     try_small = args.try_small
+    wrap_validation = args.wrap_validation
 
     max_validation_samples = 200 if try_small else 4000
 
@@ -326,13 +329,13 @@ if __name__ == "__main__":
         try_small=try_small,
         return_details=True,
         batch_size=batch_size,
-        wrap_validation=False,
+        wrap_validation=wrap_validation,
         shuffle=shuffle,
         seed=seed,
     )
     print(f"Intantiation time: {time.time() - tic} seconds")
 
-    for combined_dataset, details in [train_details, dev_details]:
+    for (combined_dataset, details), max_batches in [(train_details, args.max_batches_train), (dev_details, args.max_batches_dev)]:
 
         datasets = details["datasets"]
         pseudos = [m["dataset"] for m in details["metadata"]]
@@ -350,29 +353,31 @@ if __name__ == "__main__":
         stats = {}
         tic = time.time()
         useless_computation_time = 0
-        for ibatch, batch in tqdm(enumerate(combined_dataset), total=args.max_batches):
+        for ibatch, batch in tqdm(enumerate(combined_dataset), total=max_batches):
             if ibatch == 0:
                 toc = time.time()
             subtic = time.time()
-            if ibatch >= args.max_batches:
+            if ibatch >= max_batches:
                 break
             new_batch = []
             for sample in batch:
-                sample = hashmd5(sample)
+                sample_hash = hashmd5(sample)
                 which_dataset = None
                 which_index = None
                 for idataset, d in enumerate(all_datas):
-                    if sample == NULL_DATA:
+                    if sample_hash == NULL_DATA:
                         which_dataset = -1
                         which_index = -1
                         break
                     for idata, x in enumerate(d):
-                        if sample == x:
+                        if sample_hash == x:
                             which_dataset = idataset
                             which_index = idata
                             break
                     if which_dataset is not None:
                         break
+                if args.show_samples and which_dataset in args.show_samples:
+                    print(f"dataset{which_dataset}", tokenizer.decode(sample)[:100])
                 assert which_dataset is not None
                 assert which_index is not None
                 new_batch.append((which_dataset, which_index) if which_dataset >= 0 else None)
