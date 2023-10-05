@@ -146,8 +146,8 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
         max_validation_samples=200 if try_small else 4000,
         return_details=True,
     )
-    max_train_iters = num_epochs * train_details["epoch_size"] // micro_batch_size
-    max_eval_iters = max(1, val_details["epoch_size"] // micro_batch_size)
+    max_train_iters = int(num_epochs * train_details["epoch_size"] // micro_batch_size)
+    max_eval_iters = max(1, int(val_details["epoch_size"] // micro_batch_size))
     fabric.print(f"max train iters: {max_train_iters}")
     fabric.print(f"max eval iters: {max_eval_iters}")
 
