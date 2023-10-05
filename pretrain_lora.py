@@ -1,10 +1,12 @@
 import time
 t_last_checkpoint = time.perf_counter()
 t_last_valid = t_last_checkpoint
+
 import os
 import sys
 import json
 import math
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -14,8 +16,8 @@ from lightning.fabric.strategies import FSDPStrategy
 from torch.utils.data import DataLoader
 
 # support running without installing as a package
-wd = Path(__file__).parent.resolve()
-sys.path = [str(wd / "lit_gpt")] + sys.path # Prepend to PYTHONPATH
+this_folder = Path(__file__).parent.resolve()
+sys.path = [str(this_folder / "lit_gpt")] + sys.path # Prepend to PYTHONPATH
 
 from lit_gpt.lora import GPT, Block, Config, lora_filter, mark_only_lora_as_trainable
 from lit_gpt.speed_monitor import SpeedMonitorFabric as SpeedMonitor
@@ -119,7 +121,19 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
 
     fabric.seed_everything(1337)  # same seed for every process to init model (FSDP)
 
-    os.makedirs(out_dir, exist_ok=True)
+    # Make output folder and copy source code and hyperparameters to out_dir
+    os.makedirs(out_dir / "src", exist_ok=True)
+    for file in os.path.basename(__file__), :
+        shutil.copy2(this_folder / file, out_dir / "src")
+    for folder in "lit_gpt/lit_gpt", "utils", :
+        shutil.copytree(this_folder / folder, out_dir / "src" / folder,
+            ignore=lambda x, y: ["__pycache__"], dirs_exist_ok=True)
+    json.dump(
+        # hparams : Path are converted to string because Path is not JSON serializable
+        {k:str(v) if isinstance(v, Path) else v for k,v in hparams.items()},
+        open(out_dir / "hparams.json", "w"),
+        indent=2, ensure_ascii=False
+    )
     
     lora_config = {k.split("lora_")[1]: v for k, v in hparams.items() if k.startswith("lora_")}
     lora_config = {(k if k in ["r", "alpha", "dropout"] else "to_"+k): v for k, v in lora_config.items()}
