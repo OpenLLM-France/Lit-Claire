@@ -102,12 +102,20 @@ test the model with a single prompt
 srun --ntasks=1 --gres=gpu:1 --constraint=a100 \
 python lit_gpt/generate/base.py \
     --prompt "Hello, my name is" \
-    --checkpoint_dir "$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b"
+    --checkpoint_dir $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b
 ```
 
 test the model interactively
 ```
 srun --ntasks=1 --gres=gpu:1 --constraint=a100 --pty \
 python lit_gpt/chat/base.py \
-    --checkpoint_dir "$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b"
+    --checkpoint_dir $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b
+```
+
+### convert Lit-GPT model to Hugging Face format
+```
+python lit_gpt/scripts/convert_lit_checkpoint.py \
+    --checkpoint_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b/lit_model.pth \
+    --output_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b/pytorch_model.bin \
+    --config_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b/lit_config.json
 ```
