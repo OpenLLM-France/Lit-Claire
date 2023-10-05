@@ -127,6 +127,6 @@ python upload_model.py \
     --repo_id OpenLLM-France/Claire-7b \
     --create_repo true
 ```
-`--create_repo true`: create a new Hugging Face repo with `repo_id`, then upload files.
-`--create_repo false`: upload files to the existing Hugging Face repo with `repo_id`
-You'll need to provide your [User Access Tokens](https://huggingface.co/settings/tokens)
+`--create_repo true`: create a new Hugging Face repo with `repo_id`, then upload files.  
+`--create_repo false`: upload files to the existing Hugging Face repo with `repo_id`  
+You'll need to provide your [User Access Tokens](https://huggingface.co/settings/tokens).
