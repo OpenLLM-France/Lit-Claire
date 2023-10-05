@@ -119,3 +119,14 @@ python lit_gpt/scripts/convert_lit_checkpoint.py \
     --output_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b/pytorch_model.bin \
     --config_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b/lit_config.json
 ```
+
+### upload the converted model to Hugging Face
+```
+python upload_model.py \
+    --folder_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b \
+    --repo_id OpenLLM-France/Claire-7b \
+    --create_repo true
+```
+`--create_repo true`: create a new Hugging Face repo with `repo_id`, then upload files.  
+`--create_repo false`: upload files to the existing Hugging Face repo with `repo_id`  
+You'll need to provide your [User Access Tokens](https://huggingface.co/settings/tokens).

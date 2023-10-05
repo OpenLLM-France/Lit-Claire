@@ -13,3 +13,4 @@ datasets  # quantize/gptq.py
 # pandas
 # deepspeed
 names
+huggingface_hub[cli]
