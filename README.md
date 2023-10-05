@@ -119,3 +119,4 @@ python lit_gpt/scripts/convert_lit_checkpoint.py \
     --output_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b/pytorch_model.bin \
     --config_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b/lit_config.json
 ```
+### upload the converted model to Hugging Face
