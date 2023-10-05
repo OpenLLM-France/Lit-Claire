@@ -62,6 +62,21 @@ def anonymize_speakers(text):
         text = text.replace(spk, nspk)
     return text
 
+def unanonymize_speakers(text):
+    import names
+    # Get all speakers
+    speakers = [] 
+    [speakers.append(x) for x in re.findall(PATTERN_SPEAKER_COMPLETE, text) if x not in speakers] 
+    if random.random() < 0.5:
+        # Use first names only
+        new_speakers = [f"[{names.get_first_name()}:]" for i in range(len(speakers))]
+    else:
+        # Use first and last name
+        new_speakers = [f"[{names.get_first_name()} {names.get_last_name()}:]" for i in range(len(speakers))]
+    for spk, nspk in zip(speakers, new_speakers):
+        text = text.replace(spk, nspk)
+    return text
+
 def has_upper_case(text):
     return bool(re.search(r"[A-Z]", text))
 
@@ -108,6 +123,14 @@ def augmented_texts_generator(text, max_variants=2, force_augmentation=False):
         if max_variants > coming_next-1:
             yield text
         coming_next -= 1
+    else:
+        # Sometimes unanonymize speakers
+        r = random.random()
+        if r < 0.2:
+            if max_variants > coming_next-1:
+                text2 = unanonymize_speakers(text)
+                yield text2
+            coming_next -= 1
     if _upper:
         text = to_lower_case(text)
         if max_variants > coming_next-1:

@@ -9,13 +9,13 @@ class TestFormatText(unittest.TestCase):
 
         for itest, (text, normalized_text, maximum) in enumerate([
             (
-                "[speaker001:] Tu me fais rire [LAUGHTER]. Je chante [SINGING]? [Claire Michel:] Il y a un bruit [NOISE], je l'ai dit à [PII].",
-                "[speaker001:] Tu me fais rire [laughter]. Je chante ? [claire michel:] Il y a un bruit [noise], je l'ai dit à [pii].",
+                "[Alison Jordy:] Tu me fais rire [LAUGHTER]. Je chante [SINGING]? [Claire Michel:] Il y a un bruit [NOISE], je l'ai dit à [PII].",
+                "[alison jordy:] Tu me fais rire [laughter]. Je chante ? [claire michel:] Il y a un bruit [noise], je l'ai dit à [pii].",
                 4,
             ),
             (
-                "[speaker001:] Tu me fais rire. Je chante ? [Claire Michel:] Il y a un bruit, je l'ai dit à Ted.",
-                "[speaker001:] Tu me fais rire. Je chante ? [claire michel:] Il y a un bruit, je l'ai dit à Ted.",
+                "[Alison Jordy:] Tu me fais rire. Je chante ? [Claire Michel:] Il y a un bruit, je l'ai dit à Ted.",
+                "[alison jordy:] Tu me fais rire. Je chante ? [claire michel:] Il y a un bruit, je l'ai dit à Ted.",
                 3,
             ),
             (
@@ -55,3 +55,19 @@ class TestFormatText(unittest.TestCase):
                 if len(augmented_texts) > 1:
                     self.assertRegex(augmented_texts[-1], extreme_regex, msg=msg)                 # The deepest normalization is always included among the augmented texts
 
+        # First name augmentation
+        text = "[speaker001:] A [speaker002:] B [speaker001:] C [speaker003:] D [speaker002:] E [speaker003:] F [speaker001:] G"
+        random.seed(123)
+
+        augmented_texts = []
+        for i in range(10):
+            augmented_texts += augmented_texts_generator(text, 4)
+
+        self.assertEqual(
+            sorted(list(set(augmented_texts))),
+            ['[Dominic Robinson:] A [Michael Rottenberg:] B [Dominic Robinson:] C [Bobby Comer:] D [Michael Rottenberg:] E [Bobby Comer:] F [Dominic Robinson:] G',
+             '[Maxine:] A [James:] B [Maxine:] C [Antoinette:] D [James:] E [Antoinette:] F [Maxine:] G',
+             '[Virginia:] A [Kevin:] B [Virginia:] C [Heather:] D [Kevin:] E [Heather:] F [Virginia:] G',
+             '[speaker001:] A [speaker002:] B [speaker001:] C [speaker003:] D [speaker002:] E [speaker003:] F [speaker001:] G',
+             '[speaker001:] a [speaker002:] b [speaker001:] c [speaker003:] d [speaker002:] e [speaker003:] f [speaker001:] g']
+        )
