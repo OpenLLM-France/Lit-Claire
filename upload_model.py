@@ -3,21 +3,17 @@ login()
 from pathlib import Path
 
 
-def upload_folder(folder_path: Path, repo_id: str):
+def upload(folder_path: Path="folder_path", repo_id: str="repo_id"):
     # download missing files ignored by lit_gpt/scripts/download.py
-
     revision="f7796529e36b2d49094450fb038cc7c4c86afa44"
-    hf_hub_download(repo_id="tiiuae/falcon-7b", filename=".gitattributes", revision=revision)
-    hf_hub_download(repo_id="tiiuae/falcon-7b", filename="README.md", revision=revision)
-    hf_hub_download(repo_id="tiiuae/falcon-7b", filename="config.json", revision=revision)
-    hf_hub_download(repo_id="tiiuae/falcon-7b", filename="configuration_RW.py", revision=revision)
-    hf_hub_download(repo_id="tiiuae/falcon-7b", filename="modelling_RW.py", revision=revision)
-    hf_hub_download(repo_id="tiiuae/falcon-7b", filename="special_tokens_map.json", revision=revision)
+    filenames = [".gitattributes", "README.md", "config.json", "configuration_RW.py", "modelling_RW.py", "special_tokens_map.json"]
+    for filename in filenames:
+        hf_hub_download(repo_id="tiiuae/falcon-7b", filename=filename, revision=revision, local_dir=folder_path)
 
     api = HfApi()
     api.upload_folder(
-        folder_path="/path/to/local/model",
-        repo_id="username/my-cool-model",
+        folder_path=folder_path,
+        repo_id=repo_id,
         repo_type="model",
         ignore_patterns=["lit_*", "pytorch_model.bin.index.json"],
     )
@@ -26,4 +22,4 @@ def upload_folder(folder_path: Path, repo_id: str):
 if __name__ == "__main__":
     from jsonargparse import CLI
 
-    CLI(upload_folder)
+    CLI(upload)
