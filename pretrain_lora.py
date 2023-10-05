@@ -29,51 +29,52 @@ from lightning.fabric.loggers import CSVLogger
 
 from utils.data import create_dataloaders
 
-
-# Action to be taken per n interval
-eval_interval = 50
-save_interval = 50
-log_interval = 1
-
-# Learning rate
-learning_rate = 1e-4
-warmup_steps = 50  # note: this is based on step, not iteration
-weight_decay = 0.01
-grad_clip = 1.0
-
-# Batch
-batch_size = 192
-micro_batch_size = 12
-gradient_accumulation_iters = batch_size // micro_batch_size
-assert gradient_accumulation_iters > 0
-
-# Number of epochs
-num_epochs = 1
-
-# LORA
-lora_r = 8
-lora_alpha = 16
-lora_dropout = 0.05
-lora_query = True
-lora_key = True
-lora_value = True
-lora_projection = True
-lora_mlp = True
-lora_head = True
-
-hparams = {k: v for k, v in locals().items() if isinstance(v, (int, float, str)) and not k.startswith("_")}
-
-
 def setup(
-    devices: int = 2,  # num_gpus_per_node
-    num_nodes: int = 1,
+    # Folders
     data_dir: Path = Path("data/preprocessed_data"),
     checkpoint_dir: Path = Path("checkpoints/tiiuae/falcon-7b"),
     out_dir: Path = Path("out/lora/Claire"),
+
+    # Hardware (only used in setup, not main)
+    devices: int = 2,  # num_gpus_per_node
+    num_nodes: int = 1,
     precision: Optional[str] = None,
+
+    # Data
     try_small: bool = False,
     enable_validation: bool = True,
+
+    # Action to be taken per n interval
+    eval_interval: int = 50,
+    save_interval: int = 50,
+    log_interval: int = 1,
+
+    # Number of epochs
+    num_epochs: int = 1,
+
+    # Batch
+    batch_size: int = 192,
+    micro_batch_size: int = 12,
+
+    # Learning rate
+    learning_rate: float = 1e-4,
+    warmup_steps: int = 50,  # note: this is based on step, not iteration
+    weight_decay: float = 0.01,
+    grad_clip: float = 1.0,
+
+    # LORA
+    lora_r: int = 8,
+    lora_alpha: int = 16,
+    lora_dropout: float = 0.05,
+    lora_query: bool = True,
+    lora_key: bool = True,
+    lora_value: bool = True,
+    lora_projection: bool = True,
+    lora_mlp: bool = True,
+    lora_head: bool = True,
 ):
+    hparams = dict((k,v) for k,v in locals().items())
+
     precision = precision or get_default_supported_precision(training=True)
 
     accelerator = "auto"
@@ -94,10 +95,19 @@ def setup(
     logger = CSVLogger(out_dir.parent, out_dir.name, flush_logs_every_n_steps=log_interval)
     fabric = L.Fabric(devices=devices, accelerator=accelerator, num_nodes=num_nodes, strategy=strategy, precision=precision, loggers=logger)
     fabric.print(hparams)
-    fabric.launch(main, data_dir, checkpoint_dir, out_dir, try_small, enable_validation)
 
+    fabric.launch(main, checkpoint_dir, out_dir, data_dir, try_small, enable_validation, hparams)
 
-def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, try_small: bool, enable_validation: bool):
+def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation, hparams):
+    batch_size          = hparams["batch_size"]
+    micro_batch_size    = hparams["micro_batch_size"]
+    num_epochs          = hparams["num_epochs"]
+    learning_rate       = hparams["learning_rate"]
+    weight_decay        = hparams["weight_decay"]
+
+    assert batch_size % micro_batch_size == 0 and batch_size > 0 and micro_batch_size > 0
+    hparams["gradient_accumulation_iters"] = batch_size // micro_batch_size
+
     check_valid_checkpoint_dir(checkpoint_dir)  # check if there is lit-gpt format model
 
     speed_monitor = SpeedMonitor(fabric, window_size=50, time_unit="seconds")
@@ -106,21 +116,13 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
 
     os.makedirs(out_dir, exist_ok=True)
     
-    if not any((lora_query, lora_key, lora_value, lora_projection, lora_mlp, lora_head)):
-        fabric.print("Warning: all LoRA layers are disabled!")
+    lora_config = {k.split("lora_")[1]: v for k, v in hparams.items() if k.startswith("lora_")}
     config = Config.from_json(
         path=checkpoint_dir / "lit_config.json",
-        r=lora_r,
-        alpha=lora_alpha,
-        dropout=lora_dropout,
-        to_query=lora_query,
-        to_key=lora_key,
-        to_value=lora_value,
-        to_projection=lora_projection,
-        to_mlp=lora_mlp,
-        to_head=lora_head,
+        **{(k if k in ("r", "alpha", "dropout") else "to_"+k):v for k,v in lora_config.items()}
+        # r=lora_r, alpha=lora_alpha, dropout=lora_dropout,
+        # to_query=lora_query, to_key=lora_key, ...
     )
-    lora_config = {k.split("lora_")[1]: v for k, v in hparams.items() if k.startswith("lora_")}
     lora_config = {(k if k in ["r", "alpha", "dropout"] else "to_"+k): v for k, v in lora_config.items()}
     with open(out_dir / "lora_config.json", "w") as file:
         json.dump(lora_config, file)
@@ -143,6 +145,24 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
     max_eval_iters = int(math.ceil(val_details["epoch_size"] // micro_batch_size))
     fabric.print(f"max train iters: {max_train_iters}")
     fabric.print(f"max eval iters: {max_eval_iters}")
+
+    if try_small:
+        fabric.print("QUICK TEST")
+
+        # Reduce max values
+        small_max_batches = 2 * batch_size // micro_batch_size
+        fabric.print(f"* {max_train_iters=} -> {small_max_batches}")
+        max_train_iters = small_max_batches
+        fabric.print(f"* {max_eval_iters=} -> {small_max_batches}")
+        max_eval_iters = small_max_batches
+
+        # Reduce intervals
+        for interval in ["eval_interval", "save_interval", "log_interval"]:
+            fabric.print(f"* {interval=} -> 1")
+            hparams[interval] = 1
+
+    hparams["max_train_iters"] = max_train_iters
+    hparams["max_eval_iters"] = max_eval_iters
 
     if val_dataloader is None:
         train_dataloader = fabric.setup_dataloaders(train_dataloader)
@@ -170,30 +190,10 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
 
     fabric.seed_everything(1337 + fabric.global_rank)
 
-    if try_small:
-        print("QUICK TEST")
-
-        # Reduce max values
-        small_max_batches = 2 * batch_size // micro_batch_size
-        print(f"* {max_train_iters=} -> {small_max_batches}")
-        max_train_iters = small_max_batches
-        print(f"* {max_eval_iters=} -> {small_max_batches}")
-        max_eval_iters = small_max_batches
-
-        # Reduce intervals
-        global eval_interval, save_interval, log_interval
-        print(f"* {eval_interval=} -> 2")
-        eval_interval = 2
-        print(f"* {save_interval=} -> 2")
-        save_interval = 2
-        print(f"* {log_interval=} -> 1")
-        log_interval = 1
-
     train_time = time.perf_counter()
     train(
-        fabric, model, optimizer, train_dataloader, val_dataloader, out_dir, speed_monitor,
-        max_train_iters=max_train_iters,
-        max_eval_iters=max_eval_iters
+        fabric, model, optimizer, train_dataloader, val_dataloader, speed_monitor, out_dir,
+        hparams
     )
     fabric.print(f"Training time: {(time.perf_counter()-train_time):.2f}s")
     if fabric.device.type == "cuda":
@@ -210,12 +210,22 @@ def train(
     optimizer: torch.optim.Optimizer,
     train_dataloader: DataLoader,
     val_dataloader: DataLoader,
-    out_dir: Path,
     speed_monitor: SpeedMonitor,
-    max_eval_iters: int,
-    max_train_iters: int,
+    out_dir: Path,
+    hparams: dict,
     sanity_check: bool = False,
 ) -> None:
+    micro_batch_size            = hparams["micro_batch_size"]
+    gradient_accumulation_iters = hparams["gradient_accumulation_iters"]
+    max_eval_iters              = hparams["max_eval_iters"]
+    max_train_iters             = hparams["max_train_iters"]
+    warmup_steps                = hparams["warmup_steps"]
+    learning_rate               = hparams["learning_rate"]
+    grad_clip                   = hparams["grad_clip"]
+    eval_interval               = hparams["eval_interval"]
+    save_interval               = hparams["save_interval"]
+    log_interval                = hparams["log_interval"]
+
     if val_dataloader is not None and sanity_check:
         sanity_check_val_loss = validate(fabric, model, val_dataloader, max_eval_iters=1)
         fabric.print(f"sanity check val loss: {sanity_check_val_loss.item():.4f}")
@@ -293,6 +303,7 @@ def train(
             fabric.barrier()
             if fabric.device.type == "cuda":
                 fabric.logger.log_metrics({"peak_vram": f"{torch.cuda.max_memory_allocated() / 1e9:.02f} GB"})
+
         if not is_accumulating and step_count % save_interval == 0:
             checkpoint_path = out_dir / f"iter-{iter_num:06d}-ckpt.pth"
             save_lora_checkpoint(fabric, model, checkpoint_path)
