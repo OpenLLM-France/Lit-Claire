@@ -1,6 +1,8 @@
+import time
+t_last_checkpoint = time.perf_counter()
+t_last_valid = t_last_checkpoint
 import os
 import sys
-import time
 import json
 import math
 from pathlib import Path
@@ -45,9 +47,10 @@ def setup(
     enable_validation: bool = True,
 
     # Action to be taken per n interval
-    eval_interval: int = 50,
-    save_interval: int = 50,
+    save_interval: int = 3580, # A little bit less than 1H
+    eval_interval: int = 3580, # A little bit less than 1H
     log_interval: int = 1,
+    interval_unit: str = "time",
 
     # Number of epochs
     num_epochs: int = 1,
@@ -74,6 +77,8 @@ def setup(
     lora_head: bool = True,
 ):
     hparams = dict((k,v) for k,v in locals().items())
+
+    assert interval_unit in ["time", "steps"]
 
     precision = precision or get_default_supported_precision(training=True)
 
@@ -117,13 +122,12 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
     os.makedirs(out_dir, exist_ok=True)
     
     lora_config = {k.split("lora_")[1]: v for k, v in hparams.items() if k.startswith("lora_")}
+    lora_config = {(k if k in ["r", "alpha", "dropout"] else "to_"+k): v for k, v in lora_config.items()}
     config = Config.from_json(
         path=checkpoint_dir / "lit_config.json",
-        **{(k if k in ("r", "alpha", "dropout") else "to_"+k):v for k,v in lora_config.items()}
-        # r=lora_r, alpha=lora_alpha, dropout=lora_dropout,
-        # to_query=lora_query, to_key=lora_key, ...
+        **lora_config
+        # r=lora_r, alpha=lora_alpha, dropout=lora_dropout, to_query=lora_query, to_key=lora_key, ...
     )
-    lora_config = {(k if k in ["r", "alpha", "dropout"] else "to_"+k): v for k, v in lora_config.items()}
     with open(out_dir / "lora_config.json", "w") as file:
         json.dump(lora_config, file)
 
@@ -222,9 +226,11 @@ def train(
     warmup_steps                = hparams["warmup_steps"]
     learning_rate               = hparams["learning_rate"]
     grad_clip                   = hparams["grad_clip"]
-    eval_interval               = hparams["eval_interval"]
     save_interval               = hparams["save_interval"]
+    eval_interval               = hparams["eval_interval"]
     log_interval                = hparams["log_interval"]
+    interval_unit               = hparams["interval_unit"]
+    global t_last_checkpoint, t_last_valid
 
     if val_dataloader is not None and sanity_check:
         sanity_check_val_loss = validate(fabric, model, val_dataloader, max_eval_iters=1)
@@ -293,20 +299,37 @@ def train(
             )
             fabric.logger.log_metrics({"loss": f"{loss.item():.4f}"})
 
-        if val_dataloader is not None and not is_accumulating and step_count % eval_interval == 0:
-            t0 = time.perf_counter()
-            val_loss = validate(fabric, model, val_dataloader, max_eval_iters)
-            t1 = time.perf_counter() - t0
-            speed_monitor.eval_end(t1)
-            fabric.print(f"iter {iter_num}: val loss {val_loss.item():.4f}, val time: {t1 * 1000:.2f}ms")
-            fabric.logger.log_metrics({"val_loss": f"{val_loss.item():.4f}"})
-            fabric.barrier()
-            if fabric.device.type == "cuda":
-                fabric.logger.log_metrics({"peak_vram": f"{torch.cuda.max_memory_allocated() / 1e9:.02f} GB"})
+        if not is_accumulating:
 
-        if not is_accumulating and step_count % save_interval == 0:
-            checkpoint_path = out_dir / f"iter-{iter_num:06d}-ckpt.pth"
-            save_lora_checkpoint(fabric, model, checkpoint_path)
+            if iter_num == (max_train_iters-1):
+                # Save and validate at the end of training
+                condition_checkpoint = True
+                condition_eval = True
+            elif interval_unit == "time":
+                # Save and validate at regular time intervals
+                condition_checkpoint = (time.perf_counter() - t_last_checkpoint) > save_interval
+                condition_eval = condition_checkpoint if (save_interval == eval_interval) else (time.perf_counter() - t_last_valid) > eval_interval
+            else:
+                # Save and validate at regular iteration intervals
+                condition_checkpoint = step_count % save_interval == 0
+                condition_eval = step_count % eval_interval == 0
+
+            if condition_checkpoint:
+                checkpoint_path = out_dir / f"iter-{iter_num:06d}-ckpt.pth"
+                save_lora_checkpoint(fabric, model, checkpoint_path)
+                t_last_checkpoint = time.perf_counter()
+
+            if condition_eval and val_dataloader is not None:
+                t0 = time.perf_counter()
+                val_loss = validate(fabric, model, val_dataloader, max_eval_iters)
+                t1 = time.perf_counter() - t0
+                speed_monitor.eval_end(t1)
+                fabric.print(f"iter {iter_num}: val loss {val_loss.item():.4f}, val time: {t1 * 1000:.2f}ms")
+                fabric.logger.log_metrics({"val_loss": f"{val_loss.item():.4f}"})
+                fabric.barrier()
+                if fabric.device.type == "cuda":
+                    fabric.logger.log_metrics({"peak_vram": f"{torch.cuda.max_memory_allocated() / 1e9:.02f} GB"})
+                t_last_valid = time.perf_counter()
 
 
 @torch.inference_mode()
