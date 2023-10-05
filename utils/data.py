@@ -21,6 +21,7 @@ from lit_gpt.config import Config
 
 def create_dataloaders(
     path,
+    language=None,
     batch_size=32,
     shuffle=True,
     num_processes=1,
@@ -44,6 +45,9 @@ def create_dataloaders(
         [get_filename_prefix(filename) for filename in os.listdir(path) \
         if os.path.isfile(os.path.join(path, filename)) and filename.endswith(".bin")]
     ))
+
+    if language:
+        all_prefixes = [p for p in all_prefixes if p.startswith(language.upper())]
 
     prefixes_dev = [p for p in all_prefixes if "--DEV" in p]
     prefixes_train = [p for p in all_prefixes if p not in prefixes_dev]
@@ -290,13 +294,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("Test dataset iterator")
     parser.add_argument("path", type=str, default="/gpfsscratch/rech/qgz/commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae/falcon-7b/", nargs="?")
     parser.add_argument("checkpoint_dir", type=str, default="/gpfswork/rech/qgz/commun/Claire/checkpoints/tiiuae/falcon-7b", nargs="?")
-    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--batch_size", type=int, default=12)
+    parser.add_argument("--language", default=None, help="Filter by language")
     parser.add_argument("--max_batches_train", type=int, default=1000)
     parser.add_argument("--max_batches_dev", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=random.randint(1, 1000), help="Use 0 to disable shuffling")
     parser.add_argument("--try_small", default=False, action="store_true")
     parser.add_argument("--wrap_validation", default=False, action="store_true")
     parser.add_argument("--show_samples", type=int, nargs="*", help="Index of dataset from which to show samples")
+    parser.add_argument("--no_iter", default=False, action="store_true", help="Do not iterate over the dataset")
     args = parser.parse_args()
 
     from lit_gpt.tokenizer import Tokenizer
@@ -325,8 +331,9 @@ if __name__ == "__main__":
 
     # Get the dataset
     tic = time.time()
-    train_details, dev_details = create_dataloaders(
+    (trainset, train_details), (devset, dev_details) = create_dataloaders(
         path=args.path,
+        language=args.language,
         max_validation_samples=max_validation_samples,
         try_small=try_small,
         return_details=True,
@@ -337,7 +344,19 @@ if __name__ == "__main__":
     )
     print(f"Intantiation time: {time.time() - tic} seconds")
 
-    for (combined_dataset, details), max_batches in [(train_details, args.max_batches_train), (dev_details, args.max_batches_dev)]:
+    max_train_iters = int(train_details["epoch_size"] // batch_size)
+    max_eval_iters = max(1, int(dev_details["epoch_size"] // batch_size))
+    print("Train:")
+    print("* epoch size:", train_details["epoch_size"])
+    print("* max_train_iters for 1 epoch:", max_train_iters)
+    print("Dev:")
+    print("* epoch size:", dev_details["epoch_size"])
+    print("* max_eval_iters for 1 epoch:", max_eval_iters)
+
+    if args.no_iter:
+        sys.exit(0)
+
+    for (combined_dataset, details, max_batches) in [(trainset, train_details, args.max_batches_train), (devset, dev_details, args.max_batches_dev)]:
 
         datasets = details["datasets"]
         pseudos = [m["dataset"] for m in details["metadata"]]
