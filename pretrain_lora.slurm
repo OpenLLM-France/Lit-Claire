@@ -4,7 +4,7 @@
 #SBATCH --ntasks-per-node=2
 #SBATCH --nodes=1
 #SBATCH --hint=nomultithread
-#SBATCH --time=00:20:00
+#SBATCH --time=192:00:00
 #SBATCH --qos=qos_gpu-dev
 #SBATCH --cpus-per-task=8
 #SBATCH -C a100
@@ -18,8 +18,8 @@ conda activate claire
 ## launch script on every node
 set -x
 
-MODEL=tiiuae/falcon-7b
-OUTDIR=$WORK/../commun/Claire/pretrain/lora/$MODEL
+MODEL=tiiuae/falcon-7b_bos
+OUTDIR=$SCRATCH/../commun/Claire/pretrain-Claire-7B-v0.01/lora/$MODEL
 
 # execute script
 srun --output=$OUTDIR/pretrain_lora.out --error=$OUTDIR/pretrain_lora.out \
@@ -30,4 +30,4 @@ python pretrain_lora.py \
 --checkpoint_dir $WORK/../commun/Claire/checkpoints/$MODEL \
 --out_dir $OUTDIR \
 --precision bf16-true \
---no_validation \
+--enable_validation false \
