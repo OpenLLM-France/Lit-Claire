@@ -30,3 +30,4 @@ python pretrain_lora.py \
 --checkpoint_dir $WORK/../commun/Claire/checkpoints/$MODEL \
 --out_dir $OUTDIR \
 --precision bf16-true \
+--no_validation \

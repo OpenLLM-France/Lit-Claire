@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import json
+import math
 from pathlib import Path
 from typing import Optional
 
@@ -27,7 +28,6 @@ from lit_gpt.utils import (
 from lightning.fabric.loggers import CSVLogger
 
 from utils.data import create_dataloaders
-# from utils.redpajama_data import create_dataloaders as create_dataloaders_redpajama
 
 
 # Action to be taken per n interval
@@ -72,6 +72,7 @@ def setup(
     out_dir: Path = Path("out/lora/Claire"),
     precision: Optional[str] = None,
     try_small: bool = False,
+    enable_validation: bool = True,
 ):
     precision = precision or get_default_supported_precision(training=True)
 
@@ -93,10 +94,10 @@ def setup(
     logger = CSVLogger(out_dir.parent, out_dir.name, flush_logs_every_n_steps=log_interval)
     fabric = L.Fabric(devices=devices, accelerator=accelerator, num_nodes=num_nodes, strategy=strategy, precision=precision, loggers=logger)
     fabric.print(hparams)
-    fabric.launch(main, data_dir, checkpoint_dir, out_dir, try_small)
+    fabric.launch(main, data_dir, checkpoint_dir, out_dir, try_small, enable_validation)
 
 
-def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, try_small: bool):
+def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, try_small: bool, enable_validation: bool):
     check_valid_checkpoint_dir(checkpoint_dir)  # check if there is lit-gpt format model
 
     speed_monitor = SpeedMonitor(fabric, window_size=50, time_unit="seconds")
@@ -124,16 +125,6 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
     with open(out_dir / "lora_config.json", "w") as file:
         json.dump(lora_config, file)
 
-    # DEPRECATED for debug
-    # train_dataloader, val_dataloader = create_dataloaders_redpajama(
-    #     batch_size=micro_batch_size,
-    #     block_size=config.block_size,
-    #     fabric=fabric,
-    #     train_data_dir=data_dir,
-    #     val_data_dir=data_dir,
-    #     seed=(1337 + fabric.global_rank),
-    # )
-
     (train_dataloader, train_details), (val_dataloader, val_details) = create_dataloaders(
         batch_size=micro_batch_size,
         path=data_dir,
@@ -145,9 +136,11 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
         try_small=try_small,
         max_validation_samples=200 if try_small else 4000,
         return_details=True,
+        enable_validation=enable_validation,
     )
+
     max_train_iters = int(num_epochs * train_details["epoch_size"] // micro_batch_size)
-    max_eval_iters = max(1, int(val_details["epoch_size"] // micro_batch_size))
+    max_eval_iters = int(math.ceil(val_details["epoch_size"] // micro_batch_size))
     fabric.print(f"max train iters: {max_train_iters}")
     fabric.print(f"max eval iters: {max_eval_iters}")
 
@@ -200,7 +193,7 @@ def main(fabric: L.Fabric, data_dir: Path, checkpoint_dir: Path, out_dir: Path, 
     train(
         fabric, model, optimizer, train_dataloader, val_dataloader, out_dir, speed_monitor,
         max_train_iters=max_train_iters,
-        max_eval_iters=max_eval_iters,
+        max_eval_iters=max_eval_iters
     )
     fabric.print(f"Training time: {(time.perf_counter()-train_time):.2f}s")
     if fabric.device.type == "cuda":

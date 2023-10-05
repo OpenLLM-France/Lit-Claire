@@ -33,6 +33,7 @@ def create_dataloaders(
     verbose=True,
     try_small=False,
     return_details=False,
+    enable_validation=True,
 ):
     assert os.path.isdir(path), f"Path {path} does not exist"
 
@@ -73,10 +74,12 @@ def create_dataloaders(
         return_details=return_details,
     )
 
-    return (
-        create_dataloader(prefixes=prefixes_train, shuffle=shuffle, wrap=wrap_train, **kwargs),
-        create_dataloader(prefixes=prefixes_dev, shuffle=False, use_weights=False, wrap=wrap_validation, max_samples=max_validation_samples, **kwargs)
-    )
+    train = create_dataloader(prefixes=prefixes_train, shuffle=shuffle, wrap=wrap_train, **kwargs)
+
+    valid = create_dataloader(prefixes=prefixes_dev, shuffle=False, use_weights=False, wrap=wrap_validation, max_samples=max_validation_samples, **kwargs) \
+        if enable_validation else ((None, {"epoch_size": 0}) if return_details else None)
+
+    return (train, valid)
 
 def create_dataloader(
     path,
