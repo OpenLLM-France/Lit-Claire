@@ -2,50 +2,89 @@
 
 if __name__ == "__main__":
     
+    import os
     import argparse
+    
     parser = argparse.ArgumentParser(
         description='Test pretrained model in litgit format, by giving likelihood of sentences and performing completion on it',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument('text', type=str, help='sentence to complete', nargs="*")
     parser.add_argument('--model', type=str, help='model name',
-        #default="/home/jlouradour/projects/OpenLLM/checkpoints/EleutherAI/pythia-70m",
-        default="/gpfswork/rech/qgz/commun/Claire/checkpoints/tiiuae/falcon-7b",
+        default="EleutherAI/pythia-70m", # Smallest supported by lit-gpt
+        # default="tiiuae/falcon-7b",
+        # default="mistralai/Mistral-7B-v0.1",
+        # default="/gpfswork/rech/qgz/commun/Claire/checkpoints/tiiuae/falcon-7b",
+        # default="/home/jlouradour/projects/OpenLLM/checkpoints/EleutherAI/pythia-70m",
     )
     parser.add_argument('--length_generation', type=int, default=50, help='Number of tokens to generate')
     parser.add_argument('--bos', default=False, action="store_true", help='Include BOS token')
     parser.add_argument('--eos', default=False, action="store_true", help='Include EOS token')
+    parser.add_argument('--top_k', default=1, type=int, help='Only sample among the tokens with the k highest probabilities')
+    parser.add_argument('--temperature', default=1.0, type=float, help='Scales the predicted logits by 1 / temperature')
+    parser.add_argument('--cache_folder', type=str, default=os.path.expanduser("~/.cache"), help='Folder to download models')
     args = parser.parse_args()
 
 # Ugly path
 import sys, os
-wd = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-sys.path += [wd + "/lit_gpt", wd]
+WORKDIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path += [WORKDIR + "/lit_gpt", WORKDIR]
+
+import time
+import subprocess
+from pathlib import Path
 
 import torch
 import lightning as L
-import lit_gpt
+
+from lightning.fabric.strategies import FSDPStrategy
+from lit_gpt import GPT, Config, Tokenizer
+from lit_gpt.model import Block
+from lit_gpt.utils import check_valid_checkpoint_dir, get_default_supported_precision, load_checkpoint, quantization
+
+def to_model_path(model_name_or_dir, cache_folder):
+    if isinstance(model_name_or_dir, str):
+
+        if not os.path.isdir(model_name_or_dir) or not os.path.isfile(os.path.join(model_name_or_dir, "lit_model.pth")):
+            # Try to download
+            download_script = os.path.join(WORKDIR, "lit_gpt/scripts/download.py")
+            convert_script = os.path.join(WORKDIR, "lit_gpt/scripts/convert_hf_checkpoint.py")
+            assert os.path.isfile(download_script), f"Cannot find {download_script}"
+            assert os.path.isfile(convert_script), f"Cannot find {convert_script}"
+            
+            target_folder = os.path.join(cache_folder, "checkpoints", model_name_or_dir)
+
+            if not os.path.isdir(target_folder):
+                print(f"Downloading model in {target_folder}")
+                subprocess.run([sys.executable, download_script, "--repo_id", model_name_or_dir], cwd=cache_folder)
+                assert os.path.isdir(target_folder), f"Problem while generating {target_folder}"
+            if not os.path.isfile(os.path.join(target_folder, "lit_model.pth")):
+                print(f"Converting model in {target_folder}")
+                print([sys.executable, convert_script, "--checkpoint_dir", target_folder])
+                subprocess.run([sys.executable, convert_script, "--checkpoint_dir", target_folder])
+                assert os.path.isfile(os.path.join(target_folder, "lit_model.pth")), f"Problem while converting {target_folder}"
+
+            model_name_or_dir = target_folder
+
+        model_name_or_dir = Path(model_name_or_dir)
+
+    return model_name_or_dir
 
 def load_model(
-    checkpoint_dir,
+    model_name_or_dir,
     strategy: str = "auto",
     devices: int = 1,
     precision: str = None,
     quantize: str = None,
     verbose: bool = False,
+    cache_folder: str = os.path.expanduser("~/.cache"),
     ):
-    from lit_gpt import GPT, Config
-    from lit_gpt.tokenizer import Tokenizer
-    from lit_gpt.utils import check_valid_checkpoint_dir, get_default_supported_precision, load_checkpoint, quantization
-    from pathlib import Path
-    import time
 
     # See https://github.com/Lightning-AI/lit-gpt/blob/main/generate/base.py
 
-    if isinstance(checkpoint_dir, str):
-        checkpoint_dir = Path(checkpoint_dir)
+    model_folder = to_model_path(model_name_or_dir, cache_folder)
 
-    check_valid_checkpoint_dir(checkpoint_dir)
+    check_valid_checkpoint_dir(model_folder)
 
     precision = precision or get_default_supported_precision(training=False)
 
@@ -54,17 +93,17 @@ def load_model(
     fabric = L.Fabric(devices=devices, precision=precision, strategy=strategy)
     fabric.launch()
     
-    config = Config.from_json(checkpoint_dir / "lit_config.json")
+    config = Config.from_json(model_folder / "lit_config.json")
 
     if quantize is not None and devices > 1:
         raise NotImplementedError
     if quantize == "gptq.int4":
         model_file = "lit_model_gptq.4bit.pth"
-        if not (checkpoint_dir / model_file).is_file():
+        if not (model_folder / model_file).is_file():
             raise ValueError("Please run `python quantize/gptq.py` first")
     else:
         model_file = "lit_model.pth"
-    checkpoint_path = checkpoint_dir / model_file
+    checkpoint_path = model_folder / model_file
 
     if verbose: fabric.print(f"Loading model {str(checkpoint_path)!r} with {config.__dict__}", file=sys.stderr)
     t0 = time.perf_counter()
@@ -199,7 +238,10 @@ if __name__ == "__main__":
         ]
     
     # Load model    
-    fabric, tokenizer, model = load_model(model_folder)
+    fabric, tokenizer, model = load_model(
+        model_folder,
+        cache_folder = args.cache_folder,
+    )
 
     # Get the maximum length
     tokens_list = [tokenizer.encode(text, bos=bos, eos=eos) for text in texts]
@@ -230,7 +272,7 @@ if __name__ == "__main__":
             tokens = tokens[:-1]
             logits = logits[:-1]
 
-        tokens = generate(model, tokens, args.length_generation + len(tokens), temperature=1, top_k=1)
+        tokens = generate(model, tokens, args.length_generation + len(tokens), temperature=args.temperature, top_k=args.top_k)
             
         # last_logit = logits[-1]
         # for i in range(args.length_generation):
