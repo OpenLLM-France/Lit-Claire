@@ -146,6 +146,7 @@ def create_dataloader(
             "num_files": len(filenames),
             "n_chunks": n_chunks,
             "num_processes": num_processes_this,
+            "num_batches": round(num_samples // batch_size),
         })
 
         kwargs = dict(
@@ -180,16 +181,28 @@ def create_dataloader(
 
     # Print proportions and weights
     if verbose:
-        print(f"Dataset composition ({total_samples} samples):")
+        total = {}
+        for what in ("conversations", "turns", "words", "num_samples", "num_batches", ):
+            total[what] = sum([metadata[what] for metadata in metadatas])
+        print(f"Dataset composition: {total['conversations']} conversations, {total['turns']} turns, {total['words']} words, {total_samples} samples (of length {effective_block_size}), {total['num_batches']} batches (of {batch_size}):")
         for w, metadata in sorted(zip(weights, metadatas), key=lambda x: (x[0], x[1]["dataset"])):
-            ratio = metadata["num_samples"] / total_samples
             detail_string = ""
+            for what in (
+                "conversations",
+                # "turns",
+                "words",
+                "num_samples",
+                "num_batches",
+                ):
+                ratio = metadata[what] / total[what]
+                what_short = what.replace("num_", "").replace("conversations", "convs")
+                detail_string += f" {format_number(metadata[what])} {what_short} ({ratio*100:5.2f} %)"
             if use_weights:
                 detail_string += f" -- weights = {w*100:5.2f} %"
             detail_string += f" -- {metadata['num_files']} files"
             detail_string += f" / {metadata['n_chunks']} chunks"
             detail_string += f" / {metadata['num_processes']} processes"
-            print(f"* {metadata['dataset']:30}: {ratio*100:5.2f} % ({metadata['num_samples']} samples){detail_string}")
+            print(f"* {metadata['dataset']:30}:{detail_string}")
 
     # Cut data if higher than max_samples
     if max_samples and max_samples < total_samples_with_padding:
@@ -253,6 +266,19 @@ def create_dataloader(
         }
     return combined_dataset
 
+def format_number(n, _inner_call=False):
+    """ print a number approximated on 4 characters """
+    if isinstance(n, float):
+        if n < 9.5: # 10
+            return f"{n:.1f}" if _inner_call else f"{n:.2f}"
+        if n < 99.5: # 100
+            return f"{round(n):3}" if _inner_call else f"{n:.1f}"
+        return f"{round(n):3}" if _inner_call else f"{int(n):4}"
+    if n < 1000:
+        return f"{int(n):4}"
+    if n < 995000:
+        return f"{format_number(n/1000., True)}k"
+    return f"{format_number(n/1000000., True)}M"
 
 class ConcatenatedDataset(IterableDataset):
     def __init__(self, datasets, num_samples=None):
@@ -294,18 +320,20 @@ if __name__ == "__main__":
 
     import random
     import argparse
-    parser = argparse.ArgumentParser("Test dataset iterator")
+    parser = argparse.ArgumentParser("Test dataset iterator", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("path", type=str, default="/gpfsscratch/rech/qgz/commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae/falcon-7b/", nargs="?")
     parser.add_argument("checkpoint_dir", type=str, default="/gpfswork/rech/qgz/commun/Claire/checkpoints/tiiuae/falcon-7b", nargs="?")
-    parser.add_argument("--batch_size", type=int, default=12)
+    parser.add_argument("--batch_size", type=int, default=12, help= "Batch size")
     parser.add_argument("--language", default=None, help="Filter by language")
-    parser.add_argument("--max_batches_train", type=int, default=1000)
-    parser.add_argument("--max_batches_dev", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=random.randint(1, 1000), help="Use 0 to disable shuffling")
-    parser.add_argument("--try_small", default=False, action="store_true")
-    parser.add_argument("--wrap_validation", default=False, action="store_true")
-    parser.add_argument("--show_samples", type=int, nargs="*", help="Index of dataset from which to show samples")
-    parser.add_argument("--no_iter", default=False, action="store_true", help="Do not iterate over the dataset")
+    parser.add_argument("--try_small", default=False, action="store_true", help="Use dataset subsampling for quick tests")
+    parser.add_argument("--iterate", default=False, action="store_true", help="Iterate over the dataset to check")
+    # Options when iterating
+    iter_parser = parser.add_argument_group("Iterating options")
+    iter_parser.add_argument("--wrap_validation", default=False, action="store_true")
+    iter_parser.add_argument("--max_batches_train", type=int, default=1000, help="Max. number of training batches to iterate over")
+    iter_parser.add_argument("--max_batches_dev", type=int, default=1000, help="Max. number of validation batches to iterate over")
+    iter_parser.add_argument("--show_samples", type=int, nargs="*", help="Index of dataset from which to show samples (0, 1, ...)")
     args = parser.parse_args()
 
     from lit_gpt.tokenizer import Tokenizer
@@ -356,7 +384,7 @@ if __name__ == "__main__":
     print("* epoch size:", dev_details["epoch_size"])
     print("* max_eval_iters for 1 epoch:", max_eval_iters)
 
-    if args.no_iter:
+    if not args.iterate:
         sys.exit(0)
 
     for (combined_dataset, details, max_batches) in [(trainset, train_details, args.max_batches_train), (devset, dev_details, args.max_batches_dev)]:
