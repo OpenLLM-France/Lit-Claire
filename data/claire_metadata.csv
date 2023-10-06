@@ -28,8 +28,12 @@ FR/ORFEO_reunions-de-travail,fr,False,False,False,True,29,12222,210314,2,16010
 FR/ORFEO_valibel,fr,False,False,False,True,72,18812,469470,3,19234
 FR/OTG,fr,False,False,False,True,315,4167,27570,506,4368
 FR/PFC,fr,False,False,False,True,306,27665,464389,111447,32824
-FR/ParisStories,fr,False,False,False,True,21,291,8882,2577,308
-FR/Rhapsodie,fr,False,False,False,True,26,943,24471,6479,1023
+FR/RhapsodieParisStories,fr,False,False,False,True,49,1263,36002,9719,1364
+FR/RhapsodieParisStories/TRAIN,fr,False,False,False,True,35,893,24031,6768,1364
+FR/RhapsodieParisStories/DEV,fr,False,False,False,True,14,370,11971,2951,396
+FR/RhapsodieParisStoriesMonologues,fr,False,False,False,True,73,73,31737,6982,104
+FR/RhapsodieParisStoriesMonologues/TRAIN,fr,False,False,False,True,59,59,25770,5650,104
+FR/RhapsodieParisStoriesMonologues/DEV,fr,False,False,False,True,14,14,5967,1332,26
 FR/TCOF,fr,False,False,False,True,619,146815,1511591,36803,242948
 FR/UBS,fr,False,False,False,True,41,804,7446,115,1037
 EN/AMI,en,False,False,False,True,139,75194,712099,118122,115909
