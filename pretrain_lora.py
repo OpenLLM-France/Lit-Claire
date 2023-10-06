@@ -38,6 +38,7 @@ def setup(
     data_dir: Path = Path("data/preprocessed_data"),
     checkpoint_dir: Path = Path("checkpoints/tiiuae/falcon-7b"),
     out_dir: Path = Path("out/lora/Claire"),
+    language: Optional[str] = None,
 
     # Hardware (only used in setup, not main)
     devices: int = 2,  # num_gpus_per_node
@@ -106,6 +107,7 @@ def setup(
     fabric.launch(main, checkpoint_dir, out_dir, data_dir, try_small, enable_validation, hparams)
 
 def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation, hparams):
+    language            = hparams["language"]
     batch_size          = hparams["batch_size"]
     micro_batch_size    = hparams["micro_batch_size"]
     num_epochs          = hparams["num_epochs"]
@@ -123,8 +125,8 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
 
     # Make output folder and copy source code and hyperparameters to out_dir
     os.makedirs(out_dir / "src", exist_ok=True)
-    for file in os.path.basename(__file__), :
-        shutil.copy2(this_folder / file, out_dir / "src")
+    for file in __file__, "prepare_data.py", "data/claire_metadata.csv":
+        shutil.copy2(this_folder / file, out_dir / "src" / os.path.basename(file))
     for folder in "lit_gpt/lit_gpt", "utils", :
         shutil.copytree(this_folder / folder, out_dir / "src" / folder,
             ignore=lambda x, y: ["__pycache__"], dirs_exist_ok=True)
@@ -146,8 +148,9 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
         json.dump(lora_config, file)
 
     (train_dataloader, train_details), (val_dataloader, val_details) = create_dataloaders(
-        batch_size=micro_batch_size,
         path=data_dir,
+        language=language,
+        batch_size=micro_batch_size,
         shuffle=True,
         num_processes=fabric.world_size,
         process_rank=fabric.global_rank,

@@ -28,6 +28,7 @@ python pretrain_lora.py \
 --num_nodes 1 \
 --data_dir $SCRATCH/../commun/preprocessed_data/Claire/lit-gpt/padded/$MODEL \
 --checkpoint_dir $WORK/../commun/Claire/checkpoints/$MODEL \
+--language fr \
 --out_dir $OUTDIR \
 --precision bf16-true \
 --enable_validation false \
