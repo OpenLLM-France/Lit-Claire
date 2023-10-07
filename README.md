@@ -120,6 +120,13 @@ python lit_gpt/scripts/convert_lit_checkpoint.py \
     --config_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b/lit_config.json
 ```
 
+### split pytorch_model.bin into smaller shards
+```
+srun --ntasks=1 --gres=gpu:1 --constraint=a100 \
+python split_model.py \
+    --folder_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b
+```
+
 ### upload the converted model to Hugging Face
 ```
 python upload_model.py \
