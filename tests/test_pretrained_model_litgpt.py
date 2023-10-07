@@ -17,7 +17,7 @@ if __name__ == "__main__":
         # default="/gpfswork/rech/qgz/commun/Claire/checkpoints/tiiuae/falcon-7b",
         # default="/home/jlouradour/projects/OpenLLM/checkpoints/EleutherAI/pythia-70m",
     )
-    parser.add_argument('--length_generation', type=int, default=50, help='Number of tokens to generate')
+    parser.add_argument('--length_generation', type=int, default=100, help='Number of tokens to generate')
     parser.add_argument('--bos', default=False, action="store_true", help='Include BOS token')
     parser.add_argument('--eos', default=False, action="store_true", help='Include EOS token')
     parser.add_argument('--top_k', default=1, type=int, help='Only sample among the tokens with the k highest probabilities')
@@ -215,7 +215,7 @@ if __name__ == "__main__":
     for t in args_texts:
         if os.path.isfile(t):
             with open(t, "r") as f:
-                texts.append(f.read())
+                texts += f.read().split("\n\n")
             previous_is_file = True
         elif not previous_is_file:
             texts[-1] += " " + t
