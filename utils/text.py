@@ -1,5 +1,10 @@
 import re
 import random
+try:
+    import names
+except ImportError:
+    import warnings
+    warnings.warn("Could not import names. Text augmentation will fail. You can install name using `pip install names`.")
 
 ##############################
 # Text normalization and augmentation functions
@@ -10,12 +15,16 @@ SPECIALS_TO_KEEP = [
     "LAUGHTER",
 ]
 
-PATTERN_SPECIAL = re.compile(r"\[([^\]]*)\]")
-PATTERN_SPECIAL_NOSPEAKER = re.compile(r"\[([^\]]*[^:])\]")
+FRANCIZISE_SPECIALS = True
+
 PATTERN_SPEAKER = re.compile(r"[^\]]+:")
 PATTERN_SPEAKER_COMPLETE = re.compile(r"\[" + PATTERN_SPEAKER.pattern + r"\]")
 PATTERN_SPEAKER_UNANONYMIZED = re.compile(r"\[(?!speaker\d+:)([^]]+):]")
+
+PATTERN_SPECIAL = re.compile(r"\[([^\]]*)\]")
+PATTERN_SPECIAL_NOSPEAKER = re.compile(r"\[([^\]]*[^:])\]")
 PATTERN_PUNCTUATIONS = re.compile(r"[,\.!?…]")
+
 
 def format_text(text, keep_specials=True):
     if keep_specials:
@@ -23,21 +32,50 @@ def format_text(text, keep_specials=True):
     else:
         text = re.sub(PATTERN_SPECIAL, _remove_all_except_speakers_and_pii, text)
     return collapse_whitespaces(text)
+
+if FRANCIZISE_SPECIALS:
+
+    def format_special(text):
+        if text.endswith(":]"):
+            if text.startswith("[speaker"):
+                # "[speaker001:]" -> "[Intervenant 1:]"
+                index = int(text[8:11])
+                return f"[Locuteur {index}:]"
+            else:
+                # "[claude-marie Claude-Marie JR:]" -> "[Claude-Marie Claude-Marie JR:]"
+                speaker = capitalize(text[1:-2])
+                return f"[{speaker}:]"
+        if text == "[PII]":
+            return "[Nom]"
+        if text == "[NOISE]":
+            return "[bruit]"
+        if text == "[LAUGHTER]":
+            return "[rire]"
+
+    def speaker_tag(i):
+        return f"[Locuteur {i+1}:]"
+
+else:
+
+    def format_special(text):
+        return text.lower()
     
+    def speaker_tag(i):
+        return f"[speaker{i+1:03d}:]"
+
 def _remove_all_except_specials(match):
     content_within_brackets = match.group(1)
     if re.match(PATTERN_SPEAKER, content_within_brackets) or content_within_brackets in SPECIALS_TO_KEEP:
-        return match.group().lower()
+        return format_special(match.group())
     else:
         return ""
     
 def _remove_all_except_speakers_and_pii(match):
     content_within_brackets = match.group(1)
     if re.match(PATTERN_SPEAKER, content_within_brackets):
-        return match.group().lower()
+        return format_special(match.group())
     elif content_within_brackets == "pii":
-        import names
-        return names.get_first_name().lower()
+        return names.get_first_name()
     else:
         return ""
 
@@ -53,17 +91,25 @@ def remove_punctuations(text):
 def to_lower_case(text):
     return text.lower()
 
+def capitalize(text):
+    # michel JR claude-marie -> Michel JR Claude-Marie
+    words = text.split(" ")
+    words = [w.capitalize() if not w.isupper() else w for w in words]
+    for i, w in enumerate(words):
+        if "-" in w:
+            words[i] = "-".join([x.capitalize() if not x.isupper() else x for x in w.split("-")])
+    return " ".join(words)
+
 def anonymize_speakers(text):
     # Get all speakers
     speakers = [] 
     [speakers.append(x) for x in re.findall(PATTERN_SPEAKER_COMPLETE, text) if x not in speakers] 
-    new_speakers = [f"[speaker{i+1:03d}:]" for i in range(len(speakers))]
+    new_speakers = [speaker_tag(i) for i in range(len(speakers))]
     for spk, nspk in zip(speakers, new_speakers):
         text = text.replace(spk, nspk)
     return text
 
 def unanonymize_speakers(text):
-    import names
     # Get all speakers
     speakers = [] 
     [speakers.append(x) for x in re.findall(PATTERN_SPEAKER_COMPLETE, text) if x not in speakers] 
