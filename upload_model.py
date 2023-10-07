@@ -6,7 +6,7 @@ from pathlib import Path
 def upload(folder_path: Path="folder_path", repo_id: str="repo_id", create_repo: bool=False):
     # download missing files which was not downloaded by lit_gpt/scripts/download.py
     revision="898df1396f35e447d5fe44e0a3ccaaaa69f30d36"
-    filenames = [".gitattributes", "README.md", "config.json", "configuration_falcon.py", "modeling_falcon.py", "special_tokens_map.json"]
+    filenames = ["README.md", "config.json", "special_tokens_map.json"]
     for filename in filenames:
         hf_hub_download(repo_id="tiiuae/falcon-7b", filename=filename, revision=revision, local_dir=folder_path)
 
