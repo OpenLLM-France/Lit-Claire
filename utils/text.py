@@ -40,7 +40,7 @@ if FRANCIZISE_SPECIALS:
             if text.startswith("[speaker"):
                 # "[speaker001:]" -> "[Intervenant 1:]"
                 index = int(text[8:11])
-                return f"[Locuteur {index}:]"
+                return f"[Intervenant {index}:]"
             else:
                 # "[claude-marie Claude-Marie JR:]" -> "[Claude-Marie Claude-Marie JR:]"
                 speaker = capitalize(text[1:-2])
