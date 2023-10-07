@@ -53,7 +53,7 @@ if FRANCIZISE_SPECIALS:
             return "[rire]"
 
     def speaker_tag(i):
-        return f"[Locuteur {i+1}:]"
+        return f"[Intervenant {i+1}:]"
 
 else:
 
@@ -135,14 +135,14 @@ def has_punctuation(text):
 def has_specials(text):
     return bool(re.search(PATTERN_SPECIAL_NOSPEAKER, text))
 
-def augmented_texts_generator(text, max_variants=2, force_augmentation=False):
+def augmented_texts_generator(text, max_variants=4, force_augmentation=False):
     """
     Generate several variants of a text.
     max_variants: maximum number of variants returned
     force_augmentation: if True, when max_variants=0, return a random augmentation
     """
     if max_variants == 0 and force_augmentation:
-        all_variants = list(augmented_texts_generator(text, max_variants=4))
+        all_variants = list(augmented_texts_generator(text, max_variants=6))
         random.shuffle(all_variants)
         yield all_variants[0]
         return
