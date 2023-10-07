@@ -122,7 +122,11 @@ python lit_gpt/scripts/convert_lit_checkpoint.py \
 
 ### split pytorch_model.bin into smaller shards
 ```
-srun --ntasks=1 --gres=gpu:1 --constraint=a100 \
+python download_config.py \
+    --folder_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b
+```
+```
+srun --ntasks=1 --gres=gpu:1 --constraint=a100 --cpus-per-task=8 \
 python split_model.py \
     --folder_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b
 ```
