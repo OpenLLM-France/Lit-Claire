@@ -25,7 +25,7 @@ import lit_gpt.packed_dataset as packed_dataset
 from lit_gpt.config import Config
 from lit_gpt.tokenizer import Tokenizer
 
-from utils.metadata import get_metadata, metadata_filename_extra
+from utils.metadata import get_metadata, metadata_filename_extra, accumulate_metadata_by_group
 from utils.text import augmented_texts_generator
 
 
@@ -34,8 +34,9 @@ from utils.text import augmented_texts_generator
 
 def prepare_fn(
     source_path: Path, checkpoint_dir: Path, destination_path: Path,
-    multiple_of: int = 8,
     effective_block_size: int = None,
+    multiple_of: int = 8,
+    group_datasets_by_genre: bool = True,
     bos=None,
     eos=None,
     padding=True,
@@ -83,6 +84,12 @@ def prepare_fn(
                     metadata["is_dev"] = (f == filename_dev)
                     all_files[filepath] = metadata
 
+    if group_datasets_by_genre:
+        # Group files together
+        list_of_files, metadatas = accumulate_metadata_by_group(all_files.keys(), all_files.values())
+    else:
+        list_of_files, metadatas = zip(*all_files.items())
+
     # Get tokens around tags for turns
     if cut_around_turns:
         tag_tokens = [tokenizer.encode(s, bos=False, eos=False).tolist() for s in ("[speaker001:]", "[Intervenant 1:]", "[A:]")]
@@ -101,7 +108,9 @@ def prepare_fn(
     if len(all_files) == 0:
         raise RuntimeError(f"No input files found at {source_path}.")
     
-    for filepath, metadata in all_files.items(): # tqdm(all_files.items(), unit="dataset"):
+    for filepaths, metadata in zip(list_of_files, metadatas):
+        if isinstance(filepaths, str): filepaths = [filepaths]
+        assert len(filepaths) > 0
 
         set_name = metadata["dataset"]
         num_conversations = int(metadata["conversations"])
@@ -121,7 +130,7 @@ def prepare_fn(
         if len(filenames) > 0:
             # Skip, or remove existing files, if any
             if skip_if_exists:
-                print(f"Skipping {filepath} because {prefix}*bin files already exist")
+                print(f"Skipping {filepaths[0]} because {prefix}*bin files already exist")
                 continue
             else:
                 for fn in glob.glob(f"{destination_path}/{prefix}*"):
@@ -130,9 +139,9 @@ def prepare_fn(
             # Create a dummy file to avoid other processes to process the same dataset
             Path(f"{destination_path}/{prefix}_0000000000.bin").touch()
 
-        print(f"Processing:\n{filepath} -> {destination_path}/{prefix}*\n{augmentation_level=}")
+        print(f"Processing:\n{filepaths} -> {destination_path}/{prefix}*\n{augmentation_level=}")
 
-        dataset_hf = load_dataset("text", data_files={"train": filepath}, sample_by="paragraph", streaming=True)
+        dataset_hf = load_dataset("text", data_files={"train": filepaths}, sample_by="paragraph", streaming=True)
 
         # First get the number of samples, then build files
 
@@ -224,6 +233,7 @@ def prepare_fn(
                                 a = np.pad(a, (0, effective_block_size - len(a)), mode="constant", constant_values=tokenizer.eos_id)
                             min_len = min(min_len, len(a))
                             max_len = max(max_len, len(a))
+                            assert len(a) == effective_block_size
                             if build_it:
                                 builder.add_array(a)
                             if ivariant == 0:
@@ -257,9 +267,12 @@ def prepare_fn(
                                     # We stay in the same big turn, or it's the last turn
                                     istart += effective_block_size
                                     add_prefix = selec[:end_of_turn+1]
+                                    if bos and add_prefix[0] != tokenizer.bos_id:
+                                        # Add BOS
+                                        add_prefix = torch.cat([torch.tensor([tokenizer.bos_id], dtype=torch.int32), add_prefix])
                                     if istart < len(text_ids):
                                         # Avoid to cut in the middle of a word
-                                        while not tokenizer.decode(torch.tensor(text_ids[istart], dtype=torch.int32)).startswith(" "):
+                                        while not tokenizer.decode(text_ids[istart]).startswith(" "):
                                             istart -= 1
                             else:
                                 if DEBUG_PRINT: print("=== Case 2 - ", end='')
@@ -268,7 +281,7 @@ def prepare_fn(
                                 istart += effective_block_size
                                 if istart < len(text_ids):
                                     # Avoid to cut in the middle of a word
-                                    while not tokenizer.decode(torch.tensor(text_ids[istart], dtype=torch.int32)).startswith(" "):
+                                    while not tokenizer.decode(text_ids[istart]).startswith(" "):
                                         istart -= 1
                             assert istart > previous_istart
 
@@ -279,6 +292,8 @@ def prepare_fn(
                             a = np.pad(a, (0, effective_block_size - len(a)), mode="constant", constant_values=tokenizer.eos_id)
                         min_len = min(min_len, len(a))
                         max_len = max(max_len, len(a))
+                        if effective_block_size:
+                            assert len(a) == effective_block_size
                         if build_it:
                             builder.add_array(a)
                         if ivariant == 0:
@@ -334,7 +349,9 @@ def prepare(
     source_path: Path = Path("data/source_data_folder"),
     checkpoint_dir: Path = Path("checkpoints/tiiuae/falcon-7b"),
     destination_path: Path = Path("data/prepared_data_folder"),
+    multiple_of: int = 8,
     padding: bool = True,
+    group_datasets_by_genre: bool = True,
     update_metadata: bool = False,
 ) -> None:
     """Prepare the "Claire" dataset. We assume tokenizer has been trained."""
@@ -366,6 +383,8 @@ def prepare(
         checkpoint_dir=checkpoint_dir,
         destination_path=destination_path,
         effective_block_size=effective_block_size,
+        multiple_of=multiple_of,
+        group_datasets_by_genre=group_datasets_by_genre,
         padding=padding,
         update_metadata=update_metadata,
     )

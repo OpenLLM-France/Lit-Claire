@@ -60,8 +60,9 @@ def create_dataloaders(
         if len(prefixes_dev) == 0:
             prefixes_dev = prefixes_train
 
-    assert len(prefixes_dev) > 0, "No dev set found"
     assert len(prefixes_train) > 0, "No train set found"
+    if enable_validation:
+        assert len(prefixes_dev) > 0, "No dev set found"
 
     kwargs = dict(
         path=path,
@@ -327,12 +328,12 @@ if __name__ == "__main__":
     parser.add_argument("--language", default=None, help="Filter by language")
     parser.add_argument("--seed", type=int, default=random.randint(1, 1000), help="Use 0 to disable shuffling")
     parser.add_argument("--try_small", default=False, action="store_true", help="Use dataset subsampling for quick tests")
-    parser.add_argument("--iterate", default=False, action="store_true", help="Iterate over the dataset to check")
     # Options when iterating
     iter_parser = parser.add_argument_group("Iterating options")
+    iter_parser.add_argument("--max_batches_train", type=int, default=0, help="Max. number of training batches to iterate over")
+    iter_parser.add_argument("--max_batches_dev", type=int, default=0, help="Max. number of validation batches to iterate over")
     iter_parser.add_argument("--wrap_validation", default=False, action="store_true")
-    iter_parser.add_argument("--max_batches_train", type=int, default=1000, help="Max. number of training batches to iterate over")
-    iter_parser.add_argument("--max_batches_dev", type=int, default=1000, help="Max. number of validation batches to iterate over")
+    iter_parser.add_argument("--inspect", default=False, action="store_true", help="Inspect from which dataset comes each sample")
     iter_parser.add_argument("--show_samples", type=int, nargs="*", help="Index of dataset from which to show samples (0, 1, ...)")
     args = parser.parse_args()
 
@@ -384,20 +385,20 @@ if __name__ == "__main__":
     print("* epoch size:", dev_details["epoch_size"])
     print("* max_eval_iters for 1 epoch:", max_eval_iters)
 
-    if not args.iterate:
-        sys.exit(0)
-
     for (combined_dataset, details, max_batches) in [(trainset, train_details, args.max_batches_train), (devset, dev_details, args.max_batches_dev)]:
+        if not max_batches:
+            continue
 
         datasets = details["datasets"]
         pseudos = [m["dataset"] for m in details["metadata"]]
 
         # Collect all the data from each dataset naively
-        all_datas = []
-        for i, d in enumerate(datasets):
-            all_datas.append([])
-            for s in d:
-                all_datas[-1].append(hashmd5(s))
+        if args.inspect:
+            all_datas = []
+            for i, d in enumerate(datasets):
+                all_datas.append([])
+                for s in d:
+                    all_datas[-1].append(hashmd5(s))
         NULL_DATA = hashmd5(torch.tensor([tokenizer.eos_id] * 2049, dtype=torch.int64)) # 2049 hardcoded
 
         # Sample the combined dataset
@@ -413,27 +414,28 @@ if __name__ == "__main__":
                 break
             new_batch = []
             for sample in batch:
-                sample_hash = hashmd5(sample)
-                which_dataset = None
-                which_index = None
-                for idataset, d in enumerate(all_datas):
-                    if sample_hash == NULL_DATA:
-                        which_dataset = -1
-                        which_index = -1
-                        break
-                    for idata, x in enumerate(d):
-                        if sample_hash == x:
-                            which_dataset = idataset
-                            which_index = idata
+                if args.inspect:
+                    sample_hash = hashmd5(sample)
+                    which_dataset = None
+                    which_index = None
+                    for idataset, d in enumerate(all_datas):
+                        if sample_hash == NULL_DATA:
+                            which_dataset = -1
+                            which_index = -1
                             break
-                    if which_dataset is not None:
-                        break
-                if args.show_samples and which_dataset in args.show_samples:
-                    print(f"dataset{which_dataset}", tokenizer.decode(sample)[:100])
-                assert which_dataset is not None
-                assert which_index is not None
-                new_batch.append((which_dataset, which_index) if which_dataset >= 0 else None)
-                stats[which_dataset] = stats.get(which_dataset, 0) + 1
+                        for idata, x in enumerate(d):
+                            if sample_hash == x:
+                                which_dataset = idataset
+                                which_index = idata
+                                break
+                        if which_dataset is not None:
+                            break
+                    assert which_dataset is not None
+                    assert which_index is not None
+                    new_batch.append((which_dataset, which_index) if which_dataset >= 0 else None)
+                    stats[which_dataset] = stats.get(which_dataset, 0) + 1
+                if not args.inspect or (args.show_samples and which_dataset in args.show_samples):
+                    print(f"sample:", tokenizer.decode(sample)[:100].replace("\n", "\\n"))
             if len(new_batch) != batch_size:
                 print(f"WARNING: Batch size is {len(new_batch)} instead of {batch_size}")
             sample_indices += new_batch
@@ -447,17 +449,17 @@ if __name__ == "__main__":
         if ibatch != max_batches:
             print(f"WARNING: Number of batches is {ibatch} instead of {max_batches}")
 
-        # print(sample_indices)
+        if args.inspect:
 
-        total = sum(stats.values())
-        total_null = stats.get(-1, 0)
-        if -1 in stats:
-            stats.pop(-1)
-        print(f"{total_null*100/total:.2f} % of samples ({total_null}) are just padding")
-        for i in sorted(stats.keys(), key=lambda x: stats[x]):
-            print(f"{stats.get(i,0)*100/(total - total_null):.2f} % of samples ({stats.get(i,0)}) are from dataset {pseudos[i]}")
+            total = sum(stats.values())
+            total_null = stats.get(-1, 0)
+            if -1 in stats:
+                stats.pop(-1)
+            print(f"{total_null*100/total:.2f} % of samples ({total_null}) are just padding")
+            for i in sorted(stats.keys(), key=lambda x: stats[x]):
+                print(f"{stats.get(i,0)*100/(total - total_null):.2f} % of samples ({stats.get(i,0)}) are from dataset {pseudos[i]}")
 
-        not_null_indices = [x for x in sample_indices if x is not None]
-        num_uniques = len(set(not_null_indices))
-        if len(not_null_indices) != num_uniques:
-            print(f"WARNING: There are {len(not_null_indices) - num_uniques}/{len(not_null_indices)} duplicates")
+            not_null_indices = [x for x in sample_indices if x is not None]
+            num_uniques = len(set(not_null_indices))
+            if len(not_null_indices) != num_uniques:
+                print(f"WARNING: There are {len(not_null_indices) - num_uniques}/{len(not_null_indices)} duplicates")

@@ -1,4 +1,5 @@
 import csv
+import json
 import os
 import re
 
@@ -8,6 +9,8 @@ metadata_filename = os.path.join(os.path.dirname(wd), "data", "claire_metadata.c
 assert os.path.isfile(metadata_filename), f"Metadata file {metadata_filename} not found."
 
 metadata_filename_extra = os.path.join(os.path.dirname(wd), "data", "claire_metadata_extra.csv")
+
+groups_filename = os.path.join(os.path.dirname(wd), "data", "claire_data_groups.json")
 
 def format_dict_values(d):
     for k, v in d.items():
@@ -24,6 +27,55 @@ with open(metadata_filename, "r") as csvfile:
     metadata_rows = csv.DictReader(csvfile)
     for row in metadata_rows:
         METADATA_DICT[row["dataset"]] = format_dict_values(row)
+
+# Read groups
+MUST_BE_EQUAL = ["spontaneous", "text", "language"]
+with open(groups_filename, "r") as jsonfile:
+    dataset_to_group = json.load(jsonfile)
+group_to_datasets = {}
+for dataset, group in list(dataset_to_group.items()):
+    assert dataset in METADATA_DICT, f"Dataset {dataset} not in metadata."
+    assert group not in METADATA_DICT, f"Dataset {group} already in metadata."
+    for subset in "", "/TRAIN", "/DEV":
+        group_to_datasets[group+(subset or "/TRAIN")] = group_to_datasets.get(group+subset, []) + [dataset+subset]
+        dataset_to_group[dataset+subset] = group+(subset or "/TRAIN")
+
+def accumulate_metadata_by_group(datasets, metadatas=None):
+    if metadatas is None:
+        metadatas = [get_metadata(dataset) for dataset in datasets]
+    assert len(metadatas) == len(datasets)
+    new_ones = {}
+    group_to_original = {}
+    for d, m in zip(datasets, metadatas):
+        pseudo = get_pseudo(d)
+        group = dataset_to_group.get(pseudo, pseudo)
+        group_to_original[group] = group_to_original.get(group, []) + [d]
+        if group not in new_ones:
+            new_ones[group] = m.copy()
+            new_ones[group]["dataset"] = group
+        else:
+            for k, v in m.items():
+                if k == "dataset":
+                    pass
+                elif k in MUST_BE_EQUAL:
+                    assert new_ones[group][k] == v, f"Dataset {d} has {k}={v} but {new_ones[group][k]} expected."
+                elif isinstance(v, (float, int)):
+                    new_ones[group][k] += v
+                else:
+                    assert v in [True, False], f"Unexpected {k}={v} for {d}."
+                    if new_ones[group][k] != v:
+                        new_ones[group][k] = None
+    groups = list(new_ones.keys())
+    groups = [group_to_original[group] for group in groups]
+    metadatas = list(new_ones.values())
+    return groups, metadatas
+
+# Add sampling weights
+def get_scaled_num_samples(metadata):
+    num_samples = metadata["words"]
+    if not metadata["spontaneous"]:
+        num_samples /= 5
+    return num_samples
 
 # Add sampling weights
 def get_scaled_num_samples(metadata):
@@ -43,6 +95,9 @@ for dataset, metadata in METADATA_DICT.items():
     metadata["sampling_rate"] = 100. * get_scaled_num_samples(metadata) * scale_per_languages[metadata["language"]] / (num_samples_per_language[metadata["language"]])
 
 def get_metadata(path):
+    return METADATA_DICT[get_pseudo(path)]
+
+def get_pseudo(path):
     """Get metadata from a path."""
     if os.path.sep != "/":
         path = path.replace(os.path.sep, "/")
@@ -51,21 +106,21 @@ def get_metadata(path):
         filename = get_filename_prefix(filename)
         filename = filename.replace("--", "/")
         if filename in METADATA_DICT:
-            return METADATA_DICT[filename]
+            return filename
         foldername = os.path.dirname(path)
         if filename in ["train"]:
             foldername += "/TRAIN"
         elif filename in ["dev"]:
             foldername += "/DEV"
         try:
-            return get_metadata(foldername)
+            return get_pseudo(foldername)
         except RuntimeError as e:
             raise RuntimeError(f"Could not find a correspondance for {path} in metadata file.") from e
     fields = path.rstrip("/").split("/")
     for k in range(1, 4):
         set_name = "/".join(fields[-k:])
         if set_name in METADATA_DICT:
-            return METADATA_DICT[set_name]
+            return set_name
     raise RuntimeError(f"Could not find a correspondance for {path} in metadata file.")
 
 def get_filename_prefix(filename):

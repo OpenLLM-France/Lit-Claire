@@ -1,0 +1,32 @@
+{
+    "FR/ASR_Whisper_SUMM-RE":       "FR/Meetings",
+    "FR/LINAGORA":                  "FR/Meetings",
+    "FR/ORFEO_reunions-de-travail": "FR/Meetings",
+    "FR/ORFEO_crfp":                "FR/Meetings",
+
+    "FR/ESLO":                      "FR/Conversations",
+    "FR/CLAPI":                     "FR/Conversations",
+    "FR/ORFEO_coralrom":            "FR/Conversations",
+
+    "FR/CID":                       "FR/Conversations",
+    "FR/RhapsodieParisStories":     "FR/Conversations",
+
+    "FR/OFROM":                     "FR/Interviews",
+    "FR/TCOF":                      "FR/Interviews",
+    "FR/CFPP":                      "FR/Interviews",
+    "FR/CFPB":                      "FR/Interviews",
+    "FR/ORFEO_valibel":             "FR/Interviews",
+    "FR/PFC":                       "FR/Interviews",
+    "FR/ACSYNT":                    "FR/Interviews",
+    
+    "FR/NAMED_AssembleeNationale":  "FR/AssembleeNationale",
+    "FR/ASR_Old_MINEFI":            "FR/Politics",
+    "FR/NAMED_FreD":                "FR/Politics",
+
+    "FR/ORFEO_fleuron":             "FR/Assistance",
+    "FR/OTG":                       "FR/Assistance",
+    "FR/UBS":                       "FR/Assistance",
+
+    "FR/NAMED_TheatreClassique":    "FR/Theatre",
+    "FR/NAMED_TheatreGratuit":      "FR/Theatre"
+}
