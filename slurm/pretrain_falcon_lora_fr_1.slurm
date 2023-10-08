@@ -24,7 +24,7 @@ mkdir -p $OUTDIR
 
 # execute script
 srun --output=$OUTDIR/pretrain_lora.out --error=$OUTDIR/pretrain_lora.out \
-python pretrain_lora.py \
+python pretrain.py \
 --devices 8 \
 --num_nodes 1 \
 --data_dir $SCRATCH/../commun/preprocessed_data/Claire/lit-gpt/padded_8_grouped/$MODEL \

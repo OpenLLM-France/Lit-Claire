@@ -61,11 +61,11 @@ sbatch pretrain_lora.slurm
 These 3 arguments should be equal:
 - `#SBATCH --gres=gpu:2`
 - `#SBATCH --ntasks-per-node=2`
-- `srun python pretrain_lora.py --devices 2`
+- `srun python pretrain.py --devices 2`
   
 These 2 arguments should be equal:
 - `#SBATCH --nodes=1`
-- `srun python pretrain_lora.py --num_nodes 1`
+- `srun python pretrain.py --num_nodes 1`
 
 training checkpoints and monitoring log can be found under `out_dir`, standard output and error are recorded in `pretrain_lora.out`
 

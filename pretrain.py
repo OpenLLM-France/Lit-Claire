@@ -70,6 +70,7 @@ def setup(
     grad_clip: float = 1.0,
 
     # LORA
+    use_lora: bool = True,
     lora_r: int = 8,
     lora_alpha: int = 16,
     lora_dropout: float = 0.05,
@@ -114,6 +115,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
     num_epochs          = hparams["num_epochs"]
     learning_rate       = hparams["learning_rate"]
     weight_decay        = hparams["weight_decay"]
+    use_lora            = hparams["use_lora"]
 
     assert batch_size % micro_batch_size == 0 and batch_size > 0 and micro_batch_size > 0
     hparams["gradient_accumulation_iters"] = batch_size // micro_batch_size
@@ -138,15 +140,18 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
         indent=2, ensure_ascii=False
     )
     
-    lora_config = {k.split("lora_")[1]: v for k, v in hparams.items() if k.startswith("lora_")}
-    lora_config = {(k if k in ["r", "alpha", "dropout"] else "to_"+k): v for k, v in lora_config.items()}
-    config = Config.from_json(
-        path=checkpoint_dir / "lit_config.json",
-        **lora_config
-        # r=lora_r, alpha=lora_alpha, dropout=lora_dropout, to_query=lora_query, to_key=lora_key, ...
-    )
-    with open(out_dir / "lora_config.json", "w") as file:
-        json.dump(lora_config, file)
+    if use_lora:
+        lora_config = {k.split("lora_")[1]: v for k, v in hparams.items() if k.startswith("lora_")}
+        lora_config = {(k if k in ["r", "alpha", "dropout"] else "to_"+k): v for k, v in lora_config.items()}
+        config = Config.from_json(
+            path=checkpoint_dir / "lit_config.json",
+            **lora_config
+            # r=lora_r, alpha=lora_alpha, dropout=lora_dropout, to_query=lora_query, to_key=lora_key, ...
+        )
+        with open(out_dir / "lora_config.json", "w") as file:
+            json.dump(lora_config, file)
+    else:
+        config = Config.from_json(path=checkpoint_dir / "lit_config.json")
 
     (train_dataloader, train_details), (val_dataloader, val_details) = create_dataloaders(
         path=data_dir,
@@ -196,7 +201,8 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
     fabric.print(f"Loading model {str(checkpoint_path)!r} with {config.__dict__}")
     with fabric.init_module(empty_init=True):
         model = GPT(config)
-    mark_only_lora_as_trainable(model)
+    if use_lora:
+        mark_only_lora_as_trainable(model)
 
     fabric.print(f"Number of trainable parameters: {num_parameters(model, requires_grad=True):,}")
     fabric.print(f"Number of non trainable parameters: {num_parameters(model, requires_grad=False):,}")
@@ -208,7 +214,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
     optimizer = fabric.setup_optimizers(optimizer)
 
     # strict=False because missing keys due to LoRA weights not contained in state dict
-    load_checkpoint(fabric, model, checkpoint_path, strict=False)
+    load_checkpoint(fabric, model, checkpoint_path, strict=not use_lora)
 
     fabric.seed_everything(1337 + fabric.global_rank)
 
@@ -223,7 +229,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
 
     # Save the final LoRA checkpoint at the end of training
     save_path = out_dir / "lit_model_lora_finetuned.pth"
-    save_lora_checkpoint(fabric, model, save_path)
+    save_checkpoint(fabric, model, save_path, use_lora=use_lora)
 
 
 def train(
@@ -249,6 +255,7 @@ def train(
     log_interval                = hparams["log_interval"]
     interval_unit               = hparams["interval_unit"]
     max_checkpoints             = hparams["max_checkpoints"]
+    use_lora                    = hparams["use_lora"]
     global t_last_checkpoint, t_last_valid
     num_checkpoints = 0
 
@@ -337,7 +344,7 @@ def train(
 
             if condition_checkpoint:
                 checkpoint_path = out_dir / f"iter-{iter_num:06d}-ckpt.pth"
-                save_lora_checkpoint(fabric, model, checkpoint_path)
+                save_checkpoint(fabric, model, checkpoint_path, use_lora=use_lora)
                 t_last_checkpoint = time.perf_counter()
                 num_checkpoints += 1
                 if max_checkpoints and num_checkpoints >= max_checkpoints:
@@ -378,10 +385,13 @@ def validate(
     return val_loss
 
 
-def save_lora_checkpoint(fabric, model, file_path: Path):
-    fabric.print(f"Saving LoRA weights to {str(file_path)!r}")
-    fabric.save(file_path, {"model": model}, filter={"model": lora_filter})
-
+def save_checkpoint(fabric, model, file_path: Path, use_lora: bool):
+    if use_lora:
+        fabric.print(f"Saving LoRA weights to {str(file_path)!r}")
+        fabric.save(file_path, {"model": model}, filter={"model": lora_filter})
+    else:
+        fabric.print(f"Saving weights to {str(file_path)!r}")
+        fabric.save(file_path, {"model": model})
 
 if __name__ == "__main__":
     # Uncomment this line if you see an error: "Expected is_sm80 to be true, but got false"
