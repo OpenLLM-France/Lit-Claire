@@ -20,6 +20,7 @@ set -x
 
 MODEL=tiiuae/falcon-7b
 OUTDIR=$SCRATCH/../commun/Claire/pretrain-Claire-7B-v0.02/lora/$MODEL
+mkdir -p $OUTDIR
 
 # execute script
 srun --output=$OUTDIR/pretrain_lora.out --error=$OUTDIR/pretrain_lora.out \
@@ -32,3 +33,5 @@ python pretrain_lora.py \
 --out_dir $OUTDIR \
 --precision bf16-true \
 --enable_validation false \
+--num_epochs 1000 \
+--max_checkpoints 20 \

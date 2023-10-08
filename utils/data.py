@@ -54,15 +54,15 @@ def create_dataloaders(
     prefixes_train = [p for p in all_prefixes if p not in prefixes_dev]
 
     if try_small:
-        selection = ["ACSYNT", "SUMM-RE", "FreD", "OFROM"]
+        selection = ["ACSYNT", "SUMM-RE", "FreD", "OFROM", "Meetings", "Interviews", "Politics"]
         prefixes_train = [p for p in prefixes_train if any([s in p for s in selection])]
         prefixes_dev = [p for p in prefixes_dev if any([s in p for s in selection])]
         if len(prefixes_dev) == 0:
             prefixes_dev = prefixes_train
 
-    assert len(prefixes_train) > 0, "No train set found"
+    assert len(prefixes_train) > 0, f"No train set found in {path}"
     if enable_validation:
-        assert len(prefixes_dev) > 0, "No dev set found"
+        assert len(prefixes_dev) > 0, f"No dev set found in {path}"
 
     kwargs = dict(
         path=path,

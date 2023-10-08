@@ -50,13 +50,14 @@ def setup(
     enable_validation: bool = True,
 
     # Action to be taken per n interval
-    save_interval: int = 3580, # A little bit less than 1H
-    eval_interval: int = 3580, # A little bit less than 1H
+    save_interval: int = 3550, # A little bit less than 1H
+    eval_interval: int = 3550, # A little bit less than 1H
     log_interval: int = 1,
     interval_unit: str = "time",
 
     # Number of epochs
     num_epochs: int = 1,
+    max_checkpoints: Optional[int] = None,
 
     # Batch
     batch_size: int = 192,
@@ -247,7 +248,9 @@ def train(
     eval_interval               = hparams["eval_interval"]
     log_interval                = hparams["log_interval"]
     interval_unit               = hparams["interval_unit"]
+    max_checkpoints             = hparams["max_checkpoints"]
     global t_last_checkpoint, t_last_valid
+    num_checkpoints = 0
 
     if val_dataloader is not None and sanity_check:
         sanity_check_val_loss = validate(fabric, model, val_dataloader, max_eval_iters=1)
@@ -324,8 +327,9 @@ def train(
                 condition_eval = True
             elif interval_unit == "time":
                 # Save and validate at regular time intervals
-                condition_checkpoint = (time.perf_counter() - t_last_checkpoint) > save_interval
-                condition_eval = condition_checkpoint if (save_interval == eval_interval) else (time.perf_counter() - t_last_valid) > eval_interval
+                t = time.perf_counter()
+                condition_checkpoint = (t - t_last_checkpoint) > save_interval
+                condition_eval = condition_checkpoint or (t - t_last_valid) > eval_interval
             else:
                 # Save and validate at regular iteration intervals
                 condition_checkpoint = step_count % save_interval == 0
@@ -335,6 +339,10 @@ def train(
                 checkpoint_path = out_dir / f"iter-{iter_num:06d}-ckpt.pth"
                 save_lora_checkpoint(fabric, model, checkpoint_path)
                 t_last_checkpoint = time.perf_counter()
+                num_checkpoints += 1
+                if max_checkpoints and num_checkpoints >= max_checkpoints:
+                    fabric.print(f"Reached max checkpoints: {max_checkpoints}")
+                    break
 
             if condition_eval and val_dataloader is not None:
                 t0 = time.perf_counter()
