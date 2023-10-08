@@ -4,8 +4,8 @@
 #SBATCH --ntasks-per-node=8
 #SBATCH --nodes=1
 #SBATCH --hint=nomultithread
-#SBATCH --time=192:00:00
-#SBATCH --qos=qos_gpu-dev
+#SBATCH --time=20:00:00
+#SBATCH --qos=qos_gpu-t3
 #SBATCH --cpus-per-task=8
 #SBATCH -C a100
 
