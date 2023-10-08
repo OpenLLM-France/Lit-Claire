@@ -74,7 +74,7 @@ def _remove_all_except_speakers_and_pii(match):
     content_within_brackets = match.group(1)
     if re.match(PATTERN_SPEAKER, content_within_brackets):
         return format_special(match.group())
-    elif content_within_brackets == "pii":
+    elif content_within_brackets in ["Nom", "nom", "PII", "pii"]:
         return names.get_first_name()
     else:
         return ""
@@ -139,65 +139,70 @@ def augmented_texts_generator(text, max_variants=4, force_augmentation=False):
     """
     Generate several variants of a text.
     max_variants: maximum number of variants returned
-    force_augmentation: if True, when max_variants=0, return a random augmentation
+    force_augmentation: if True when max_variants=0, return a random augmentation (including original text normalized)
     """
-    if max_variants == 0 and force_augmentation:
-        all_variants = list(augmented_texts_generator(text, max_variants=6))
+    if bool(max_variants) or (max_variants == 0 and force_augmentation):
+        all_variants = list(augmented_texts_generator(text, max_variants=None))
+        if max_variants:
+            # Provide normalized text first
+            yield all_variants[0]
+            all_variants = all_variants[1:]
+        # Choose randomly in the rest
         random.shuffle(all_variants)
-        yield all_variants[0]
+        for i in range(min(len(all_variants), max(1, max_variants))):
+            yield all_variants[i]
         return
 
-    text = format_text(text)
-    yield text
-    if max_variants <= 0:
+    text1 = format_text(text)
+    yield text1
+    if max_variants == 0:
         return
 
-    _specials = has_specials(text)
-    _speaker = has_speaker_id(text)
-    _upper = has_upper_case(text)
-    _punct = has_punctuation(text)
+    do_specials = has_specials(text1)
+    do_anonymize = has_speaker_id(text)
+    do_lower_case = has_upper_case(text)
+    do_remove_punc = has_punctuation(text)
 
-    coming_next = _boole(_specials) + _boole(_speaker) + _boole(_upper) + _boole(_punct)
+    # print(f"{do_specials=} {do_anonymize=} {do_lower_case=} {do_remove_punc=}")
 
-    if _specials:
-        text = format_text(text, keep_specials=False)
-        if max_variants > coming_next-1:
-            yield text
-        coming_next -= 1
-    if _speaker:
-        text = anonymize_speakers(text)
-        if max_variants > coming_next-1:
-            yield text
-        coming_next -= 1
+    if do_specials:
+        text1 = format_text(text1, keep_specials=False)
+        yield text1
+
+    if do_anonymize:
+        text2 = anonymize_speakers(text1)
+        yield text2
     else:
-        # Sometimes unanonymize speakers
-        r = random.random()
-        if r < 0.2:
-            if max_variants > coming_next-1:
-                text2 = unanonymize_speakers(text)
-                yield text2
-            coming_next -= 1
-    if _upper:
-        text = to_lower_case(text)
-        if max_variants > coming_next-1:
-            yield text
-        coming_next -= 1
-    if _punct:
-        text = remove_punctuations(text)
-        if max_variants > coming_next-1:
-            yield text
-        coming_next -= 1
+        text2 = unanonymize_speakers(text1)
+        yield text2            
 
-def _boole(x):
-    return 1 if x else 0
+    for text in text1, text2:
+        has_lower_cased = False
+        if (do_lower_case and do_remove_punc) and random.random() < 0.5:
+            # lowercase first 
+            if do_lower_case:
+                text = to_lower_case(text)
+                has_lower_cased = True
+                yield text
+        if do_remove_punc:
+            text = remove_punctuations(text)
+            yield text
+        if do_lower_case and not has_lower_cased:
+            text = to_lower_case(text)
+            yield text
+
 
 if __name__ == "__main__":
     
     import argparse
     parser = argparse.ArgumentParser(description="Test text normalization and augmentation.", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("words", type=str, nargs="+", help="Some text")
-    parser.add_argument("--max_variants", type=int, default=4, choices=[0, 1, 2, 3, 4], help="Augmentation max_variants.")
+    parser.add_argument("--max_variants", type=int, default=None, help="Augmentation max_variants.")
+    parser.add_argument("--seed", type=int, default=random.randint(1, 1000), help="Random seed")
+    parser.add_argument("--force_augmentation", default=False, action="store_true", help="Force augmentation even when max_variants=0.")
     args = parser.parse_args()
+
+    import random
 
     text = " ".join(args.words)
     max_variants = args.max_variants
@@ -209,6 +214,7 @@ if __name__ == "__main__":
         return text.replace("\n", "\\n")
     print("Original      :", format_stdout(text))
     # print("Normalized (2):", format_stdout(format_text(text, keep_specials=False)))
-    for ivariant, text_variant in enumerate(augmented_texts_generator(text, max_variants)):
+    random.seed(args.seed)
+    for ivariant, text_variant in enumerate(augmented_texts_generator(text, max_variants, force_augmentation=args.force_augmentation)):
         print(f"Augmented ({ivariant}/{max_variants}):" if ivariant > 0 else "Normalized     :", format_stdout(text_variant))
 
