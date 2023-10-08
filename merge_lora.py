@@ -21,7 +21,9 @@ def merge_lora(
     checkpoint_dir: Path = Path("checkpoints/tiiuae/falcon-7b"),
     lora_dir: Path = Path("out/lora/Claire"),
     lora_pth_name: str = "lit_model_lora_finetuned.pth",
+    save_path: Optional[Path] = None, # checkpoint_dir.parent.parent / "OpenLLM-France" / "Claire-7b" / "lit_model.pth"
     precision: Optional[str] = None,
+    model: Optional[GPT] = None,
 ) -> None:
     """Generates a response based on a given instruction and an optional input.
     This script will only work with checkpoints from the instruction-tuned GPT-LoRA model.
@@ -34,20 +36,21 @@ def merge_lora(
         precision: Indicates the Fabric precision setting to use.
     """
     precision = precision or get_default_supported_precision(training=False)
-    fabric = L.Fabric(devices=1, precision=precision)
 
     check_valid_checkpoint_dir(checkpoint_dir)
 
-    with open(lora_dir / "lora_config.json", "r") as file:
-        lora_config = json.load(file)
-    config = Config.from_json(
-        path=checkpoint_dir / "lit_config.json",
-        **lora_config
-    )
-
     lora_path = lora_dir / lora_pth_name
-    with fabric.init_module(empty_init=True):
-        model = GPT(config)
+    if model is None:
+        with open(lora_dir / "lora_config.json", "r") as file:
+            lora_config = json.load(file)
+        config = Config.from_json(
+            path=checkpoint_dir / "lit_config.json",
+            **lora_config
+        )
+        fabric = L.Fabric(devices=1, precision=precision)
+        with fabric.init_module(empty_init=True):
+            model = GPT(config)
+
     checkpoint_path = checkpoint_dir / "lit_model.pth"
     with lazy_load(checkpoint_path) as checkpoint, lazy_load(lora_path) as lora_checkpoint:
         checkpoint.update(lora_checkpoint.get("model", lora_checkpoint))
@@ -55,12 +58,14 @@ def merge_lora(
 
     merge_lora_weights(model)
 
-    save_path = checkpoint_dir.parent.parent / "OpenLLM-France" / "Claire-7b" / "lit_model.pth"
-    os.makedirs(save_path.parent, exist_ok=False)
-    fabric.print(f"Saving weights to {str(save_path)!r}")
-    # remove lora parameters and the lora linear substring
-    state_dict = {k.replace("linear.", ""): v for k, v in model.state_dict().items() if not lora_filter(k, v)}
-    torch.save(state_dict, save_path)
+    if save_path:
+        os.makedirs(save_path.parent, exist_ok=False)
+        print(f"Saving weights to {str(save_path)!r}")
+        # remove lora parameters and the lora linear substring
+        state_dict = {k.replace("linear.", ""): v for k, v in model.state_dict().items() if not lora_filter(k, v)}
+        torch.save(state_dict, save_path)
+
+    return model
 
 
 if __name__ == "__main__":

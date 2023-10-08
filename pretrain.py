@@ -19,7 +19,9 @@ from torch.utils.data import DataLoader
 this_folder = Path(__file__).parent.resolve()
 sys.path = [str(this_folder / "lit_gpt")] + sys.path # Prepend to PYTHONPATH
 
-from lit_gpt.lora import GPT, Block, Config, lora_filter, mark_only_lora_as_trainable
+from lit_gpt import Config, GPT
+from lit_gpt.lora import Config as LoraConfig, GPT as LoraGPT
+from lit_gpt.lora import Block, lora_filter, mark_only_lora_as_trainable
 from lit_gpt.speed_monitor import SpeedMonitorFabric as SpeedMonitor
 from lit_gpt.speed_monitor import estimate_flops, measure_flops
 from lit_gpt.utils import (
@@ -143,7 +145,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
     if use_lora:
         lora_config = {k.split("lora_")[1]: v for k, v in hparams.items() if k.startswith("lora_")}
         lora_config = {(k if k in ["r", "alpha", "dropout"] else "to_"+k): v for k, v in lora_config.items()}
-        config = Config.from_json(
+        config = LoraConfig.from_json(
             path=checkpoint_dir / "lit_config.json",
             **lora_config
             # r=lora_r, alpha=lora_alpha, dropout=lora_dropout, to_query=lora_query, to_key=lora_key, ...
@@ -200,9 +202,11 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
 
     fabric.print(f"Loading model {str(checkpoint_path)!r} with {config.__dict__}")
     with fabric.init_module(empty_init=True):
-        model = GPT(config)
-    if use_lora:
-        mark_only_lora_as_trainable(model)
+        if use_lora:
+            model = LoraGPT(config)
+            mark_only_lora_as_trainable(model)
+        else:
+            model = GPT(config)
 
     fabric.print(f"Number of trainable parameters: {num_parameters(model, requires_grad=True):,}")
     fabric.print(f"Number of non trainable parameters: {num_parameters(model, requires_grad=False):,}")

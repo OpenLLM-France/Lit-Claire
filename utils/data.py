@@ -34,6 +34,7 @@ def create_dataloaders(
     try_small=False,
     return_details=False,
     enable_validation=True,
+    enable_train=True,
 ):
     assert os.path.isdir(path), f"Path {path} does not exist"
 
@@ -60,9 +61,11 @@ def create_dataloaders(
         if len(prefixes_dev) == 0:
             prefixes_dev = prefixes_train
 
-    assert len(prefixes_train) > 0, f"No train set found in {path}"
+    if enable_train:
+        assert len(prefixes_train) > 0, f"No train set found in {path}"
     if enable_validation:
         assert len(prefixes_dev) > 0, f"No dev set found in {path}"
+    assert enable_train or enable_validation
 
     kwargs = dict(
         path=path,
@@ -75,10 +78,13 @@ def create_dataloaders(
         return_details=return_details,
     )
 
-    train = create_dataloader(prefixes=prefixes_train, shuffle=shuffle, wrap=wrap_train, **kwargs)
+    no_output = (None, {"epoch_size": 0}) if return_details else None
+
+    train = create_dataloader(prefixes=prefixes_train, shuffle=shuffle, wrap=wrap_train, **kwargs) \
+        if enable_train else no_output
 
     valid = create_dataloader(prefixes=prefixes_dev, shuffle=False, use_weights=False, wrap=wrap_validation, max_samples=max_validation_samples, **kwargs) \
-        if enable_validation else ((None, {"epoch_size": 0}) if return_details else None)
+        if enable_validation else no_output
 
     return (train, valid)
 
