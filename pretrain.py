@@ -383,6 +383,9 @@ def validate(
         targets = val_data[:, 1 : model.max_seq_length + 1].contiguous()
         logits = model(input_ids)  # set lm_head_chunk_size=128 may reduce peak vram
         losses[eval_iter_num] = chunked_cross_entropy(logits, targets, chunk_size=0)  # set chunk_size=128 may reduce peak vram
+    
+    if eval_iter_num < max_eval_iters - 1:
+        losses = losses[: eval_iter_num + 1]
     val_loss = losses.mean()
 
     model.train()
