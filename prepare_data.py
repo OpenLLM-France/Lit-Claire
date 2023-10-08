@@ -46,6 +46,7 @@ def prepare_fn(
     skip_if_exists=True,
     update_metadata=False,
     cut_around_turns=True,
+    update_weights=False,
     DEBUG_PRINT=False,
 ) -> None:
     """Prepare the dataset using the tokenizer."""
@@ -116,7 +117,7 @@ def prepare_fn(
         num_conversations = int(metadata["conversations"])
         is_spontaneous = metadata["spontaneous"]
         assert is_spontaneous in [True, False]
-        augmentation_level = 4 if is_spontaneous else 0
+        augmentation_level = 4 if is_spontaneous else 1
         force_augmentation = True
 
         # Do not augment validation
@@ -125,6 +126,18 @@ def prepare_fn(
             force_augmentation = False
 
         prefix = set_name.replace("/", "--")
+        metadata_filename = destination_path / f"{prefix}_metadata.json"
+
+        if not metadata["is_dev"]:
+            print(f"{metadata_filename}\n: sampling_rate = {metadata['sampling_rate']}")
+        if update_weights:
+            if os.path.isfile(metadata_filename):
+                with open(metadata_filename) as f:
+                    old_metadata = json.load(f)
+                    old_metadata["sampling_rate"] = metadata["sampling_rate"]
+                metadata_filename.write_text(json.dumps(old_metadata, indent=4))
+            else:
+                print(f"WARNING: {metadata_filename} not found. Sampling rate not updated.")
 
         filenames = glob.glob(f"{destination_path}/{prefix}*bin")
         if len(filenames) > 0:
@@ -170,7 +183,6 @@ def prepare_fn(
                     "num_padded" : num_padded,
                     "block_size" : effective_block_size,
                 })
-                metadata_filename = destination_path / f"{prefix}_metadata.json"
                 metadata_filename.write_text(json.dumps(metadata, indent=4))
             
             else:
@@ -352,6 +364,7 @@ def prepare(
     multiple_of: int = 8,
     padding: bool = True,
     group_datasets_by_genre: bool = True,
+    update_weights: bool = False,
     update_metadata: bool = False,
 ) -> None:
     """Prepare the "Claire" dataset. We assume tokenizer has been trained."""
@@ -386,6 +399,7 @@ def prepare(
         multiple_of=multiple_of,
         group_datasets_by_genre=group_datasets_by_genre,
         padding=padding,
+        update_weights=update_weights,
         update_metadata=update_metadata,
     )
 

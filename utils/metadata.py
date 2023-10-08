@@ -72,17 +72,11 @@ def accumulate_metadata_by_group(datasets, metadatas=None):
 
 # Add sampling weights
 def get_scaled_num_samples(metadata):
-    num_samples = metadata["words"]
+    num_samples = metadata["words"] + metadata["turns"]
     if not metadata["spontaneous"]:
-        num_samples /= 5
+        num_samples /= 4
     return num_samples
 
-# Add sampling weights
-def get_scaled_num_samples(metadata):
-    num_samples = metadata["words"]
-    if not metadata["spontaneous"]:
-        num_samples /= 5
-    return num_samples
 scale_per_languages = {
     "fr": 0.25,
     "en": 0.75,
