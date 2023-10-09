@@ -79,15 +79,17 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, hparams):
     checkpoints = sorted(checkpoints, key=lambda x: get_iter_info(x)["iter"])
 
     if os.path.isdir(out_dir / "src"):
-        shutil.copy2(__file__, out_dir / "src" / os.path.basename(__file__))
+        for file in __file__, os.path.join(this_folder, "merge_lora.py"), :
+            shutil.copy2(file, out_dir / "src" / os.path.basename(file))
 
     check_valid_checkpoint_dir(checkpoint_dir)  # check if there is lit-gpt format model
 
     with fabric.init_module(empty_init=True):
         if use_lora:
-            lora_config = json.load(open(out_dir / "lora_config.json", "r"))
-            config = LoraConfig.from_json(path=checkpoint_dir / "lit_config.json", **lora_config)
-            model = LoraGPT(config)
+            model = None
+            # lora_config = json.load(open(out_dir / "lora_config.json", "r"))
+            # config = LoraConfig.from_json(path=checkpoint_dir / "lit_config.json", **lora_config)
+            # model = LoraGPT(config)
         else:
             config = Config.from_json(path=checkpoint_dir / "lit_config.json")
             model = GPT(config)
@@ -133,7 +135,8 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, hparams):
                     checkpoint_dir=checkpoint_dir,
                     lora_dir=out_dir,
                     lora_pth_name=os.path.basename(checkpoint_path),
-                    model=model,
+                    model=None,
+                    fabric=fabric,
                 )
             else:
                 load_checkpoint(fabric, model, checkpoint_path, strict=not use_lora)

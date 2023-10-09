@@ -13,7 +13,9 @@ import torch
 wd = Path(__file__).parent.resolve()
 sys.path = [str(wd / "lit_gpt")] + sys.path # Prepend to PYTHONPATH
 
+from lightning.fabric.strategies import FSDPStrategy
 from lit_gpt.lora import GPT, Config, lora_filter, merge_lora_weights
+from lit_gpt.lora import Block
 from lit_gpt.utils import check_valid_checkpoint_dir, get_default_supported_precision, lazy_load
 
 
@@ -24,6 +26,7 @@ def merge_lora(
     save_path: Optional[Path] = None, # checkpoint_dir.parent.parent / "OpenLLM-France" / "Claire-7b" / "lit_model.pth"
     precision: Optional[str] = None,
     model: Optional[GPT] = None,
+    fabric: Optional[L.Fabric] = None,
 ) -> None:
     """Generates a response based on a given instruction and an optional input.
     This script will only work with checkpoints from the instruction-tuned GPT-LoRA model.
@@ -47,7 +50,9 @@ def merge_lora(
             path=checkpoint_dir / "lit_config.json",
             **lora_config
         )
-        fabric = L.Fabric(devices=1, precision=precision)
+        if fabric is None:
+            strategy = FSDPStrategy(auto_wrap_policy={Block}, cpu_offload=False)
+            fabric = L.Fabric(devices=1, strategy=strategy, precision=precision)
         with fabric.init_module(empty_init=True):
             model = GPT(config)
 
@@ -56,6 +61,7 @@ def merge_lora(
         checkpoint.update(lora_checkpoint.get("model", lora_checkpoint))
         model.load_state_dict(checkpoint)
 
+    model.eval()
     merge_lora_weights(model)
 
     if save_path:
