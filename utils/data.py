@@ -119,7 +119,7 @@ def create_dataloader(
     for prefix in prefixes:
         
         if isinstance(prefix, str):
-            filenames = glob.glob(os.path.join(path, f"{prefix}*.bin"))
+            filenames = sorted(glob.glob(os.path.join(path, f"{prefix}*.bin")))
             assert len(filenames) > 0, f"No files found in {path} (for prefix: {prefix})"
 
             metadata_file = os.path.join(path, f"{prefix}_metadata.json")
@@ -220,7 +220,7 @@ def create_dataloader(
 
         new_prefixes = []
         for prefix, metadata in zip(prefixes, metadatas):
-            filenames = glob.glob(os.path.join(path, f"{prefix}*.bin"))
+            filenames = sorted(glob.glob(os.path.join(path, f"{prefix}*.bin")))
             assert len(filenames) > 0
             num_files = max(1, int((len(filenames) * max_samples_per_dataset) // metadata["num_samples"]))
             # The number of files must be a multiple of the number of processes
