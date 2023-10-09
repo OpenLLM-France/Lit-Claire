@@ -85,14 +85,15 @@ python merge_lora.py \
     --checkpoint_dir $WORK/../commun/Claire/checkpoints/$MODEL \
     --lora_dir       $WORK/../commun/Claire/pretrain/lora/$MODEL \
     --lora_pth_name  lit_model_lora_finetuned.pth \
+    --save_path      $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B/lit_model.pth \
     --precision      bf16-true
 ```
-The merged model `lit_model.pth` can be found under `$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b`
+The merged model `lit_model.pth` can be found under `save_path`
 
-copy the *.json files from Falcon-7b to Claire-7b, which are required for the configuration and tokenizer information.
+copy the *.json files from Falcon-7b to Claire-7B, which are required for the configuration and tokenizer information.
 ```
 cp $WORK/../commun/Claire/checkpoints/tiiuae/falcon-7b/*.json \
-    $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b/
+    $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B/
 ```
 
 ### test the merged model
@@ -102,40 +103,40 @@ test the model with a single prompt
 srun --ntasks=1 --gres=gpu:1 --constraint=a100 \
 python lit_gpt/generate/base.py \
     --prompt "Hello, my name is" \
-    --checkpoint_dir $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b
+    --checkpoint_dir $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B
 ```
 
 test the model interactively
 ```
 srun --ntasks=1 --gres=gpu:1 --constraint=a100 --pty \
 python lit_gpt/chat/base.py \
-    --checkpoint_dir $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b
+    --checkpoint_dir $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B
 ```
 
 ### convert Lit-GPT model to Hugging Face format
 ```
 python lit_gpt/scripts/convert_lit_checkpoint.py \
-    --checkpoint_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b/lit_model.pth \
-    --output_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b/pytorch_model.bin \
-    --config_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b/lit_config.json
+    --checkpoint_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B/lit_model.pth \
+    --output_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B/pytorch_model.bin \
+    --config_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B/lit_config.json
 ```
 
 ### split pytorch_model.bin into smaller shards
 ```
 python download_config.py \
-    --folder_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b
+    --folder_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B
 ```
 ```
 srun --ntasks=1 --gres=gpu:1 --constraint=a100 --cpus-per-task=8 \
 python split_model.py \
-    --folder_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b
+    --folder_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B
 ```
 
 ### upload the converted model to Hugging Face
 ```
 python upload_model.py \
-    --folder_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7b \
-    --repo_id OpenLLM-France/Claire-7b \
+    --folder_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B \
+    --repo_id OpenLLM-France/Claire-7B \
     --create_repo true
 ```
 `--create_repo true`: create a new Hugging Face repo with `repo_id`, then upload files.  
