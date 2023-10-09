@@ -347,15 +347,16 @@ def train(
                 condition_eval = step_count % eval_interval == 0
 
             if condition_checkpoint:
+                t_last_checkpoint = time.perf_counter()
                 checkpoint_path = out_dir / f"iter-{iter_num:06d}-ckpt.pth"
                 save_checkpoint(fabric, model, checkpoint_path, use_lora=use_lora)
-                t_last_checkpoint = time.perf_counter()
                 num_checkpoints += 1
                 if max_checkpoints and num_checkpoints >= max_checkpoints:
                     fabric.print(f"Reached max checkpoints: {max_checkpoints}")
                     break
 
             if condition_eval and val_dataloader is not None:
+                t_last_valid = time.perf_counter()
                 t0 = time.perf_counter()
                 val_loss = validate(fabric, model, val_dataloader, max_eval_iters)
                 t1 = time.perf_counter() - t0
@@ -365,7 +366,6 @@ def train(
                 fabric.barrier()
                 if fabric.device.type == "cuda":
                     fabric.logger.log_metrics({"peak_vram": f"{torch.cuda.max_memory_allocated() / 1e9:.02f} GB"})
-                t_last_valid = time.perf_counter()
 
 
 @torch.inference_mode()
