@@ -210,6 +210,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
 
     fabric.print(f"Number of trainable parameters: {num_parameters(model, requires_grad=True):,}")
     fabric.print(f"Number of non trainable parameters: {num_parameters(model, requires_grad=False):,}")
+    sys.stdout.flush()
 
     model = fabric.setup_module(model)
 
