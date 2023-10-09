@@ -69,7 +69,7 @@ def setup(
 def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, hparams):
     language            = hparams["language"]
     batch_size          = hparams["batch_size"]
-    max_eval_iters      = hparams["max_eval_iters"]
+    max_eval_iters0     = hparams["max_eval_iters"]
     use_lora            = os.path.isfile(out_dir / "lora_config.json")
 
     assert os.path.isdir(out_dir), f"Output directory {out_dir} does not exist."
@@ -92,7 +92,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, hparams):
             config = Config.from_json(path=checkpoint_dir / "lit_config.json")
             model = GPT(config)
 
-    _, (val_dataloader, val_details) = create_dataloaders(
+    _, (val_dataloaders, val_details) = create_dataloaders(
         path=data_dir,
         language=language,
         batch_size=batch_size,
@@ -101,14 +101,13 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, hparams):
         seed=(1337 + fabric.global_rank),
         verbose=True,
         try_small=try_small,
+        shuffle=True,
         max_validation_samples=200 if try_small else 4000,
         return_details=True,
         wrap_validation=False,
+        split_validation_in_subsets=True,
         enable_train=False,
     )
-    val_dataloader = fabric.setup_dataloaders(val_dataloader)
-    if max_eval_iters is None:
-        max_eval_iters = int(math.ceil(val_details["epoch_size"] // batch_size))
 
     filename = out_dir / "validation_results.csv"
 
@@ -118,6 +117,8 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, hparams):
             reader = csv.DictReader(file)
             for row in reader:
                 already_done.append(row["file"])
+
+    sys.stdout.flush()
 
     with open(filename, "a") as file:
         logger = None
@@ -137,20 +138,38 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, hparams):
             else:
                 load_checkpoint(fabric, model, checkpoint_path, strict=not use_lora)
 
-            t0 = time.perf_counter()
-            val_loss = validate(fabric, model, val_dataloader, max_eval_iters=max_eval_iters)
-            t1 = time.perf_counter() - t0
-            info.update({"val_loss": f"{val_loss.item():.4f}", "val time": f"{t1 * 1000:.2f}ms"})
-            if fabric.device.type == "cuda":
-                info.update({"peak_vram": f"{torch.cuda.max_memory_allocated() / 1e9:.02f} GB"})
+            for val_dataloader, val_detail in zip(val_dataloaders, val_details):
 
-            fabric.print(json.dumps(info, indent=4))
-            if logger is None:
-                logger = csv.DictWriter(file, fieldnames=info.keys(), lineterminator='\n')
-                if not already_done:
-                    logger.writeheader()
-            logger.writerows([info])
-            fabric.barrier()
+                val_dataloader = fabric.setup_dataloaders(val_dataloader)
+                if max_eval_iters0 is None:
+                    max_eval_iters = int(math.ceil(val_detail["epoch_size"] // batch_size))
+                else:
+                    max_eval_iters = max_eval_iters0
+
+                t0 = time.perf_counter()
+                val_loss = validate(fabric, model, val_dataloader, max_eval_iters=max_eval_iters)
+                t1 = time.perf_counter() - t0
+                info.update({
+                    "data": val_detail["name"],
+                    "loss": f"{val_loss.item():.4f}",
+                    "time": f"{t1:.3f} sec",
+                    "batch_size": batch_size,
+                    "max_iters": max_eval_iters,
+                })
+                if fabric.device.type == "cuda":
+                    info.update({"peak_vram": f"{torch.cuda.max_memory_allocated() / 1e9:.02f} GB"})
+
+                fabric.print(json.dumps(info, indent=4))
+                if logger is None:
+                    logger = csv.DictWriter(file, fieldnames=info.keys(), lineterminator='\n')
+                    if not already_done:
+                        logger.writeheader()
+                logger.writerows([info])
+
+                sys.stdout.flush()
+                file.flush()
+
+                fabric.barrier() # why?
 
 def get_iter_info(checkpoint_path):
     iter_num = int(os.path.basename(checkpoint_path).split("-")[1])

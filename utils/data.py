@@ -29,6 +29,7 @@ def create_dataloaders(
     wrap_train=True,
     wrap_validation=True,
     max_validation_samples=None,
+    split_validation_in_subsets=False,
     seed=51,
     verbose=True,
     try_small=False,
@@ -80,10 +81,20 @@ def create_dataloaders(
 
     no_output = (None, {"epoch_size": 0}) if return_details else None
 
-    train = create_dataloader(prefixes=prefixes_train, shuffle=shuffle, wrap=wrap_train, **kwargs) \
+    train = create_dataloader(
+        prefixes=prefixes_train,
+        shuffle=shuffle, use_weights=True,
+        wrap=wrap_train,
+        **kwargs) \
         if enable_train else no_output
 
-    valid = create_dataloader(prefixes=prefixes_dev, shuffle=False, use_weights=False, wrap=wrap_validation, max_samples=max_validation_samples, **kwargs) \
+    valid = create_dataloader(
+        prefixes=prefixes_dev,
+        shuffle=False, use_weights=False,
+        wrap=wrap_validation,
+        max_samples=max_validation_samples,
+        split_in_subsets=split_validation_in_subsets,
+        **kwargs) \
         if enable_validation else no_output
 
     return (train, valid)
@@ -101,6 +112,7 @@ def create_dataloader(
     verbose=True,
     return_details=False,
     use_weights=True,
+    split_in_subsets=False,
     use_progress_bar=True,
     max_samples=None,
 ):
@@ -253,6 +265,18 @@ def create_dataloader(
             use_weights=use_weights,
             use_progress_bar=use_progress_bar,
         )
+
+    if split_in_subsets:
+        assert not use_weights, "Cannot use weights and split_in_subsets at the same time"
+        datasets = [DataLoader(dataset, batch_size=batch_size, shuffle=False, pin_memory=True) for dataset in datasets]
+        if return_details:
+            return datasets, [{
+                "name": metadata["dataset"],
+                "metadata": metadata,
+                "epoch_size": metadata["num_samples_rounded"],
+            } for metadata in metadatas]
+        else:
+            return datasets
 
     # Combine datasets
     if use_weights:
