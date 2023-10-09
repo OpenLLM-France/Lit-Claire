@@ -52,10 +52,10 @@ def setup(
     enable_validation: bool = True,
 
     # Action to be taken per n interval
-    save_interval: int = 3550, # A little bit less than 1H
-    eval_interval: int = 3550, # A little bit less than 1H
+    save_interval: int = 3540, # A little bit less than 1H
+    eval_interval: int = 3540, # A little bit less than 1H
     log_interval: int = 1,
-    interval_unit: str = "time",
+    interval_unit: str = "time", # "time" or "step"
 
     # Number of epochs
     num_epochs: int = 1,
