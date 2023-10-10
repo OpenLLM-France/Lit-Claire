@@ -96,8 +96,9 @@ def capitalize(text):
     words = text.split(" ")
     words = [w.capitalize() if not w.isupper() else w for w in words]
     for i, w in enumerate(words):
-        if "-" in w:
-            words[i] = "-".join([x.capitalize() if not x.isupper() else x for x in w.split("-")])
+        for sep in "-", "'":
+            if sep in w:
+                words[i] = sep.join([x.capitalize() if not x.isupper() else x for x in w.split(sep)])
     return " ".join(words)
 
 def anonymize_speakers(text):

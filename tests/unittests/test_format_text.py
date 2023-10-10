@@ -1,7 +1,7 @@
 import unittest
 import random
 
-from utils.text import augmented_texts_generator
+from utils.text import augmented_texts_generator, capitalize
 
 class TestFormatText(unittest.TestCase):
 
@@ -91,3 +91,11 @@ class TestFormatText(unittest.TestCase):
              '[jerome:] a [margaret:] b [jerome:] c [kevin:] d [margaret:] e [kevin:] f [jerome:] g',
              '[william:] a [april:] b [william:] c [william:] d [april:] e [william:] f [william:] g']
         )
+
+    def test_capitalize(self):
+
+        self.assertEqual(
+            capitalize("jean Jean JEAN JR jean-claude Jean-Claude d'estaing D'Estaing"),
+            "Jean Jean JEAN JR Jean-Claude Jean-Claude D'Estaing D'Estaing"
+        )
+    
