@@ -39,6 +39,24 @@ def read_training_csv(csvfile):
 
     return data, batch_size, time/iter
 
+def format_dataset_name(name):
+    name = name.replace("Politics", "Débats politiques")
+    name = name.replace("AssembleeNationale", "Assemblée Nationale")
+    name = name.replace("Theatre", "Théâtre")
+    name = name.replace("Meetings", "Réunions")
+    return name
+
+def name_order(name):
+    if name == "Meetings":
+        return (2, name)
+    if name == "Politics":
+        return (3, name)
+    if name == "AssembleeNationale":
+        return (4, name)
+    if name == "Theatre":
+        return (5, name)
+    return (0, name)
+
 if __name__ == "__main__":
 
     import os
@@ -53,17 +71,10 @@ if __name__ == "__main__":
     num_expes = len(args.folders)
     num_columns = num_expes # 1
 
-    # fig = plt.figure()
-    # spec = plt.gridspec.GridSpec(ncols=num_columns, nrows=4,
-    #     height_ratios=[10, 0.2, 0.2, 0.2],
-    #     width_ratios=[1/num_columns] * num_columns,
-    #     #wspace=0.5, hspace=0.5
-    # )
-        
     fig, axes = plt.subplots(nrows=4, ncols=num_columns, gridspec_kw={
         'height_ratios': [10, 0.2, 0.2, 0.2], # list(zip(*([[10, 0.2, 0.2, 0.2]] * num_columns)))}
         'width_ratios': [1/num_columns] * num_columns,
-    })
+    }, facecolor=(1,1,1,0)) # transparent)
     if num_columns == 1:
         axes = [[ax] for ax in axes]
     # plt.suptitle("Claire-7b v0.02 (batch size= 12 sequences)")
@@ -78,7 +89,13 @@ if __name__ == "__main__":
             break
 
     # Only retain different hyperparameters
-    ignore_keys = ["out_dir", "save_interval", "eval_interval", "max_checkpoints", "gradient_accumulation_iters"]
+    ignore_keys = [
+        "out_dir",
+        "save_interval", "eval_interval", "log_interval",
+        "enable_validation",
+        "gradient_accumulation_iters",
+        "max_checkpoints", "num_epochs", "early_stopping",
+    ]
     for i, hparam in enumerate(hparams):
         for key in list(hparam.keys()):
             all_same = all([(hparam[key] == hother[key]) if (key in hother and key not in ignore_keys) else True for hother in hparams])
@@ -125,23 +142,22 @@ if __name__ == "__main__":
             max_x = args.max_iter
 
         if conv_validation:
-            valids = None
-            x_valids = None
-            for name in sorted(conv_validation.keys(), key = lambda name: (-len(conv_validation[name]), name)):
+            for name in sorted(conv_validation.keys(), key = lambda name: -len(conv_validation[name])):
                 x, y, files = zip(*sorted(conv_validation[name]))
-                ax.plot(x, y, label=name)
-                if valids is None:
-                    valids = [[yi] for yi in y]
-                    x_valids = x
-                else:
-                    for i, yi in enumerate(y):
-                        i = x_valids.index(x[i])
-                        valids[i].append(yi)
+                x_valids = x
+                break
+            valids = [[] for _ in x_valids]
+            for name in sorted(conv_validation.keys(), key = lambda name: name_order(name)):
+                x, y, files = zip(*sorted(conv_validation[name]))
+                ax.plot(x, y, label=format_dataset_name(name))
+                for i, yi in enumerate(y):
+                    i = x_valids.index(x[i])
+                    valids[i].append(yi)
 
             mean_valids = [np.median(v) for v in valids]
             best_valid = mean_valids.index(min(mean_valids))
             print("Best loss:", os.path.join(folder, files[best_valid]))
-            ax.axvline(x=x[best_valid], color='r', linestyle=':', label=f"Best ({files[best_valid]})")
+            ax.axvline(x=x[best_valid], color='r', linestyle=':') #, label=f"Best ({files[best_valid]})")
             
         ymin, ymax = ax.get_ylim()
         max_loss = max(max_loss, ymax)
@@ -162,6 +178,9 @@ if __name__ == "__main__":
             xticks_string = [f"{int(round(x*factor/factor2))}{unit}" if x > 0 else _zero for x in xticks]
             xticks_string[-1] += " " + label
             ax.set_xticks(xticks, xticks_string)
+            if iax > 0:
+                ax.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
+
 
     for icolumn in range(num_columns):
         ax = axes[0][icolumn]
