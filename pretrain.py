@@ -60,6 +60,7 @@ def setup(
     # Number of epochs
     num_epochs: int = 1,
     max_checkpoints: Optional[int] = None,
+    early_stopping: Optional[int] = None, # When validation is enabled, number of validation steps without improvement before stopping
 
     # Batch
     batch_size: int = 192,
@@ -260,9 +261,14 @@ def train(
     log_interval                = hparams["log_interval"]
     interval_unit               = hparams["interval_unit"]
     max_checkpoints             = hparams["max_checkpoints"]
+    early_stopping              = hparams["early_stopping"]
     use_lora                    = hparams["use_lora"]
+
     global t_last_checkpoint, t_last_valid
     num_checkpoints = 0
+    best_valid_loss = float("inf")
+    best_valid_loss_iter = 0
+    valid_loss_iter = 0
 
     if val_dataloader is not None and sanity_check:
         sanity_check_val_loss = validate(fabric, model, val_dataloader, max_eval_iters=1)
@@ -367,6 +373,14 @@ def train(
                 fabric.barrier()
                 if fabric.device.type == "cuda":
                     fabric.logger.log_metrics({"peak_vram": f"{torch.cuda.max_memory_allocated() / 1e9:.02f} GB"})
+
+                valid_loss_iter += 1
+                if val_loss <= best_valid_loss:
+                    best_valid_loss = val_loss
+                    best_valid_loss_iter = valid_loss_iter
+                elif early_stopping and (valid_loss_iter - best_valid_loss_iter) >= early_stopping:
+                    fabric.print(f"Early stopping at iter {iter_num}")
+                    break
 
 
 @torch.inference_mode()
