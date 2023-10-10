@@ -1,8 +1,11 @@
 import csv
+import json
 import numpy as np
 import matplotlib.pyplot as plt
 
 def read_validation_csv(csvfile):
+    if csvfile is None:
+        return {}
     data = {}
     with open(csvfile) as f:
         reader = csv.DictReader(f)
@@ -42,91 +45,126 @@ if __name__ == "__main__":
 
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("folder", help="folder where lies validation_results.csv and metrics.csv", default=".", nargs="?")
+    parser.add_argument("folders", help="folder where lies validation_results.csv and metrics.csv", default=".", nargs="+")
     parser.add_argument("--segment_length", help="Number of tokens in each sequence", type=int, default=2048)
+    parser.add_argument("--max_iter", help="Maximum number of iterations", type=int, default=None)
     args = parser.parse_args()
 
-    validation_file = None
-    training_file = None
-    for root, dirs, files in os.walk(args.folder):
-        if "validation_results.csv" in files:
-            validation_file = os.path.join(root, "validation_results.csv")
-        if "metrics.csv" in files:
-            if training_file is None:
-                training_file = os.path.join(root, "metrics.csv")
-            else:
-                # Look at modification times
-                if os.path.getmtime(os.path.join(root, "metrics.csv")) > os.path.getmtime(training_file):
-                    training_file = os.path.join(root, "metrics.csv")
-    
-    assert validation_file is not None, f"Could not find validation_results.csv in {args.folder}"
-    assert training_file is not None, f"Could not find metrics.csv in {args.folder}"
+    num_expes = len(args.folders)
+    num_columns = num_expes # 1
 
-    conv_validation = read_validation_csv(validation_file)
-    conv_training, batch_size, factor_time = read_training_csv(training_file)
-
-    fig, ax = plt.subplots(4, 1, gridspec_kw={'height_ratios': [10, 0.2, 0.2, 0.2]})
+    # fig = plt.figure()
+    # spec = plt.gridspec.GridSpec(ncols=num_columns, nrows=4,
+    #     height_ratios=[10, 0.2, 0.2, 0.2],
+    #     width_ratios=[1/num_columns] * num_columns,
+    #     #wspace=0.5, hspace=0.5
+    # )
+        
+    fig, axes = plt.subplots(nrows=4, ncols=num_columns, gridspec_kw={
+        'height_ratios': [10, 0.2, 0.2, 0.2], # list(zip(*([[10, 0.2, 0.2, 0.2]] * num_columns)))}
+        'width_ratios': [1/num_columns] * num_columns,
+    })
+    if num_columns == 1:
+        axes = [[ax] for ax in axes]
     # plt.suptitle("Claire-7b v0.02 (batch size= 12 sequences)")
-    
-    plt.subplot(4, 1, 1)
-    x, y = zip(*sorted(conv_training))
-    plt.plot(x, y, label="(Training)", alpha=0.5)
-    max_x = max(x)
-    valids = None
-    x_valids = None
-    for name in sorted(conv_validation.keys(), key = lambda name: (-len(conv_validation[name]), name)):
-        x, y, files = zip(*sorted(conv_validation[name]))
-        plt.plot(x, y, label=name)
-        if valids is None:
-            valids = [[yi] for yi in y]
-            x_valids = x
+
+    hparams = []
+    for folder in args.folders:
+        hparams_file = os.path.join(folder, "hparams.json")
+        if os.path.isfile(hparams_file):
+            hparams.append(json.load(open(hparams_file)))
         else:
-            for i, yi in enumerate(y):
-                i = x_valids.index(x[i])
-                valids[i].append(yi)
+            hparams = [{}] * len(args.folders)
+            break
 
-    mean_valids = [np.median(v) for v in valids]
-    best_valid = mean_valids.index(min(mean_valids))
-    print("Best loss:", files[best_valid])
-    plt.axvline(x=x[best_valid], color='r', linestyle=':', label=f"Best ({files[best_valid]})")
-    
-    plt.ylabel("Loss")
-    plt.legend()
+    # Only retain different hyperparameters
+    ignore_keys = ["out_dir", "save_interval", "eval_interval", "max_checkpoints", "gradient_accumulation_iters"]
+    for i, hparam in enumerate(hparams):
+        for key in list(hparam.keys()):
+            all_same = all([(hparam[key] == hother[key]) if (key in hother and key not in ignore_keys) else True for hother in hparams])
+            if all_same:
+                del hparam[key]
 
-    # a, b = plt.xlim()
-    plt.xlim(0, max_x)
-    xticks, _ = plt.xticks()
-    xticks_batches = np.arange(0, max_x, 1000)
-    xticks_batches_string = [f"{int(x/1000)}k" for x in xticks_batches]
-    xticks_batches_string[-1] += " batches"
-    plt.xticks(xticks_batches, xticks_batches_string)
-    # plt.xlabel("Batches", loc='right')
+    min_loss = 0
+    max_loss = 0
 
-    plt.subplot(4, 1, 2)
-    plt.xlim(0, max_x)
-    xticks_samples = np.arange(0, max_x, 5000/(batch_size))
-    xticks_samples_string = [f"{int(x*batch_size/1000)}k" for x in xticks_samples]
-    xticks_samples_string[-1] += " sequences"
-    plt.xticks(xticks_samples, xticks_samples_string)
-    plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
-    # plt.xlabel("Samples", loc='right')
+    for iexpe, folder in enumerate(args.folders):
+        icolumn = min(iexpe, num_columns-1)
 
-    plt.subplot(4, 1, 3)
-    plt.xlim(0, max_x)
-    xticks_tokens = np.arange(0, max_x, 10000000/(batch_size * args.segment_length))
-    xticks_tokens_string = [f"{int(x*batch_size*args.segment_length/1000000)}M" for x in xticks_tokens]
-    xticks_tokens_string[-1] += " tokens"
-    plt.xticks(xticks_tokens, xticks_tokens_string)
-    plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
-    # plt.xlabel("Tokens", loc='right')
+        max_x = 0
 
-    plt.subplot(4, 1, 4)
-    plt.xlim(0, max_x)
-    xticks_times = np.arange(0, max_x, 3600 / factor_time)
-    xticks_times_string = [f"{int(x*factor_time/3600)}h" for x in xticks_times]
-    xticks_times_string[-1] += " hours"
-    plt.xticks(xticks_times, xticks_times_string)
-    plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
-    # plt.xlabel("Time", loc='right')
+        validation_file = None
+        training_file = None
+        for root, dirs, files in os.walk(folder):
+            if "validation_results.csv" in files:
+                validation_file = os.path.join(root, "validation_results.csv")
+            if "metrics.csv" in files:
+                if training_file is None:
+                    training_file = os.path.join(root, "metrics.csv")
+                else:
+                    # Look at modification times
+                    if os.path.getmtime(os.path.join(root, "metrics.csv")) > os.path.getmtime(training_file):
+                        training_file = os.path.join(root, "metrics.csv")
+        
+        # assert validation_file is not None, f"Could not find validation_results.csv in {args.folder}"
+        assert training_file is not None, f"Could not find metrics.csv in {args.folder}"
+
+        conv_validation = read_validation_csv(validation_file)
+        conv_training, batch_size, factor_time = read_training_csv(training_file)
+        
+        ax = axes[0][icolumn]
+        if hparams[iexpe]:
+            title = ", ".join([f"{k}={v}" for k, v in hparams[iexpe].items()])
+            ax.set_title(title)
+
+        # plt.subplot(4, icolumn+1, 1)
+        x, y = zip(*sorted(conv_training))
+        ax.plot(x, y, label="(Training)", alpha=0.5)
+        max_x = max(max_x, max(x))
+        if args.max_iter and (max_x > args.max_iter or num_columns > 1):
+            max_x = args.max_iter
+
+        if conv_validation:
+            valids = None
+            x_valids = None
+            for name in sorted(conv_validation.keys(), key = lambda name: (-len(conv_validation[name]), name)):
+                x, y, files = zip(*sorted(conv_validation[name]))
+                ax.plot(x, y, label=name)
+                if valids is None:
+                    valids = [[yi] for yi in y]
+                    x_valids = x
+                else:
+                    for i, yi in enumerate(y):
+                        i = x_valids.index(x[i])
+                        valids[i].append(yi)
+
+            mean_valids = [np.median(v) for v in valids]
+            best_valid = mean_valids.index(min(mean_valids))
+            print("Best loss:", os.path.join(folder, files[best_valid]))
+            ax.axvline(x=x[best_valid], color='r', linestyle=':', label=f"Best ({files[best_valid]})")
+            
+        ymin, ymax = ax.get_ylim()
+        max_loss = max(max_loss, ymax)
+        ax.set_ylabel("Loss")
+        ax.legend()
+
+        for iax, (label, factor, step, unit) in enumerate([
+            ("batches",     1,                                1000,     ""),
+            ("sequences",   batch_size,                       5000,     "k"),
+            ("tokens",      batch_size * args.segment_length, 10000000, "M"),
+            ("time",        factor_time,                      3600,     "h"),
+        ]):
+            factor2 = {"k": 1000, "M": 1000000, "h": 3600}.get(unit, 1)
+            _zero = "0" if iax == 0 else ""
+            ax = axes[iax][icolumn]
+            ax.set_xlim(0, max_x)
+            xticks = np.arange(0, max_x+1, step / factor)
+            xticks_string = [f"{int(round(x*factor/factor2))}{unit}" if x > 0 else _zero for x in xticks]
+            xticks_string[-1] += " " + label
+            ax.set_xticks(xticks, xticks_string)
+
+    for icolumn in range(num_columns):
+        ax = axes[0][icolumn]
+        ax.set_ylim(0, max_loss)
 
     plt.show()
