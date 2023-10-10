@@ -39,9 +39,9 @@ FR/PFC,fr,False,False,False,True,306,27665,464389,111447,32824
 FR/RhapsodieParisStories,fr,False,False,False,True,95,1309,56399,14001,1424
 FR/RhapsodieParisStories/TRAIN,fr,False,False,False,True,73,931,40652,10275,1424
 FR/RhapsodieParisStories/DEV,fr,False,False,False,True,22,378,15747,3726,408
-FR/TCOF,fr,False,False,False,True,619,146815,1511591,36803,242948
-FR/TCOF/TRAIN,fr,False,False,False,True,598,143616,1476925,35867,242948
-FR/TCOF/DEV,fr,False,False,False,True,21,3199,34666,936,6022
+FR/TCOF,fr,False,False,False,True,619,146808,1511591,36568,242941
+FR/TCOF/TRAIN,fr,False,False,False,True,598,143610,1476925,35653,242941
+FR/TCOF/DEV,fr,False,False,False,True,21,3198,34666,915,6021
 FR/UBS,fr,False,False,False,True,41,804,7445,1,1038
 EN/AMI,en,False,False,False,True,139,75194,712099,118122,115909
 EN/AMI/TRAIN,en,False,False,False,True,119,64508,603594,100563,115909
