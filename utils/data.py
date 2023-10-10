@@ -90,7 +90,7 @@ def create_dataloaders(
 
     valid = create_dataloader(
         prefixes=prefixes_dev,
-        shuffle=False, use_weights=False,
+        shuffle=shuffle, use_weights=False,
         wrap=wrap_validation,
         max_samples=max_validation_samples,
         split_in_subsets=split_validation_in_subsets,
@@ -358,13 +358,16 @@ if __name__ == "__main__":
     parser.add_argument("--language", default=None, help="Filter by language")
     parser.add_argument("--seed", type=int, default=random.randint(1, 1000), help="Use 0 to disable shuffling")
     parser.add_argument("--try_small", default=False, action="store_true", help="Use dataset subsampling for quick tests")
+    parser.add_argument("--split_validation_in_subsets", default=False, action="store_true", help="Split validation into subsets")
+    parser.add_argument("--max_validation_samples", default=None, type= int, help="Maximum number of validation samples")
     # Options when iterating
     iter_parser = parser.add_argument_group("Iterating options")
-    iter_parser.add_argument("--max_batches_train", type=int, default=0, help="Max. number of training batches to iterate over")
-    iter_parser.add_argument("--max_batches_dev", type=int, default=0, help="Max. number of validation batches to iterate over")
+    iter_parser.add_argument("--max_train_iters", type=int, default=0, help="Max. number of training batches to iterate over")
+    iter_parser.add_argument("--max_valid_iters", type=int, default=0, help="Max. number of validation batches to iterate over")
     iter_parser.add_argument("--wrap_validation", default=False, action="store_true")
     iter_parser.add_argument("--inspect", default=False, action="store_true", help="Inspect from which dataset comes each sample")
     iter_parser.add_argument("--show_samples", type=int, nargs="*", help="Index of dataset from which to show samples (0, 1, ...)")
+    iter_parser.add_argument("-o", "--output", help="output folder", default=None)
     args = parser.parse_args()
 
     from lit_gpt.tokenizer import Tokenizer
@@ -377,8 +380,8 @@ if __name__ == "__main__":
     seed = args.seed
     try_small = args.try_small
     wrap_validation = args.wrap_validation
-
-    max_validation_samples = 200 if try_small else 4000
+    max_validation_samples=args.max_validation_samples if args.max_validation_samples else (200 if try_small else 4000)
+    split_validation_in_subsets = args.split_validation_in_subsets
 
     checkpoint_dir = args.checkpoint_dir
     assert os.path.isdir(checkpoint_dir), f"Checkpoint dir {checkpoint_dir} does not exist"
@@ -397,6 +400,7 @@ if __name__ == "__main__":
         path=args.path,
         language=args.language,
         max_validation_samples=max_validation_samples,
+        split_validation_in_subsets=split_validation_in_subsets,
         try_small=try_small,
         return_details=True,
         batch_size=batch_size,
@@ -407,23 +411,37 @@ if __name__ == "__main__":
     print(f"Intantiation time: {time.time() - tic} seconds")
 
     max_train_iters = int(train_details["epoch_size"] // batch_size)
-    max_eval_iters = max(1, int(dev_details["epoch_size"] // batch_size))
+    valid_size = dev_details["epoch_size"] if isinstance(dev_details, dict) else sum([d["epoch_size"] for d in dev_details])
+    max_eval_iters = max(1, int(valid_size // batch_size))
     print("Train:")
     print("* epoch size:", train_details["epoch_size"])
     print("* max_train_iters for 1 epoch:", max_train_iters)
     print("Dev:")
-    print("* epoch size:", dev_details["epoch_size"])
+    print("* epoch size:", valid_size)
     print("* max_eval_iters for 1 epoch:", max_eval_iters)
 
-    for (combined_dataset, details, max_batches) in [(trainset, train_details, args.max_batches_train), (devset, dev_details, args.max_batches_dev)]:
+    if args.output:
+        os.makedirs(args.output, exist_ok=True)
+
+    for (combined_dataset, details, max_batches) in [(trainset, train_details, args.max_train_iters), (devset, dev_details, args.max_valid_iters)]:
         if not max_batches:
             continue
 
-        datasets = details["datasets"]
-        pseudos = [m["dataset"] for m in details["metadata"]]
+        is_list_of_datasets = isinstance(combined_dataset, list)
+
+        if is_list_of_datasets:
+            combined_datasets = combined_dataset
+            datasets = combined_dataset
+            pseudos = [m["name"] for m in details]
+        else:
+            combined_datasets = [combined_dataset]
+            datasets = details["datasets"]
+            pseudos = [m["dataset"] for m in details["metadata"]]
+
+        do_inspect = args.inspect or (args.output and not is_list_of_datasets)
 
         # Collect all the data from each dataset naively
-        if args.inspect:
+        if do_inspect:
             all_datas = []
             for i, d in enumerate(datasets):
                 all_datas.append([])
@@ -436,50 +454,68 @@ if __name__ == "__main__":
         stats = {}
         tic = time.time()
         useless_computation_time = 0
-        for ibatch, batch in tqdm(enumerate(combined_dataset), total=max_batches):
-            if ibatch == 0:
-                toc = time.time()
-            subtic = time.time()
-            if ibatch >= max_batches:
-                break
-            new_batch = []
-            for sample in batch:
-                if args.inspect:
-                    sample_hash = hashmd5(sample)
-                    which_dataset = None
-                    which_index = None
-                    for idataset, d in enumerate(all_datas):
-                        if sample_hash == NULL_DATA:
-                            which_dataset = -1
-                            which_index = -1
-                            break
-                        for idata, x in enumerate(d):
-                            if sample_hash == x:
-                                which_dataset = idataset
-                                which_index = idata
+        output_filenames = {}
+        for idataset, combined_dataset in enumerate(combined_datasets):
+            if is_list_of_datasets:
+                print("================================")
+                print("Samples from ", pseudos[idataset])
+                if args.output:
+                    output_file = open(os.path.join(args.output, f"SPLITTED_{max_batches}x{batch_size}_" + pseudos[idataset].replace("/", "_")+".txt"), "w")
+            for ibatch, batch in enumerate(combined_dataset): # tqdm(enumerate(combined_dataset), total=max_batches):
+                if ibatch == 0:
+                    toc = time.time()
+                subtic = time.time()
+                if ibatch >= max_batches:
+                    break
+                new_batch = []
+                for sample in batch:
+                    if do_inspect:
+                        sample_hash = hashmd5(sample)
+                        which_dataset = None
+                        which_index = None
+                        for idataset, d in enumerate(all_datas):
+                            if sample_hash == NULL_DATA:
+                                which_dataset = -1
+                                which_index = -1
                                 break
-                        if which_dataset is not None:
-                            break
-                    assert which_dataset is not None
-                    assert which_index is not None
-                    new_batch.append((which_dataset, which_index) if which_dataset >= 0 else None)
-                    stats[which_dataset] = stats.get(which_dataset, 0) + 1
-                if not args.inspect or (args.show_samples and which_dataset in args.show_samples):
-                    print(f"sample:", tokenizer.decode(sample)[:100].replace("\n", "\\n"))
-            if len(new_batch) != batch_size:
-                print(f"WARNING: Batch size is {len(new_batch)} instead of {batch_size}")
-            sample_indices += new_batch
-            useless_computation_time += time.time() - subtic
-        print(f"Sampling time (first)  : {toc - tic} seconds")
-        if ibatch > 0:
-            print(f"Sampling time (average): {(time.time() - tic - useless_computation_time)/(min(ibatch+1, max_batches)-1)} seconds")
+                            for idata, x in enumerate(d):
+                                if sample_hash == x:
+                                    which_dataset = idataset
+                                    which_index = idata
+                                    break
+                            if which_dataset is not None:
+                                break
+                        assert which_dataset is not None
+                        assert which_index is not None
+                        new_batch.append((which_dataset, which_index) if which_dataset >= 0 else None)
+                        stats[which_dataset] = stats.get(which_dataset, 0) + 1
+                    if not args.inspect or (args.show_samples and which_dataset in args.show_samples):
+                        sample_text = tokenizer.decode(sample).replace("\n", "\\n")
+                        if not sample_text:
+                            sample_text = "***"
+                        print(sample_text[:100])
+                        if args.output:
+                            if not is_list_of_datasets:
+                                assert which_dataset is not None
+                                dataset_name = pseudos[which_dataset]
+                                if dataset_name not in output_filenames:
+                                    output_filenames[dataset_name] = open(os.path.join(args.output, f"COMBINED_{max_validation_samples}_" + dataset_name.replace("/","_")+".txt"), "w")
+                                output_file = output_filenames[dataset_name]
+                            print(sample_text, file=output_file)
+                if do_inspect and len(new_batch) != batch_size:
+                    print(f"WARNING: Batch size is {len(new_batch)} instead of {batch_size}")
+                sample_indices += new_batch
+                useless_computation_time += time.time() - subtic
 
-        if len(new_batch) != batch_size:
-            print(f"WARNING: Batch size is {len(new_batch)} instead of {batch_size}")
+        # # Print timings
+        # print(f"Sampling time (first)  : {toc - tic} seconds")
+        # if ibatch > 0:
+        #     print(f"Sampling time (average): {(time.time() - tic - useless_computation_time)/(min(ibatch+1, max_batches)-1)} seconds")
+
         if ibatch != max_batches:
             print(f"WARNING: Number of batches is {ibatch} instead of {max_batches}")
 
-        if args.inspect:
+        if do_inspect:
 
             total = sum(stats.values())
             total_null = stats.get(-1, 0)
