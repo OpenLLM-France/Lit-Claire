@@ -154,7 +154,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, hparams):
                 t1 = time.perf_counter() - t0
                 info.update({
                     "data": val_detail["name"],
-                    "loss": val_loss.item(), # round(val_loss.item(), 4 ) # f"{val_loss.item():.4f}",
+                    "loss": val_loss, # round(val_loss, 4 ) # f"{val_loss:.4f}",
                     "time": f"{t1:.3f} sec",
                     "batch_size": batch_size,
                     "max_iters": max_eval_iters,
@@ -173,6 +173,9 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, hparams):
                 file.flush()
 
                 fabric.barrier() # why?
+
+            # Test one checkpoint at a time to avoid bugs...
+            break
 
 def get_iter_info(checkpoint_path):
     iter_num = int(os.path.basename(checkpoint_path).split("-")[1])

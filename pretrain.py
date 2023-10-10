@@ -272,7 +272,7 @@ def train(
 
     if val_dataloader is not None and sanity_check:
         sanity_check_val_loss = validate(fabric, model, val_dataloader, max_eval_iters=1)
-        fabric.print(f"sanity check val loss: {sanity_check_val_loss.item():.4f}")
+        fabric.print(f"sanity check val loss: {sanity_check_val_loss:.4f}")
 
     with torch.device("meta"):
         meta_model = GPT(model.config)
@@ -347,7 +347,9 @@ def train(
                 # Save and validate at regular time intervals
                 t = time.perf_counter()
                 condition_checkpoint = (t - t_last_checkpoint) > save_interval
-                condition_eval = condition_checkpoint or (t - t_last_valid) > eval_interval
+                condition_eval = condition_checkpoint
+                if eval_interval != save_interval and (t - t_last_valid) > eval_interval:
+                    condition_eval = True
             else:
                 # Save and validate at regular iteration intervals
                 condition_checkpoint = step_count % save_interval == 0
@@ -368,20 +370,23 @@ def train(
                 val_loss = validate(fabric, model, val_dataloader, max_eval_iters)
                 t1 = time.perf_counter() - t0
                 speed_monitor.eval_end(t1)
-                fabric.print(f"iter {iter_num}: val loss {val_loss.item():.4f}, val time: {t1 * 1000:.2f}ms")
-                fabric.logger.log_metrics({"val_loss": f"{val_loss.item():.4f}"})
+                info = {"val_loss": round(val_loss, 4), "val_time": round(t1, 2)}
                 fabric.barrier()
                 if fabric.device.type == "cuda":
-                    fabric.logger.log_metrics({"peak_vram": f"{torch.cuda.max_memory_allocated() / 1e9:.02f} GB"})
+                    info.update({"peak_vram": f"{torch.cuda.max_memory_allocated() / 1e9:.02f} GB"})
+                fabric.logger.log_metrics(info)
+                fabric.print(f"iter {iter_num}: {json.dumps(info)}")
+                sys.stdout.flush()
 
                 valid_loss_iter += 1
                 if val_loss <= best_valid_loss:
                     best_valid_loss = val_loss
                     best_valid_loss_iter = valid_loss_iter
                 elif early_stopping and (valid_loss_iter - best_valid_loss_iter) >= early_stopping:
-                    fabric.print(f"Early stopping at iter {iter_num}")
+                    fabric.print(f"Early stopping at iter not improving for {valid_loss_iter - best_valid_loss_iter} validation steps (iteration {iter_num})")
                     break
 
+    sys.stdout.flush()
 
 @torch.inference_mode()
 def validate(
@@ -404,7 +409,7 @@ def validate(
     val_loss = losses.mean()
 
     model.train()
-    return val_loss
+    return val_loss.item()
 
 
 def save_checkpoint(fabric, model, file_path: Path, use_lora: bool):
