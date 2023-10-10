@@ -3,6 +3,7 @@
 import os
 import sys
 import json
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -40,6 +41,9 @@ def merge_lora(
     """
     precision = precision or get_default_supported_precision(training=False)
 
+    if save_path:
+        assert not os.path.isfile(save_path), f"File {str(save_path)!r} already exists"
+
     check_valid_checkpoint_dir(checkpoint_dir)
 
     lora_path = lora_dir / lora_pth_name
@@ -51,8 +55,7 @@ def merge_lora(
             **lora_config
         )
         if fabric is None:
-            strategy = FSDPStrategy(auto_wrap_policy={Block}, cpu_offload=False)
-            fabric = L.Fabric(devices=1, strategy=strategy, precision=precision)
+            fabric = L.Fabric(devices=1, precision=precision)
         with fabric.init_module(empty_init=True):
             model = GPT(config)
 
@@ -65,11 +68,14 @@ def merge_lora(
     merge_lora_weights(model)
 
     if save_path:
-        os.makedirs(save_path.parent, exist_ok=False)
+        os.makedirs(save_path.parent, exist_ok=True)
         print(f"Saving weights to {str(save_path)!r}")
         # remove lora parameters and the lora linear substring
         state_dict = {k.replace("linear.", ""): v for k, v in model.state_dict().items() if not lora_filter(k, v)}
         torch.save(state_dict, save_path)
+
+        for file in "lit_config.json", "tokenizer.json", "tokenizer_config.json", "generation_config.json",:
+            shutil.copy2(checkpoint_dir / file, save_path.parent / file)
 
     return model
 
