@@ -18,8 +18,9 @@ def read_validation_csv(csvfile):
 
     return data
 
-def read_training_csv(csvfile):
+def read_training_csv(csvfile, folder="."):
     data = []
+    valid_data = []
     with open(csvfile) as f:
         iter = -1
         reader = csv.DictReader(f)
@@ -36,8 +37,13 @@ def read_training_csv(csvfile):
             if l:
                 loss = float(l)
                 data.append((iter, loss))
+            l = row.get("val_loss")
+            if l:
+                loss = float(l)
+                valid_data.append((iter, loss, os.path.join(folder, f"iter-{iter:06d}-ckpt.pth")))
 
-    return data, batch_size, time/iter
+    import pdb; pdb.set_trace()
+    return data, valid_data, batch_size, time/iter
 
 def format_dataset_name(name):
     name = name.replace("Politics", "Débats politiques")
@@ -126,8 +132,11 @@ if __name__ == "__main__":
         # assert validation_file is not None, f"Could not find validation_results.csv in {args.folder}"
         assert training_file is not None, f"Could not find metrics.csv in {args.folder}"
 
-        conv_validation = read_validation_csv(validation_file)
-        conv_training, batch_size, factor_time = read_training_csv(training_file)
+        conv_training, valid_data, batch_size, factor_time = read_training_csv(training_file, folder=folder)
+        conv_validation = {}
+        if valid_data:
+            conv_validation["Validation"] = valid_data
+        conv_validation.update(read_validation_csv(validation_file))
         
         ax = axes[0][icolumn]
         if hparams[iexpe]:
