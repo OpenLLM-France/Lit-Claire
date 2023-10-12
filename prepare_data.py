@@ -274,24 +274,42 @@ def prepare_fn(
 
                             # Start with the last turn
                             selec = text_ids[istart:iend+10]
-                            candidates = torch.where(selec == tag_token_suffix)[0]
-                            if len(candidates) > 0:
+                            candidates_end = torch.where(selec == tag_token_suffix)[0].tolist()
+                            if len(candidates_end) > 0:
                                 # Cut around the last end of turn tag
-                                end_of_turn = candidates[-1].item()
-                                candidates = torch.where(selec[:end_of_turn] == tag_token_prefix)[0]
-                                assert len(candidates)
-                                start_of_turn = candidates[-1].item()
-                                if start_of_turn > 0:
+                                candidates_start = torch.where(selec[:candidates_end[-1]] == tag_token_prefix)[0].tolist()
+                                assert len(candidates_start)
+
+                                # There may be more "[" than ":]" because of special tokens ("[bruit]", ...)
+                                # hence the trick with the shift
+                                i = 1
+                                shift = 0
+                                new_start = None
+                                while i <= len(candidates_end):
+                                    candidate_end = candidates_end[-i]
+                                    candidate_start = candidates_start[-i-shift]
+                                    while candidate_start > candidate_end:
+                                        shift += 1
+                                        candidate_start = candidates_start[-i-shift]
+                                    i += 1
+                                    # If we are close to the end, try to start as soon as possible
+                                    if new_start is None or candidate_start + istart > len(text_ids) - effective_block_size:
+                                        new_start = candidate_start
+                                    else:
+                                        break
+                                assert new_start is not None
+
+                                if new_start > 0:
                                     if DEBUG_PRINT: print("=== Case 1.1 - ", end='')
                                     # Shift to the last turn
-                                    istart += start_of_turn
+                                    istart += new_start
                                     add_prefix = no_prefix
                                     assert text_ids[istart] == tag_token_prefix
                                 else:
                                     if DEBUG_PRINT: print("=== Case 1.2 - ", end='')
                                     # We stay in the same big turn, or it's the last turn
                                     istart += effective_block_size
-                                    add_prefix = selec[:end_of_turn+1]
+                                    add_prefix = selec[:candidate_end+1]
                                     if bos and add_prefix[0] != tokenizer.bos_id:
                                         # Add BOS
                                         add_prefix = torch.cat([bos_seq, add_prefix])
