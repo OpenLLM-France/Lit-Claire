@@ -305,13 +305,15 @@ def train(
 
         iter_t0 = time.perf_counter()
 
-        input_ids = train_data[:, 0 : model.max_seq_length].contiguous()
-        targets = train_data[:, 1 : model.max_seq_length + 1].contiguous()
+        input_ids = train_data[:, :-1].contiguous()
+        input_ids = input_ids.clamp_min(0) # Remove -1 that can be a problem as inputs (will be ignore as targets)
+        targets = train_data[:, 1:].contiguous()
 
         is_accumulating = (iter_num + 1) % gradient_accumulation_iters != 0
         with fabric.no_backward_sync(model, enabled=is_accumulating):
             logits = model(input_ids)  # set lm_head_chunk_size=128 may reduce peak vram
             loss = chunked_cross_entropy(logits, targets, chunk_size=0)  # set chunk_size=128 may reduce peak vram
+            loss = loss.nan_to_num() # In case there is only padded sequences
             fabric.backward(loss / gradient_accumulation_iters)
 
         if not is_accumulating:
@@ -399,13 +401,15 @@ def validate(
     for eval_iter_num, val_data in enumerate(val_dataloader):
         if eval_iter_num >= max_eval_iters:
             break
-        input_ids = val_data[:, 0 : model.max_seq_length].contiguous()
-        targets = val_data[:, 1 : model.max_seq_length + 1].contiguous()
+        input_ids = val_data[:, :-1].contiguous()
+        input_ids = input_ids.clamp_min(0) # Remove -1 that can be a problem as inputs (will be ignore as targets)
+        targets = val_data[:, 1:].contiguous()
         logits = model(input_ids)  # set lm_head_chunk_size=128 may reduce peak vram
         losses[eval_iter_num] = chunked_cross_entropy(logits, targets, chunk_size=0)  # set chunk_size=128 may reduce peak vram
     
     if eval_iter_num < max_eval_iters - 1:
         losses = losses[: eval_iter_num + 1]
+    losses = losses.nan_to_num()  # In case there is only padded sequences
     val_loss = losses.mean()
 
     model.train()

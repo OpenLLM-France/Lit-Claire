@@ -40,6 +40,7 @@ def prepare_fn(
     bos=None,
     eos=None,
     padding=True,
+    pad_id=-1,
     filename_full="full.txt",
     filename_train="train.txt",
     filename_dev="dev.txt",
@@ -59,7 +60,7 @@ def prepare_fn(
         bos = tokenizer.use_bos
         assert bos == tokenizer.check_if_bos_token_used(checkpoint_dir)
     if eos is None:
-        eos = bool(tokenizer.eos_id) and not padding
+        eos = True # bool(tokenizer.eos_id)
 
     print(f"Using: {bos=}, {eos=}, {effective_block_size=}")
 
@@ -91,24 +92,38 @@ def prepare_fn(
     else:
         list_of_files, metadatas = zip(*all_files.items())
 
+
+    # Note: we need to avoid unsigned integers to be able to pass -1
+    #      (and lit-gpt with dtype="auto" can choose np.uint16) 
+    vocab_size = tokenizer.vocab_size
+    if vocab_size is not None and vocab_size < 32768:
+        dtype = np.int16
+    else:
+        dtype = np.int32
+
     # Get tokens around tags for turns
+    tag_tokens = [tokenizer.encode(s, bos=False, eos=False) for s in ("[speaker001:]", "[Intervenant 1:]", "[A:]")]
+    dtype_torch = tag_tokens[0].dtype
     if cut_around_turns:
-        tag_tokens = [tokenizer.encode(s, bos=False, eos=False).tolist() for s in ("[speaker001:]", "[Intervenant 1:]", "[A:]")]
+        tag_tokens = [t.tolist() for t in tag_tokens]
         tag_tokens_prefix = common_prefix(tag_tokens)
         tag_tokens_suffix = common_suffix(tag_tokens)
         assert len(tag_tokens_prefix) > 0, f"Weird tokenizer. Cannot find common prefix for {tag_tokens}"
         assert len(tag_tokens_suffix) > 0, f"Weird tokenizer. Cannot find common suffix for {tag_tokens}"
         for tokens, expected in [(tag_tokens_prefix, "["), (tag_tokens_suffix, ":]")]:
-            actual = tokenizer.decode(torch.tensor(tokens, dtype=torch.int32))
+            actual = tokenizer.decode(torch.tensor(tokens, dtype=dtype_torch))
             assert actual == expected, f"Unexpected tokenizer behaviour. got {actual} instead of {expected} ({tokens=})"
         if len(tag_tokens_prefix) > 1 or len(tag_tokens_suffix) > 1:
             raise NotImplementedError("Tokenizer with several tokens for starting and ending tags are not supported")
         tag_token_prefix = tag_tokens_prefix[0]
         tag_token_suffix = tag_tokens_suffix[0]
 
+        no_prefix = torch.tensor([], dtype=dtype_torch)
+        bos_seq = torch.tensor([tokenizer.bos_id], dtype=dtype_torch)
+
     if len(all_files) == 0:
         raise RuntimeError(f"No input files found at {source_path}.")
-    
+
     for filepaths, metadata in zip(list_of_files, metadatas):
         if isinstance(filepaths, str): filepaths = [filepaths]
         assert len(filepaths) > 0
@@ -157,7 +172,6 @@ def prepare_fn(
         dataset_hf = load_dataset("text", data_files={"train": filepaths}, sample_by="paragraph", streaming=True)
 
         # First get the number of samples, then build files
-
         for build_it in False, True:
 
             if build_it:
@@ -195,8 +209,8 @@ def prepare_fn(
                 outdir=destination_path,
                 prefix=prefix,
                 chunk_size=chunk_size,
-                sep_token=tokenizer.eos_id,
-                dtype="auto",
+                sep_token=pad_id,
+                dtype=dtype,
                 vocab_size=tokenizer.vocab_size,
             )
 
@@ -224,12 +238,11 @@ def prepare_fn(
                     #     print(text_variant.replace("\n", " ")[:100])
 
                     text_ids = tokenizer.encode(text_variant, bos=bos, eos=eos)
-                    no_prefix = torch.tensor([], dtype=torch.int32)
-                    add_prefix = no_prefix
                     if effective_block_size and len(text_ids) > effective_block_size:
+                        add_prefix = no_prefix
                         # Cut in several chunks
                         istart = 0
-                        while istart < len(text_ids):
+                        while istart < len(text_ids) - 1: # "-1" to avoid having end token alone
                             iend = istart + effective_block_size - len(add_prefix)
                             assert iend > istart
                             selec = text_ids[istart:iend]
@@ -237,12 +250,12 @@ def prepare_fn(
                                 selec = torch.cat([add_prefix, selec])
                                 if DEBUG_PRINT: print("=== with prefix ===\n", tokenizer.decode(selec))
                             elif DEBUG_PRINT: print("=== standard ===\n", tokenizer.decode(selec))
-                            a =np.array(selec, dtype=builder.dtype)
+                            a =np.array(selec, dtype=dtype)
                             if not cut_around_turns and len(a) <= 10:
                                 # Leave too short tails
                                 break
                             if padding and len(a) < effective_block_size:
-                                a = np.pad(a, (0, effective_block_size - len(a)), mode="constant", constant_values=tokenizer.eos_id)
+                                a = np.pad(a, (0, effective_block_size - len(a)), mode="constant", constant_values=pad_id)
                             min_len = min(min_len, len(a))
                             max_len = max(max_len, len(a))
                             assert len(a) == effective_block_size
@@ -281,7 +294,7 @@ def prepare_fn(
                                     add_prefix = selec[:end_of_turn+1]
                                     if bos and add_prefix[0] != tokenizer.bos_id:
                                         # Add BOS
-                                        add_prefix = torch.cat([torch.tensor([tokenizer.bos_id], dtype=torch.int32), add_prefix])
+                                        add_prefix = torch.cat([bos_seq, add_prefix])
                                     if istart < len(text_ids):
                                         # Avoid to cut in the middle of a word
                                         while not tokenizer.decode(text_ids[istart]).startswith(" "):
@@ -299,9 +312,9 @@ def prepare_fn(
 
                         num_cuts += 1
                     else:
-                        a = np.array(text_ids, dtype=builder.dtype)
+                        a = np.array(text_ids, dtype=dtype)
                         if effective_block_size and padding and len(a) < effective_block_size:
-                            a = np.pad(a, (0, effective_block_size - len(a)), mode="constant", constant_values=tokenizer.eos_id)
+                            a = np.pad(a, (0, effective_block_size - len(a)), mode="constant", constant_values=pad_id)
                         min_len = min(min_len, len(a))
                         max_len = max(max_len, len(a))
                         if effective_block_size:
