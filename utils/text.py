@@ -43,7 +43,9 @@ if FRANCIZISE_SPECIALS:
                 return f"[Intervenant {index}:]"
             else:
                 # "[claude-marie Claude-Marie JR:]" -> "[Claude-Marie Claude-Marie JR:]"
-                speaker = capitalize(text[1:-2])
+                speaker = text[1:-2]
+                speaker = capitalize(speaker)
+                assert re.match(r"[A-ZÉÈËÊÔÀÁÂ]", speaker), f"Unexpected speaker {speaker}"
                 return f"[{speaker}:]"
         if text == "[PII]":
             return "[Nom]"
@@ -94,7 +96,7 @@ def to_lower_case(text):
 def capitalize(text):
     # michel JR claude-marie -> Michel JR Claude-Marie
     words = text.split(" ")
-    words = [w.capitalize() if not w.isupper() else w for w in words]
+    words = [w.capitalize() if (not w.isupper() or len(w)>2) else w for w in words]
     for i, w in enumerate(words):
         for sep in "-", "'":
             if sep in w:
@@ -136,7 +138,7 @@ def has_punctuation(text):
 def has_specials(text):
     return bool(re.search(PATTERN_SPECIAL_NOSPEAKER, text))
 
-def augmented_texts_generator(text, max_variants=4, force_augmentation=False):
+def augmented_texts_generator(text, max_variants=4, force_augmentation=False, keep_specials=False):
     """
     Generate several variants of a text.
     max_variants: maximum number of variants returned
@@ -154,12 +156,12 @@ def augmented_texts_generator(text, max_variants=4, force_augmentation=False):
             yield all_variants[i]
         return
 
-    text1 = format_text(text)
+    text1 = format_text(text, keep_specials=keep_specials)
     yield text1
     if max_variants == 0:
         return
 
-    do_specials = has_specials(text1)
+    do_specials = keep_specials and has_specials(text1)
     do_anonymize = has_speaker_id(text)
     do_lower_case = has_upper_case(text)
     do_remove_punc = has_punctuation(text)

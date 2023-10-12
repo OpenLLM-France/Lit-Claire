@@ -7,11 +7,14 @@ class TestFormatText(unittest.TestCase):
 
     def test_augmentation(self):
 
+        keep_specials = False
+
         for itest, (text, normalized_text, maximum) in enumerate([
             (
                 "[Alison Jordy:] Tu me fais rire [LAUGHTER]. Je chante [SINGING]? [claude-marie JR Michel:] Il y a un bruit [NOISE], je l'ai dit à [PII]. [Alison Jordy:] Ah",
-                "[Alison Jordy:] Tu me fais rire [rire]. Je chante ? [Claude-Marie JR Michel:] Il y a un bruit [bruit], je l'ai dit à [Nom]. [Alison Jordy:] Ah",
-                6,
+                "[Alison Jordy:] Tu me fais rire [rire]. Je chante ? [Claude-Marie JR Michel:] Il y a un bruit [bruit], je l'ai dit à [Nom]. [Alison Jordy:] Ah" if keep_specials else\
+                "[Alison Jordy:] Tu me fais rire. Je chante ? [Claude-Marie JR Michel:] Il y a un bruit, je l'ai dit à Ted. [Alison Jordy:] Ah",
+                6 if keep_specials else 5,
             ),
             (
                 "[Alison Jordy:] Tu me fais rire. Je chante ? [claude-marie JR Michel:] Il y a un bruit, je l'ai dit à Ted. [Alison Jordy:] Ah",
@@ -20,8 +23,9 @@ class TestFormatText(unittest.TestCase):
             ),
             (
                 "[speaker001:] Tu me fais rire [LAUGHTER]. Je chante [SINGING]? [speaker002:] Il y a un bruit [NOISE], je l'ai dit à [PII]. [speaker001:] Ah",
-                "[Intervenant 1:] Tu me fais rire [rire]. Je chante ? [Intervenant 2:] Il y a un bruit [bruit], je l'ai dit à [Nom]. [Intervenant 1:] Ah",
-                6,
+                "[Intervenant 1:] Tu me fais rire [rire]. Je chante ? [Intervenant 2:] Il y a un bruit [bruit], je l'ai dit à [Nom]. [Intervenant 1:] Ah" if keep_specials else\
+                "[Intervenant 1:] Tu me fais rire. Je chante ? [Intervenant 2:] Il y a un bruit, je l'ai dit à Ted. [Intervenant 1:] Ah",
+                6 if keep_specials else 5,
             ),
             (
                 "[speaker001:] Tu me fais rire Je chante [SINGING] [speaker002:] Il y a un bruit je l'ai dit à Ted [speaker001:] Ah",
@@ -96,6 +100,6 @@ class TestFormatText(unittest.TestCase):
 
         self.assertEqual(
             capitalize("jean Jean JEAN JR jean-claude Jean-Claude d'estaing D'Estaing"),
-            "Jean Jean JEAN JR Jean-Claude Jean-Claude D'Estaing D'Estaing"
+            "Jean Jean Jean JR Jean-Claude Jean-Claude D'Estaing D'Estaing"
         )
     
