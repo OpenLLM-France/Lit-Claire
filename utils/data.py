@@ -490,7 +490,7 @@ if __name__ == "__main__":
                         new_batch.append((which_dataset, which_index) if which_dataset >= 0 else None)
                         stats[which_dataset] = stats.get(which_dataset, 0) + 1
                     if not args.inspect or (args.show_samples and which_dataset in args.show_samples):
-                        sample_text = tokenizer.decode(sample).replace("\n", "\\n")
+                        sample_text = tokenizer.decode(sample.clamp_min(0)).replace("\n", "\\n")
                         if not sample_text:
                             sample_text = "***"
                         print(sample_text[:100])
