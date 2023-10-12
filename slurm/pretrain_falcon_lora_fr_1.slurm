@@ -19,7 +19,7 @@ conda activate claire
 set -x
 
 MODEL=tiiuae/falcon-7b
-OUTDIR=$SCRATCH/../commun/Claire/pretrain-Claire-7B-v0.02/lora/$MODEL
+OUTDIR=$SCRATCH/../commun/Claire/pretrain-Claire-7B-v0.04/lora/$MODEL
 mkdir -p $OUTDIR
 
 # execute script
@@ -32,6 +32,7 @@ python pretrain.py \
 --language fr \
 --out_dir $OUTDIR \
 --precision bf16-true \
---enable_validation false \
 --num_epochs 1000 \
 --max_checkpoints 20 \
+--enable_validation true \
+--early_stopping 2 \
