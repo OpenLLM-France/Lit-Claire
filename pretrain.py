@@ -247,7 +247,7 @@ def train(
     speed_monitor: SpeedMonitor,
     out_dir: Path,
     hparams: dict,
-    sanity_check: bool = False,
+    sanity_check: bool = True,
 ) -> None:
     micro_batch_size            = hparams["micro_batch_size"]
     gradient_accumulation_iters = hparams["gradient_accumulation_iters"]
@@ -270,10 +270,6 @@ def train(
     best_valid_loss_iter = 0
     valid_loss_iter = 0
 
-    if val_dataloader is not None and sanity_check:
-        sanity_check_val_loss = validate(fabric, model, val_dataloader, max_eval_iters=1)
-        fabric.print(f"sanity check val loss: {sanity_check_val_loss:.4f}")
-
     with torch.device("meta"):
         meta_model = GPT(model.config)
         mark_only_lora_as_trainable(meta_model)
@@ -292,6 +288,8 @@ def train(
     step_count = 0
     total_lengths = 0
     total_t0 = time.perf_counter()
+
+    has_validated = False
 
     for iter_num, train_data in enumerate(train_dataloader):
         if iter_num >= max_train_iters:
@@ -356,6 +354,11 @@ def train(
                 # Save and validate at regular iteration intervals
                 condition_checkpoint = step_count % save_interval == 0
                 condition_eval = step_count % eval_interval == 0
+
+            if sanity_check and not has_validated:
+                # Validate early
+                condition_eval = True
+                has_validated = True
 
             if condition_checkpoint:
                 t_last_checkpoint = time.perf_counter()
