@@ -184,9 +184,11 @@ if __name__ == "__main__":
                     ax.plot(x, y, label=format_dataset_name(name))
                 else:
                     ax.plot([], [], label=None)
-                for i, yi in enumerate(y):
-                    i = x_valids.index(x[i])
-                    valids[i].append(yi)
+                # Exclude online validation if there is offline validation to compute best results
+                if len(conv_validation) == 1 or name != "Validation":
+                    for i, yi in enumerate(y):
+                        i = x_valids.index(x[i])
+                        valids[i].append(yi)
 
             mean_valids = [np.median(v) for v in valids]
             best_valid = mean_valids.index(min(mean_valids))
