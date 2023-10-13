@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def read_validation_csv(csvfile):
+    print(f"Reading {csvfile}")
     if csvfile is None:
         return {}
     data = {}
@@ -19,6 +20,7 @@ def read_validation_csv(csvfile):
     return data
 
 def read_training_csv(csvfile, folder="."):
+    print(f"Reading {csvfile}")
     data = []
     valid_data = []
     valid_time_delta = 0
@@ -130,7 +132,12 @@ if __name__ == "__main__":
         training_file = None
         for root, dirs, files in os.walk(folder):
             if "validation_results.csv" in files:
-                validation_file = os.path.join(root, "validation_results.csv")
+                if validation_file is None:
+                    validation_file = os.path.join(root, "validation_results.csv")
+                else:
+                    # Look at modification times
+                    if os.path.getmtime(os.path.join(root, "validation_results.csv")) > os.path.getmtime(validation_file):
+                        validation_file = os.path.join(root, "validation_results.csv")
             if "metrics.csv" in files:
                 if training_file is None:
                     training_file = os.path.join(root, "metrics.csv")
