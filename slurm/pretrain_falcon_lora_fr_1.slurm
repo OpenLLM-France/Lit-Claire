@@ -19,7 +19,7 @@ conda activate claire
 set -x
 
 MODEL=tiiuae/falcon-7b
-OUTDIR=$SCRATCH/../commun/Claire/pretrain-Claire-7B-v0.04/lora/$MODEL
+OUTDIR=$SCRATCH/../commun/Claire/pretrain-Claire-7B-v0.05/lora/$MODEL
 mkdir -p $OUTDIR
 
 # execute script
