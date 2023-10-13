@@ -21,6 +21,7 @@ def read_validation_csv(csvfile):
 def read_training_csv(csvfile, folder="."):
     data = []
     valid_data = []
+    valid_time_delta = 0
     with open(csvfile) as f:
         iter = -1
         reader = csv.DictReader(f)
@@ -41,18 +42,25 @@ def read_training_csv(csvfile, folder="."):
             if l:
                 loss = float(l)
                 valid_data.append((iter, loss, os.path.join(folder, f"iter-{iter:06d}-ckpt.pth")))
+                valid_time_delta += float(row["val_time"])
 
-    import pdb; pdb.set_trace()
-    return data, valid_data, batch_size, time/iter
+    if valid_time_delta:
+        print(f"Time spent to validate: {valid_time_delta:2f} sec")
+
+    return data, valid_data, batch_size, (time-valid_time_delta)/iter, valid_time_delta
 
 def format_dataset_name(name):
     name = name.replace("Politics", "Débats politiques")
     name = name.replace("AssembleeNationale", "Assemblée Nationale")
     name = name.replace("Theatre", "Théâtre")
     name = name.replace("Meetings", "Réunions")
-    return name
+    if name == "Validation":
+        return "Validation (online)"
+    return "Validation: " + name
 
 def name_order(name):
+    if name == "Validation":
+        return (-1, name)
     if name == "Meetings":
         return (2, name)
     if name == "Politics":
@@ -72,6 +80,8 @@ if __name__ == "__main__":
     parser.add_argument("folders", help="folder where lies validation_results.csv and metrics.csv", default=".", nargs="+")
     parser.add_argument("--segment_length", help="Number of tokens in each sequence", type=int, default=2048)
     parser.add_argument("--max_iter", help="Maximum number of iterations", type=int, default=None)
+    parser.add_argument("--max_loss", help="Maximum loss to plot", type=float, default=None)
+    parser.add_argument("--min_loss", help="Minimum loss to plot", type=float, default=None)
     args = parser.parse_args()
 
     num_expes = len(args.folders)
@@ -108,8 +118,8 @@ if __name__ == "__main__":
             if all_same:
                 del hparam[key]
 
-    min_loss = 0
-    max_loss = 0
+    min_loss = args.min_loss if args.min_loss else 1e10
+    max_loss = args.max_loss if args.max_loss else 0
 
     for iexpe, folder in enumerate(args.folders):
         icolumn = min(iexpe, num_columns-1)
@@ -132,16 +142,20 @@ if __name__ == "__main__":
         # assert validation_file is not None, f"Could not find validation_results.csv in {args.folder}"
         assert training_file is not None, f"Could not find metrics.csv in {args.folder}"
 
-        conv_training, valid_data, batch_size, factor_time = read_training_csv(training_file, folder=folder)
+        conv_training, valid_data, batch_size, factor_time, valid_time_delta = read_training_csv(training_file, folder=folder)
         conv_validation = {}
         if valid_data:
             conv_validation["Validation"] = valid_data
+        else:
+            conv_validation["Validation"] = []
         conv_validation.update(read_validation_csv(validation_file))
         
         ax = axes[0][icolumn]
         if hparams[iexpe]:
             title = ", ".join([f"{k}={v}" for k, v in hparams[iexpe].items()])
             ax.set_title(title)
+        elif num_columns > 1:
+            ax.set_title(os.path.basename(folder))
 
         # plt.subplot(4, icolumn+1, 1)
         x, y = zip(*sorted(conv_training))
@@ -157,8 +171,12 @@ if __name__ == "__main__":
                 break
             valids = [[] for _ in x_valids]
             for name in sorted(conv_validation.keys(), key = lambda name: name_order(name)):
-                x, y, files = zip(*sorted(conv_validation[name]))
-                ax.plot(x, y, label=format_dataset_name(name))
+                empty = not conv_validation[name]
+                if not empty:
+                    x, y, files = zip(*sorted(conv_validation[name]))
+                    ax.plot(x, y, label=format_dataset_name(name))
+                else:
+                    ax.plot([], [], label=None)
                 for i, yi in enumerate(y):
                     i = x_valids.index(x[i])
                     valids[i].append(yi)
@@ -169,7 +187,10 @@ if __name__ == "__main__":
             ax.axvline(x=x[best_valid], color='r', linestyle=':') #, label=f"Best ({files[best_valid]})")
             
         ymin, ymax = ax.get_ylim()
-        max_loss = max(max_loss, ymax)
+        if not args.max_loss:
+            max_loss = max(max_loss, ymax)
+        if not args.min_loss:
+            min_loss = min(min_loss, ymin)
         ax.set_ylabel("Loss")
         ax.legend()
 
@@ -193,6 +214,6 @@ if __name__ == "__main__":
 
     for icolumn in range(num_columns):
         ax = axes[0][icolumn]
-        ax.set_ylim(0, max_loss)
+        ax.set_ylim(min_loss, max_loss)
 
     plt.show()
