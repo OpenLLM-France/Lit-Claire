@@ -128,7 +128,7 @@ def create_dataloader(
     weights = []
     num_samples_per_dataset = []
     metadatas = []
-    for prefix in prefixes:
+    for prefix in sorted(prefixes):
         
         if isinstance(prefix, str):
             filenames = sorted(glob.glob(os.path.join(path, f"{prefix}*.bin")))
