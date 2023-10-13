@@ -14,9 +14,7 @@ import torch
 wd = Path(__file__).parent.resolve()
 sys.path = [str(wd / "lit_gpt")] + sys.path # Prepend to PYTHONPATH
 
-from lightning.fabric.strategies import FSDPStrategy
 from lit_gpt.lora import GPT, Config, lora_filter, merge_lora_weights
-from lit_gpt.lora import Block
 from lit_gpt.utils import check_valid_checkpoint_dir, get_default_supported_precision, lazy_load
 
 
@@ -42,11 +40,13 @@ def merge_lora(
     precision = precision or get_default_supported_precision(training=False)
 
     if save_path:
-        assert not os.path.isfile(save_path), f"File {str(save_path)!r} already exists"
+        assert not os.path.exists(save_path), f"{str(save_path)!r} already exists"
 
     check_valid_checkpoint_dir(checkpoint_dir)
 
     lora_path = lora_dir / lora_pth_name
+    if fabric is None:
+        fabric = L.Fabric(devices=1, precision=precision)
     if model is None:
         with open(lora_dir / "lora_config.json", "r") as file:
             lora_config = json.load(file)
@@ -54,8 +54,6 @@ def merge_lora(
             path=checkpoint_dir / "lit_config.json",
             **lora_config
         )
-        if fabric is None:
-            fabric = L.Fabric(devices=1, precision=precision)
         with fabric.init_module(empty_init=True):
             model = GPT(config)
 
@@ -66,6 +64,7 @@ def merge_lora(
 
     model.eval()
     merge_lora_weights(model)
+    model = fabric.setup_module(model)
 
     if save_path:
         os.makedirs(save_path.parent, exist_ok=True)

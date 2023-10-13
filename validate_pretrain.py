@@ -30,10 +30,11 @@ def setup(
     data_dir: Path = Path("data/preprocessed_data"),
     checkpoint_dir: Path = Path("checkpoints/tiiuae/falcon-7b"),
     out_dir: Path = Path("out/lora/Claire"),
+    out_file: Optional[Path] = None,
     language: Optional[str] = None,
 
     # Hardware (only used in setup, not main)
-    devices: int = 2,  # num_gpus_per_node
+    devices: int = 1,  # num_gpus_per_node
     num_nodes: int = 1,
     precision: Optional[str] = None,
 
@@ -46,27 +47,18 @@ def setup(
 
     precision = precision or get_default_supported_precision(training=True)
 
-    accelerator = "auto"
     if devices > 1 or num_nodes > 1:
-        strategy = FSDPStrategy(
-            auto_wrap_policy={Block},
-            activation_checkpointing_policy={Block},
-            state_dict_type="full",
-            limit_all_gathers=True,
-            cpu_offload=False,
-        )
-    else:
-        strategy = "auto"
-        if devices == 0: # CPU
-            devices = 1 # Using more causes "libgomp: Thread creation failed: Resource temporarily unavailable"
-            accelerator = "cpu"
+        raise NotImplementedError("Multi-node offline validation not supported yet")
 
-    fabric = L.Fabric(devices=devices, accelerator=accelerator, num_nodes=num_nodes, strategy=strategy, precision=precision)
+    fabric = L.Fabric(devices=devices, precision=precision)
     fabric.print(hparams)
 
-    fabric.launch(main, checkpoint_dir, out_dir, data_dir, try_small, hparams)
+    if out_file is None:
+        out_file = out_dir / f"validation_results_{precision}.csv"
 
-def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, hparams):
+    fabric.launch(main, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams)
+
+def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams):
     language            = hparams["language"]
     batch_size          = hparams["batch_size"]
     max_eval_iters0     = hparams["max_eval_iters"]
@@ -111,18 +103,16 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, hparams):
         enable_train=False,
     )
 
-    filename = out_dir / "validation_results.csv"
-
     already_done = []
-    if os.path.isfile(out_dir / filename):
-        with open(filename, "r") as file:
+    if os.path.isfile(out_file):
+        with open(out_file, "r") as file:
             reader = csv.DictReader(file)
             for row in reader:
                 already_done.append(row["file"])
 
     sys.stdout.flush()
 
-    with open(filename, "a") as file:
+    with open(out_file, "a") as file:
         logger = None
 
         for checkpoint_path in checkpoints:
@@ -169,10 +159,9 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, hparams):
                         logger.writeheader()
                 logger.writerows([info])
 
+                fabric.barrier()
                 sys.stdout.flush()
                 file.flush()
-
-                fabric.barrier() # why?
 
             # Test one checkpoint at a time to avoid bugs...
             break
@@ -183,10 +172,10 @@ def get_iter_info(checkpoint_path):
 
 
 if __name__ == "__main__":
+    from jsonargparse import CLI
+
     # Uncomment this line if you see an error: "Expected is_sm80 to be true, but got false"
     # torch.backends.cuda.enable_flash_sdp(False)
     torch.set_float32_matmul_precision("high")
-
-    from jsonargparse import CLI
 
     CLI(setup)
