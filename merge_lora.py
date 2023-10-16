@@ -44,7 +44,6 @@ def merge_lora(
 
     check_valid_checkpoint_dir(checkpoint_dir)
 
-    lora_path = lora_dir / lora_pth_name
     if fabric is None:
         fabric = L.Fabric(devices=1, precision=precision)
     if model is None:
@@ -58,13 +57,12 @@ def merge_lora(
             model = GPT(config)
 
     checkpoint_path = checkpoint_dir / "lit_model.pth"
+    lora_path = lora_dir / lora_pth_name
     with lazy_load(checkpoint_path) as checkpoint, lazy_load(lora_path) as lora_checkpoint:
         checkpoint.update(lora_checkpoint.get("model", lora_checkpoint))
         model.load_state_dict(checkpoint)
 
-    model.eval()
     merge_lora_weights(model)
-    model = fabric.setup_module(model)
 
     if save_path:
         os.makedirs(save_path.parent, exist_ok=True)
