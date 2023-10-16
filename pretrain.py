@@ -86,7 +86,7 @@ def setup(
 ):
     hparams = dict((k,v) for k,v in locals().items())
 
-    assert interval_unit in ["time", "steps"]
+    assert interval_unit in ["time", "step"]
 
     precision = precision or get_default_supported_precision(training=True)
 
