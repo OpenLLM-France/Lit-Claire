@@ -74,7 +74,7 @@ def setup(
 
     # Learning rate
     learning_rate: float = 1e-4,
-    warmup_steps: int = 0,  # note: this is based on step, not iteration
+    warmup_steps: int = 50,  # note: this is based on step, not iteration
     weight_decay: float = 0.01,
     grad_clip: float = 1.0,
 
