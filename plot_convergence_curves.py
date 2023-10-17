@@ -12,7 +12,7 @@ def read_validation_csv(csvfile):
         reader = csv.DictReader(f)
         for row in reader:
             name = row['data'].split("/")[1]
-            iter = int(row["iter"])
+            iter = int(row["iter"]) + 1
             if name not in data:
                 data[name] = []
             data[name].append((iter, float(row["loss"]), row["file"]))
@@ -24,13 +24,14 @@ def read_training_csv(csvfile, folder="."):
     data = []
     valid_data = []
     valid_time_delta = 0
+    batch_size = 1
     with open(csvfile) as f:
-        iter = -1
+        iter = 0
         reader = csv.DictReader(f)
         for row in reader:
             s = row["step"]
             if s:
-                iter0 = int(s)
+                iter0 = int(s) + 1
                 if iter0 > iter:
                     iter = iter0
                     time = float(row["time/total"])
@@ -43,7 +44,7 @@ def read_training_csv(csvfile, folder="."):
             l = row.get("val_loss")
             if l:
                 loss = float(l)
-                valid_data.append((iter, loss, os.path.join(folder, f"iter-{iter:06d}-ckpt.pth")))
+                valid_data.append((iter, loss, os.path.join(folder, f"iter-{iter-1:06d}-ckpt.pth")))
                 valid_time_delta += float(row["val_time"])
 
     if valid_time_delta:
@@ -131,20 +132,21 @@ if __name__ == "__main__":
         validation_file = None
         training_file = None
         for root, dirs, files in os.walk(folder):
-            if "validation_results.csv" in files:
-                if validation_file is None:
-                    validation_file = os.path.join(root, "validation_results.csv")
-                else:
-                    # Look at modification times
-                    if os.path.getmtime(os.path.join(root, "validation_results.csv")) > os.path.getmtime(validation_file):
-                        validation_file = os.path.join(root, "validation_results.csv")
-            if "metrics.csv" in files:
-                if training_file is None:
-                    training_file = os.path.join(root, "metrics.csv")
-                else:
-                    # Look at modification times
-                    if os.path.getmtime(os.path.join(root, "metrics.csv")) > os.path.getmtime(training_file):
-                        training_file = os.path.join(root, "metrics.csv")
+            for filename in files:
+                if filename.startswith("validation_results") and filename.endswith(".csv"):
+                    if validation_file is None:
+                        validation_file = os.path.join(root, filename)
+                    else:
+                        # Look at modification times
+                        if os.path.getmtime(os.path.join(root, filename)) > os.path.getmtime(validation_file):
+                            validation_file = os.path.join(root, filename)
+                if filename == "metrics.csv":
+                    if training_file is None:
+                        training_file = os.path.join(root, filename)
+                    else:
+                        # Look at modification times
+                        if os.path.getmtime(os.path.join(root, filename)) > os.path.getmtime(training_file):
+                            training_file = os.path.join(root, filename)
         
         # assert validation_file is not None, f"Could not find validation_results.csv in {args.folder}"
         assert training_file is not None, f"Could not find metrics.csv in {args.folder}"
@@ -181,7 +183,7 @@ if __name__ == "__main__":
                 empty = not conv_validation[name]
                 if not empty:
                     x, y, files = zip(*sorted(conv_validation[name]))
-                    ax.plot(x, y, label=format_dataset_name(name))
+                    ax.plot(x, y, label=format_dataset_name(name), marker="+")
                 else:
                     ax.plot([], [], label=None)
                 # Exclude online validation if there is offline validation to compute best results
