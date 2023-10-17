@@ -35,7 +35,7 @@ def read_training_csv(csvfile, folder="."):
                 if iter0 > iter:
                     iter = iter0
                     time = float(row["time/total"])
-                    if iter == 0:
+                    if iter == 1:
                         batch_size = int(row["samples"])
             l = row["loss"]
             if l:
@@ -59,11 +59,11 @@ def format_dataset_name(name):
     name = name.replace("Meetings", "Réunions")
     if name == "Validation":
         return "Validation (online)"
-    return "Validation: " + name
+    return name # "Validation: " + name
 
 def name_order(name):
     if name == "Validation":
-        return (-1, name)
+        return (1e10, name)
     if name == "Meetings":
         return (2, name)
     if name == "Politics":
@@ -90,8 +90,8 @@ if __name__ == "__main__":
     num_expes = len(args.folders)
     num_columns = num_expes # 1
 
-    fig, axes = plt.subplots(nrows=4, ncols=num_columns, gridspec_kw={
-        'height_ratios': [10, 0.2, 0.2, 0.2], # list(zip(*([[10, 0.2, 0.2, 0.2]] * num_columns)))}
+    fig, axes = plt.subplots(nrows=5, ncols=num_columns, gridspec_kw={
+        'height_ratios': [10, 0.2, 0.2, 0.2, 0.2],
         'width_ratios': [1/num_columns] * num_columns,
     }, facecolor=(1,1,1,0)) # transparent)
     if num_columns == 1:
@@ -99,12 +99,18 @@ if __name__ == "__main__":
     # plt.suptitle("Claire-7b v0.02 (batch size= 12 sequences)")
 
     hparams = []
+    batch_sizes = []
+    devices = []
     for folder in args.folders:
         hparams_file = os.path.join(folder, "hparams.json")
         if os.path.isfile(hparams_file):
             hparams.append(json.load(open(hparams_file)))
+            batch_sizes.append(hparams[-1]["micro_batch_size"])
+            devices.append(hparams[-1]["devices"])
         else:
             hparams = [{}] * len(args.folders)
+            batch_sizes.append(None)
+            devices.append(1)
             break
 
     # Only retain different hyperparameters
@@ -152,6 +158,8 @@ if __name__ == "__main__":
         assert training_file is not None, f"Could not find metrics.csv in {args.folder}"
 
         conv_training, valid_data, batch_size, factor_time, valid_time_delta = read_training_csv(training_file, folder=folder)
+        if batch_sizes[iexpe] is not None:
+            assert batch_size == batch_sizes[iexpe], f"Batch size mismatch: {batch_size} != {batch_sizes[iexpe]}"
         conv_validation = {}
         if valid_data:
             conv_validation["Validation"] = valid_data
@@ -161,29 +169,33 @@ if __name__ == "__main__":
         
         ax = axes[0][icolumn]
         if hparams[iexpe]:
-            title = ", ".join([f"{k}={v}" for k, v in hparams[iexpe].items()])
-            ax.set_title(title)
+            title = ",\n".join([f"{k}={v}" for k, v in hparams[iexpe].items()])
+            ax.set_title(title, fontsize=9)
         elif num_columns > 1:
             ax.set_title(os.path.basename(folder))
 
-        # plt.subplot(4, icolumn+1, 1)
         x, y = zip(*sorted(conv_training))
-        ax.plot(x, y, label="(Training)", alpha=0.5)
+        ax.plot(x, y, label="Training (online)", alpha=0.5)
         max_x = max(max_x, max(x))
         if args.max_iter and (max_x > args.max_iter or num_columns > 1):
             max_x = args.max_iter
 
         if conv_validation:
+            x_valids = None
             for name in sorted(conv_validation.keys(), key = lambda name: -len(conv_validation[name])):
                 x, y, files = zip(*sorted(conv_validation[name]))
                 x_valids = x
+                ckpt_files = files
                 break
             valids = [[] for _ in x_valids]
             for name in sorted(conv_validation.keys(), key = lambda name: name_order(name)):
                 empty = not conv_validation[name]
                 if not empty:
-                    x, y, files = zip(*sorted(conv_validation[name]))
-                    ax.plot(x, y, label=format_dataset_name(name), marker="+")
+                    x, y, _ = zip(*sorted(conv_validation[name]))
+                    ax.plot(x, y, label=format_dataset_name(name),
+                        marker="+" if name != "Validation" else None,
+                        linewidth = 2 if name == "Validation" else 1
+                    )
                 else:
                     ax.plot([], [], label=None)
                 # Exclude online validation if there is offline validation to compute best results
@@ -192,34 +204,47 @@ if __name__ == "__main__":
                         i = x_valids.index(x[i])
                         valids[i].append(yi)
 
-            mean_valids = [np.median(v) for v in valids]
+            mean_valids = [np.median(v) if v else 1e10 for v in valids]
             best_valid = mean_valids.index(min(mean_valids))
             print("Best loss:", os.path.join(folder, files[best_valid]))
-            ax.axvline(x=x[best_valid], color='r', linestyle=':') #, label=f"Best ({files[best_valid]})")
+            ax.axvline(x=x_valids[best_valid], color='r', linestyle=':') #, label=f"Best ({files[best_valid]})")
             
         ymin, ymax = ax.get_ylim()
         if not args.max_loss:
             max_loss = max(max_loss, ymax)
         if not args.min_loss:
             min_loss = min(min_loss, ymin)
-        ax.set_ylabel("Loss")
+        if icolumn == 0:
+            ax.set_ylabel("Loss")
         ax.legend()
 
         for iax, (label, factor, step, unit) in enumerate([
-            ("batches",     1,                                1000,     ""),
-            ("sequences",   batch_size,                       5000,     "k"),
-            ("tokens",      batch_size * args.segment_length, 10000000, "M"),
-            ("time",        factor_time,                      3600,     "h"),
+            ("batches",         1,                                1000,     "k"),
+            ("sequences",       batch_size,                       5000,     "k"),
+            ("tokens",          batch_size * args.segment_length, 10000000, "M"),
+            ("training",        factor_time,                      3600,     "hrs"),
+            ("GPU",             factor_time*devices[iexpe],       3600*devices[iexpe], "hrs"),
         ]):
-            factor2 = {"k": 1000, "M": 1000000, "h": 3600}.get(unit, 1)
+            factor2 = {"k": 1000, "M": 1000000, "hrs": 3600}.get(unit, 1)
             _zero = "0" if iax == 0 else ""
             ax = axes[iax][icolumn]
             ax.set_xlim(0, max_x)
             xticks = np.arange(0, max_x+1, step / factor)
-            xticks_string = [f"{int(round(x*factor/factor2))}{unit}" if x > 0 else _zero for x in xticks]
-            xticks_string[-1] += " " + label
+            _unit = "" # unit if unit != "hrs" else ""
+            xticks_string = [f"{int(round(x*factor/factor2))}{_unit}" if x > 0 else _zero for x in xticks]
+            # xticks_string[-1] += " " + label
             ax.set_xticks(xticks, xticks_string)
+            xlabel = (unit + " " + label).strip()
+            if icolumn == 0:
+                ax.set_xlabel(xlabel, fontsize=9, ha="right")
+                ax.xaxis.set_label_coords(-0.05, 0)
+            elif iexpe == num_columns-1:
+                ax.set_xlabel(xlabel, fontsize=9, ha="left")
+                ax.xaxis.set_label_coords( 1.05, 0)
             if iax > 0:
+                # Remove upper, left and right axis
+                for spine in 'top', 'right', 'left':
+                    ax.spines[spine].set_visible(False)
                 ax.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
 
 
