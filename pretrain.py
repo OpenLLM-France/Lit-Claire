@@ -122,6 +122,7 @@ def setup(
     fabric.launch(main, checkpoint_dir, out_dir, data_dir, try_small, enable_validation, hparams)
 
 def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation, hparams):
+    devices             = hparams["devices"]
     language            = hparams["language"]
     batch_size          = hparams["batch_size"]
     micro_batch_size    = hparams["micro_batch_size"]
@@ -216,7 +217,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
     checkpoint_path = checkpoint_dir / "lit_model.pth"
 
     fabric.print(f"Loading model {str(checkpoint_path)!r} with {config.__dict__}")
-    with fabric.init_module(empty_init=True):
+    with fabric.init_module(empty_init=(devices > 1)):
         if use_lora:
             model = LoraGPT(config)
             mark_only_lora_as_trainable(model)
