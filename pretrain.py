@@ -74,7 +74,7 @@ def setup(
 
     # Learning rate
     learning_rate: float = 1e-4,
-    warmup_steps: int = 50,  # note: this is based on step, not iteration
+    warmup_steps: int = 0,  # note: this is based on step, not iteration
     weight_decay: float = 0.01,
     grad_clip: float = 1.0,
 
@@ -318,7 +318,7 @@ def train(
         if iter_num >= max_train_iters:
             break
         
-        if step_count <= warmup_steps:
+        if warmup_steps and step_count <= warmup_steps:
             # linear warmup
             lr = learning_rate * step_count / warmup_steps
             for param_group in optimizer.param_groups:
