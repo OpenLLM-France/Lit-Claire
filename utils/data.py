@@ -325,7 +325,7 @@ class ConcatenatedDatasetIterator:
         self._datasets = [iter(el) for el in datasets]
         self._idataset = 0
         # Progress bar only
-        if num_samples:
+        if False: # no progress bar num_samples:
             # + 1 because the progress bar is incremented at the start of each iter, including the last StopIteration
             self._pbar = tqdm(total=num_samples+1, unit="samples", desc="Serving data", initial=0)
         else:
