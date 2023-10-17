@@ -26,6 +26,12 @@ source env/bin/activate
 
 ### Install dependencies
 
+Make sure lit_gpt is up to date
+```bash
+cd lit_gpt
+git pull
+```
+
 Then, install the dependencies (you may want to use `--user` if you don't use a virtual env):
 ```bash
 pip install --no-cache-dir -r requirements.txt
