@@ -19,9 +19,15 @@ from torch.utils.data import DataLoader
 this_folder = Path(__file__).parent.resolve()
 sys.path = [str(this_folder / "lit_gpt")] + sys.path # Prepend to PYTHONPATH
 
-from lit_gpt import Config, GPT
-from lit_gpt.lora import Config as LoraConfig, GPT as LoraGPT
-from lit_gpt.lora import Block, lora_filter, mark_only_lora_as_trainable
+from lit_gpt.model import Config, GPT, Block
+from lit_gpt.lora import (
+    Config as LoraConfig,
+    GPT as LoraGPT,
+    Block as LoraBlock,
+    lora_filter,
+    mark_only_lora_as_trainable,
+)
+from lit_gpt.tokenizer import Tokenizer
 from lit_gpt.speed_monitor import SpeedMonitorFabric as SpeedMonitor
 from lit_gpt.speed_monitor import estimate_flops, measure_flops
 from lit_gpt.utils import (
@@ -68,7 +74,7 @@ def setup(
 
     # Learning rate
     learning_rate: float = 1e-4,
-    warmup_steps: int = 50,  # note: this is based on step, not iteration
+    warmup_steps: int = 0,  # note: this is based on step, not iteration
     weight_decay: float = 0.01,
     grad_clip: float = 1.0,
 
@@ -83,6 +89,9 @@ def setup(
     lora_projection: bool = True,
     lora_mlp: bool = True,
     lora_head: bool = True,
+
+    # debug
+    debug: bool = False,
 ):
     hparams = dict((k,v) for k,v in locals().items())
 
@@ -92,9 +101,10 @@ def setup(
 
     accelerator = "auto"
     if devices > 1 or num_nodes > 1:
+        block_class = LoraBlock if use_lora else Block
         strategy = FSDPStrategy(
-            auto_wrap_policy={Block},
-            activation_checkpointing_policy={Block},
+            auto_wrap_policy={block_class},
+            activation_checkpointing_policy={block_class},
             state_dict_type="full",
             limit_all_gathers=True,
             cpu_offload=False,
@@ -119,6 +129,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
     learning_rate       = hparams["learning_rate"]
     weight_decay        = hparams["weight_decay"]
     use_lora            = hparams["use_lora"]
+    debug               = hparams["debug"]
 
     assert batch_size % micro_batch_size == 0 and batch_size > 0 and micro_batch_size > 0
     hparams["gradient_accumulation_iters"] = batch_size // micro_batch_size
@@ -200,6 +211,8 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
     else:
         train_dataloader, val_dataloader = fabric.setup_dataloaders(train_dataloader, val_dataloader)
 
+    tokenizer = Tokenizer(checkpoint_dir) if debug else None
+
     checkpoint_path = checkpoint_dir / "lit_model.pth"
 
     fabric.print(f"Loading model {str(checkpoint_path)!r} with {config.__dict__}")
@@ -228,7 +241,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
     train_time = time.perf_counter()
     train(
         fabric, model, optimizer, train_dataloader, val_dataloader, speed_monitor, out_dir,
-        hparams
+        hparams, tokenizer
     )
     fabric.print(f"Training time: {(time.perf_counter()-train_time):.2f}s")
     if fabric.device.type == "cuda":
@@ -248,6 +261,7 @@ def train(
     speed_monitor: SpeedMonitor,
     out_dir: Path,
     hparams: dict,
+    tokenizer: Optional[Tokenizer] = None,
     sanity_check: bool = True,
 ) -> None:
     micro_batch_size            = hparams["micro_batch_size"]
@@ -264,6 +278,7 @@ def train(
     max_checkpoints             = hparams["max_checkpoints"]
     early_stopping              = hparams["early_stopping"]
     use_lora                    = hparams["use_lora"]
+    debug                       = hparams["debug"]
 
     global t_last_checkpoint, t_last_valid
     num_checkpoints = 0
@@ -272,8 +287,11 @@ def train(
     valid_loss_iter = 0
 
     with torch.device("meta"):
-        meta_model = GPT(model.config)
-        mark_only_lora_as_trainable(meta_model)
+        if use_lora:
+            meta_model = LoraGPT(model.config)
+            mark_only_lora_as_trainable(meta_model)
+        else:
+            meta_model = GPT(model.config)
         # "estimated" is not as precise as "measured". Estimated is optimistic but widely used in the wild.
         # When comparing MFU or FLOP numbers with other projects that use estimated FLOPs,
         # consider passing `SpeedMonitor(flops_per_batch=estimated_flops)` instead
@@ -292,11 +310,15 @@ def train(
 
     has_validated = False
 
+    if debug:
+        fabric.print("=========================")
+        fabric.print("TRAINING")
+
     for iter_num, train_data in enumerate(train_dataloader):
         if iter_num >= max_train_iters:
             break
         
-        if step_count <= warmup_steps:
+        if warmup_steps and step_count <= warmup_steps:
             # linear warmup
             lr = learning_rate * step_count / warmup_steps
             for param_group in optimizer.param_groups:
@@ -309,6 +331,12 @@ def train(
         targets = train_data[:, 1:].contiguous()
 
         is_accumulating = (iter_num + 1) % gradient_accumulation_iters != 0
+        if debug:
+            for tokens in input_ids:
+                text = tokenizer.decode(tokens).replace("\n","\\n")
+                if len(text) > 125:
+                    text = text[:60] + " [...] " + text[-60:]
+                fabric.print(text)
         with fabric.no_backward_sync(model, enabled=is_accumulating):
             logits = model(input_ids)  # set lm_head_chunk_size=128 may reduce peak vram
             loss = chunked_cross_entropy(logits, targets, chunk_size=0)  # set chunk_size=128 may reduce peak vram
@@ -359,21 +387,18 @@ def train(
             if sanity_check and not has_validated:
                 # Validate early
                 condition_eval = True
-                has_validated = True
+                condition_checkpoint = True
 
             if condition_checkpoint:
                 t_last_checkpoint = time.perf_counter()
                 checkpoint_path = out_dir / f"iter-{iter_num:06d}-ckpt.pth"
                 save_checkpoint(fabric, model, checkpoint_path, use_lora=use_lora)
                 num_checkpoints += 1
-                if max_checkpoints and num_checkpoints >= max_checkpoints:
-                    fabric.print(f"Reached max checkpoints: {max_checkpoints}")
-                    break
 
             if condition_eval and val_dataloader is not None:
                 t_last_valid = time.perf_counter()
                 t0 = time.perf_counter()
-                val_loss = validate(fabric, model, val_dataloader, max_eval_iters)
+                val_loss = validate(fabric, model, val_dataloader, max_eval_iters, tokenizer)
                 t1 = time.perf_counter() - t0
                 speed_monitor.eval_end(t1)
                 info = {"val_loss": round(val_loss, 4), "val_time": round(t1, 2)}
@@ -392,14 +417,24 @@ def train(
                     fabric.print(f"Early stopping at iter not improving for {valid_loss_iter - best_valid_loss_iter} validation steps (iteration {iter_num})")
                     break
 
+                has_validated = True
+
+            if max_checkpoints and num_checkpoints >= max_checkpoints:
+                fabric.print(f"Reached max checkpoints: {max_checkpoints}")
+                break
+
     sys.stdout.flush()
 
 @torch.inference_mode()
 def validate(
-    fabric: L.Fabric, model: GPT, val_dataloader: DataLoader, max_eval_iters: int
+    fabric: L.Fabric, model: GPT, val_dataloader: DataLoader, max_eval_iters: int, tokenizer: Optional[Tokenizer] = None
 ) -> torch.Tensor:
     fabric.print("Validating ...")
     model.eval()
+
+    if tokenizer is not None:
+        fabric.print("=========================")
+        fabric.print("VALIDATION")
 
     losses = torch.zeros(max_eval_iters, device=fabric.device)
     for eval_iter_num, val_data in enumerate(val_dataloader):
@@ -408,13 +443,27 @@ def validate(
         input_ids = val_data[:, :-1].contiguous()
         input_ids = input_ids.clamp_min(0) # Remove -1 that can be a problem as inputs (will be ignore as targets)
         targets = val_data[:, 1:].contiguous()
+
+        if tokenizer is not None:
+            for tokens in input_ids:
+                text = tokenizer.decode(tokens).replace("\n","\\n")
+                if len(text) > 125:
+                    text = text[:60] + " [...] " + text[-60:]
+                fabric.print(text)
+
         logits = model(input_ids)  # set lm_head_chunk_size=128 may reduce peak vram
-        losses[eval_iter_num] = chunked_cross_entropy(logits, targets, chunk_size=0)  # set chunk_size=128 may reduce peak vram
+        loss = chunked_cross_entropy(logits, targets, chunk_size=0)  # set chunk_size=128 may reduce peak vram
+        if tokenizer is not None:
+            fabric.print(f"valid loss {loss:.4f}")
+
+        losses[eval_iter_num] = loss
     
     if eval_iter_num < max_eval_iters - 1:
         losses = losses[: eval_iter_num + 1]
     losses = losses.nan_to_num()  # In case there is only padded sequences
     val_loss = losses.mean()
+
+    sys.stdout.flush()
 
     model.train()
     return val_loss.item()

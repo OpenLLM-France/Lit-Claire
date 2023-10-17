@@ -56,11 +56,12 @@ def merge_lora(
         with fabric.init_module(empty_init=True):
             model = GPT(config)
 
-    checkpoint_path = checkpoint_dir / "lit_model.pth"
     lora_path = lora_dir / lora_pth_name
-    with lazy_load(checkpoint_path) as checkpoint, lazy_load(lora_path) as lora_checkpoint:
-        checkpoint.update(lora_checkpoint.get("model", lora_checkpoint))
-        model.load_state_dict(checkpoint)
+    checkpoint_path = checkpoint_dir / "lit_model.pth"
+    checkpoint = lazy_load(checkpoint_path)
+    lora_checkpoint = lazy_load(lora_path)
+    checkpoint.update(lora_checkpoint.get("model", lora_checkpoint))
+    model.load_state_dict(checkpoint)
 
     merge_lora_weights(model)
 

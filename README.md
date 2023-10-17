@@ -1,17 +1,13 @@
 # CLAIRE
 
-### clone the repo
+## Installation
+
+### Clone the repo
 ```
 git clone --recurse-submodules https://github.com/OpenLLM-France/Claire
 ```
 
-### specify Lit-GPT version
-```
-cd Claire/lit_gpt
-git checkout a21d46ae80f84c350ad871578d0348b470c83021
-```
-
-### create environment
+### Create environment
 
 First create a virtual environment.
 Example on Jean Zay:
@@ -28,13 +24,14 @@ python3.10 -m venv env
 source env/bin/activate
 ```
 
-Then, install the dependencies (on Jean Zay, you may want to use `--user` if you ):
+### Install dependencies
+
+Then, install the dependencies (you may want to use `--user` if you don't use a virtual env):
 ```bash
-pip install --no-cache-dir --index-url https://download.pytorch.org/whl/nightly/cu118 --pre 'torch>=2.1.0dev'
 pip install --no-cache-dir -r requirements.txt
 ```
 
-### download then convert Hugging Face model to Lit-GPT format
+### Download then convert Hugging Face model to Lit-GPT format
 
 ```bash
 # MODEL=mistralai/Mistral-7B-v0.1

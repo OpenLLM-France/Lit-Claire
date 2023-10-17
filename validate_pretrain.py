@@ -17,13 +17,15 @@ from utils.data import create_dataloaders
 
 import torch
 import lightning as L
-from lit_gpt.lora import GPT as LoraGPT, Config as LoraConfig
-from lit_gpt import GPT, Config
+from lit_gpt.model import Config, GPT, Block
+from lit_gpt.lora import GPT as LoraGPT, Config as LoraConfig, Block as LoraBlock
 from lit_gpt.utils import (
     check_valid_checkpoint_dir,
     get_default_supported_precision,
     load_checkpoint,
 )
+from lightning.fabric.strategies import FSDPStrategy
+from lit_gpt.tokenizer import Tokenizer
 
 def setup(
     # Folders
@@ -38,10 +40,13 @@ def setup(
     num_nodes: int = 1,
     precision: Optional[str] = None,
 
+    strategy: Optional[str] = "auto",
     batch_size: int = 12,
 
     try_small: bool = False,
     max_eval_iters: Optional[int] = None,
+
+    debug: bool = False,
 ):
     hparams = dict((k,v) for k,v in locals().items())
 
@@ -50,11 +55,16 @@ def setup(
     if devices > 1 or num_nodes > 1:
         raise NotImplementedError("Multi-node offline validation not supported yet")
 
-    fabric = L.Fabric(devices=devices, precision=precision)
-    fabric.print(hparams)
-
     if out_file is None:
-        out_file = out_dir / f"validation_results_{precision}.csv"
+        out_file = out_dir / f"validation_results_{precision}_{strategy}.csv"
+
+    use_lora = os.path.isfile(out_dir / "lora_config.json")
+
+    if strategy == "fsdp":
+        strategy = FSDPStrategy(auto_wrap_policy={LoraBlock if use_lora else Block}, cpu_offload=False)
+
+    fabric = L.Fabric(devices=devices, precision=precision, strategy=strategy)
+    fabric.print(hparams)
 
     fabric.launch(main, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams)
 
@@ -63,6 +73,7 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
     batch_size          = hparams["batch_size"]
     max_eval_iters0     = hparams["max_eval_iters"]
     use_lora            = os.path.isfile(out_dir / "lora_config.json")
+    debug               = hparams["debug"]
 
     assert os.path.isdir(out_dir), f"Output directory {out_dir} does not exist."
 
@@ -112,6 +123,8 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
 
     sys.stdout.flush()
 
+    tokenizer = Tokenizer(checkpoint_dir) if debug else None
+
     with open(out_file, "a") as file:
         logger = None
 
@@ -131,6 +144,9 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
             else:
                 load_checkpoint(fabric, model, checkpoint_path, strict=not use_lora)
 
+            model = fabric.setup_module(model)
+            model.eval()
+
             for val_dataloader, val_detail in zip(val_dataloaders, val_details):
 
                 val_dataloader = fabric.setup_dataloaders(val_dataloader)
@@ -140,7 +156,7 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
                     max_eval_iters = max_eval_iters0
 
                 t0 = time.perf_counter()
-                val_loss = validate(fabric, model, val_dataloader, max_eval_iters=max_eval_iters)
+                val_loss = validate(fabric, model, val_dataloader, max_eval_iters=max_eval_iters, tokenizer=tokenizer)
                 t1 = time.perf_counter() - t0
                 info.update({
                     "data": val_detail["name"],
@@ -162,6 +178,8 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
                 fabric.barrier()
                 sys.stdout.flush()
                 file.flush()
+
+                # break
 
             # Test one checkpoint at a time to avoid bugs...
             break
