@@ -53,7 +53,7 @@ def merge_lora(
             path=checkpoint_dir / "lit_config.json",
             **lora_config
         )
-        with fabric.init_module(empty_init=True):
+        with fabric.init_module(empty_init=False):
             model = GPT(config)
 
     lora_path = lora_dir / lora_pth_name

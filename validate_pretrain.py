@@ -87,7 +87,7 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
 
     check_valid_checkpoint_dir(checkpoint_dir)  # check if there is lit-gpt format model
 
-    with fabric.init_module(empty_init=True):
+    with fabric.init_module(empty_init=False):
         if use_lora:
             model = None
             # lora_config = json.load(open(out_dir / "lora_config.json", "r"))

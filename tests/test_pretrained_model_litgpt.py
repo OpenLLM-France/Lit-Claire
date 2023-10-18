@@ -107,7 +107,7 @@ def load_model(
 
     if verbose: fabric.print(f"Loading model {str(checkpoint_path)!r} with {config.__dict__}", file=sys.stderr)
     t0 = time.perf_counter()
-    with fabric.init_module(empty_init=True), quantization(quantize):
+    with fabric.init_module(empty_init=False), quantization(quantize):
         model = GPT(config)
     if verbose: fabric.print(f"Time to instantiate model: {time.perf_counter() - t0:.02f} seconds.", file=sys.stderr)
 
