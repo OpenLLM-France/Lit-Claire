@@ -87,6 +87,23 @@ if __name__ == "__main__":
     parser.add_argument("--min_loss", help="Minimum loss to plot", type=float, default=None)
     args = parser.parse_args()
 
+    COLOR_TRAIN = "cornflowerblue"
+    COLOR_VALID = "gray"
+    COLOR_BEST = "b"
+    COLORS_VALID_OFFLINE = [
+        "orange",
+        "green",
+        "red",
+        "purple",
+        "brown",
+        "pink",
+        "olive",
+        "cyan",
+        "magenta",
+        "yellow",
+        "black",
+    ]
+
     num_expes = len(args.folders)
     num_columns = num_expes # 1
 
@@ -175,11 +192,12 @@ if __name__ == "__main__":
             ax.set_title(os.path.basename(folder))
 
         x, y = zip(*sorted(conv_training))
-        ax.plot(x, y, label="Training (online)", alpha=0.5)
+        ax.plot(x, y, label="Training (online)", alpha=0.5, color=COLOR_TRAIN)
         max_x = max(max_x, max(x))
         if args.max_iter and (max_x > args.max_iter or num_columns > 1):
             max_x = args.max_iter
 
+        best_x = None
         if conv_validation:
             x_valids = None
             for name in sorted(conv_validation.keys(), key = lambda name: -len(conv_validation[name])):
@@ -188,13 +206,17 @@ if __name__ == "__main__":
                 ckpt_files = files
                 break
             valids = [[] for _ in x_valids]
-            for name in sorted(conv_validation.keys(), key = lambda name: name_order(name)):
+
+            sorted_names = sorted(conv_validation.keys(), key = lambda name: name_order(name))
+
+            for ivalid, name in enumerate(sorted_names):
                 empty = not conv_validation[name]
                 if not empty:
                     x, y, _ = zip(*sorted(conv_validation[name]))
                     ax.plot(x, y, label=format_dataset_name(name),
                         marker="+" if name != "Validation" else None,
-                        linewidth = 2 if name == "Validation" else 1
+                        linewidth = 2 if name == "Validation" else 1,
+                        color = COLORS_VALID_OFFLINE[ivalid % len(COLORS_VALID_OFFLINE)] if name != "Validation" else COLOR_VALID,
                     )
                 else:
                     ax.plot([], [], label=None)
@@ -207,7 +229,19 @@ if __name__ == "__main__":
             mean_valids = [np.median(v) if v else 1e10 for v in valids]
             best_valid = mean_valids.index(min(mean_valids))
             print("Best loss:", os.path.join(folder, files[best_valid]))
-            ax.axvline(x=x_valids[best_valid], color='r', linestyle=':') #, label=f"Best ({files[best_valid]})")
+            best_x = x_valids[best_valid]
+            ax.axvline(x=best_x, color=COLOR_BEST, linestyle=':') #, label=f"Best ({files[best_valid]})")
+            ax.text(best_x, 0.5, f"{os.path.basename(files[best_valid])}", color=COLOR_BEST, fontsize=9, rotation=90, ha="right", va="center", transform=ax.get_xaxis_transform())
+            for ivalid, name in enumerate(sorted_names):
+                if name == "Validation" and len(conv_validation) > 1:
+                    continue
+                values = conv_validation[name]
+                x, y, files = zip(*sorted(values))
+                if best_x not in x:
+                    continue
+                i = x.index(best_x)
+                ax.axhline(y=y[i], color=COLORS_VALID_OFFLINE[ivalid % len(COLORS_VALID_OFFLINE)], linestyle=':')
+                ax.text(-0.05, y[i], f"{y[i]:.2f}", color=COLORS_VALID_OFFLINE[ivalid % len(COLORS_VALID_OFFLINE)], fontsize=9, ha="right", va="center", transform=ax.get_yaxis_transform())
             
         ymin, ymax = ax.get_ylim()
         if not args.max_loss:
@@ -246,6 +280,11 @@ if __name__ == "__main__":
                 for spine in 'top', 'right', 'left':
                     ax.spines[spine].set_visible(False)
                 ax.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
+
+                # Plot best
+                if best_x is not None:
+                    ax.axvline(x=best_x, color=COLOR_BEST)
+
 
 
     for icolumn in range(num_columns):
