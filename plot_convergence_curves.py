@@ -252,12 +252,14 @@ if __name__ == "__main__":
             ax.set_ylabel("Loss")
         ax.legend()
 
+        num_devices = devices[iexpe]
+
         for iax, (label, factor, step, unit) in enumerate([
-            ("batches",         1,                                1000,     "k"),
-            ("sequences",       batch_size,                       5000,     "k"),
-            ("tokens",          batch_size * args.segment_length, 10000000, "M"),
+            ("batches",         num_devices,                      1000,     "k"),
+            ("sequences",       batch_size*num_devices,           5000,     "k"),
+            ("tokens",          batch_size*num_devices*args.segment_length, 10000000, "M"),
             ("training",        factor_time,                      3600,     "hrs"),
-            ("GPU",             factor_time*devices[iexpe],       3600*devices[iexpe], "hrs"),
+            ("GPU",             factor_time*num_devices,          3600*num_devices, "hrs"),
         ]):
             factor2 = {"k": 1000, "M": 1000000, "hrs": 3600}.get(unit, 1)
             _zero = "0" if iax == 0 else ""
