@@ -69,7 +69,7 @@ def setup(
     early_stopping: Optional[int] = None, # When validation is enabled, number of validation steps without improvement before stopping
 
     # Batch
-    batch_size: int = 192,
+    batch_size: int = 132, # 128 in original lit-gpt's LoRA finetuning, we choose the closest that is a multiple of micro_batch_size=12
     micro_batch_size: int = 12,
 
     # Learning rate
