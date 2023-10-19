@@ -26,16 +26,12 @@ source env/bin/activate
 
 ### Install dependencies
 
-Make sure lit_gpt is up to date
-```bash
-cd lit_gpt
-git pull
-```
-
 Then, install the dependencies (you may want to use `--user` if you don't use a virtual env):
 ```bash
 pip install --no-cache-dir -r requirements.txt
 ```
+
+## Finetune a model
 
 ### Download then convert Hugging Face model to Lit-GPT format
 
@@ -49,7 +45,7 @@ python lit_gpt/scripts/convert_hf_checkpoint.py --checkpoint_dir checkpoints/$MO
 
 On Jean Zay, you can do that from the folder `$WORK/../commun/Claire`.
 
-### prepare data
+### Prepare data
 ```
 python prepare_data.py \
     --source_path       $WORK/../commun/Claire/data_raw/full \
@@ -57,7 +53,7 @@ python prepare_data.py \
     --destination_path  $SCRATCH/../commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae/falcon-7b
 ```
 
-### launch training
+### Launch training
 ```
 sbatch pretrain_lora.slurm
 ```
@@ -79,69 +75,45 @@ JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
 ```
 cancel the job with `scancel 100681`, connect to the node with `ssh jean-zay-iam36` (on which you can run `nvidia-smi`)
 
+## Check the model and make it available
 
-### merge lora
+### Quick test the model
+
+If trained with LoRA, you can first merge the weights, with a command like:
 ```
 MODEL=tiiuae/falcon-7b
 srun --ntasks=1 --gres=gpu:1 --constraint=a100 \
-python merge_lora.py \
-    --checkpoint_dir $WORK/../commun/Claire/checkpoints/$MODEL \
-    --lora_dir       $WORK/../commun/Claire/pretrain/lora/$MODEL \
-    --lora_pth_name  lit_model_lora_finetuned.pth \
-    --save_path      $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B/lit_model.pth \
-    --precision      bf16-true
+python utils/merge_lora.py \
+    --lora_path       $WORK/../commun/Claire/pretrain/lora/$MODEL/lit_model_lora_finetuned.pth \
+    --checkpoint_dir  $WORK/../commun/Claire/checkpoints/$MODEL \
+    --save_path       $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B/lit_model.pth \
 ```
 The merged model `lit_model.pth` can be found under `save_path`
 
-copy the *.json files from Falcon-7b to Claire-7B, which are required for the configuration and tokenizer information.
+You can then test the model with a single prompt:
 ```
-cp $WORK/../commun/Claire/checkpoints/tiiuae/falcon-7b/*.json \
-    $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B/
-```
-
-### test the merged model
-
-test the model with a single prompt
-```
-srun --ntasks=1 --gres=gpu:1 --constraint=a100 \
+srun --ntasks=1 --gres=gpu:1 --constraint=a100 --qos=qos_gpu-dev \
 python lit_gpt/generate/base.py \
-    --prompt "Hello, my name is" \
-    --checkpoint_dir $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B
+    --prompt "[Intervenant 1:] Bonjour, mon nom est" \
+    --checkpoint_dir $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B-v0.0.1
 ```
-
-test the model interactively
+or test it interactively:
 ```
-srun --ntasks=1 --gres=gpu:1 --constraint=a100 --pty \
+srun --ntasks=1 --gres=gpu:1 --constraint=a100 --qos=qos_gpu-dev --pty \
 python lit_gpt/chat/base.py \
-    --checkpoint_dir $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B
+    --checkpoint_dir $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B-v0.0.1
 ```
 
-### convert Lit-GPT model to Hugging Face format
-```
-python lit_gpt/scripts/convert_lit_checkpoint.py \
-    --checkpoint_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B/lit_model.pth \
-    --output_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B/pytorch_model.bin \
-    --config_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B/lit_config.json
-```
+Note: you can also test LoRA weights directly, without merging first, by using `lora.py` instead of `base.py` in the two commands above.
 
-### split pytorch_model.bin into smaller shards
-```
-python download_config.py \
-    --folder_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B
-```
-```
-srun --ntasks=1 --gres=gpu:1 --constraint=a100 --cpus-per-task=8 \
-python split_model.py \
-    --folder_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B
-```
+### Convert trained Lit-GPT model to transformers and upload it to Hugging Face
 
-### upload the converted model to Hugging Face
+You can convert the model to transormers with the following command.
+Use option `--repo_id` if and only if you want to upload the model.
 ```
-python upload_model.py \
-    --folder_path $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B \
-    --repo_id OpenLLM-France/Claire-7B \
-    --create_repo true
+python convert_litgpt_to_transformers.py \
+    --input_path $WORK/../commun/Claire/pretrain-Claire-7B-v0.06_mono/lora/tiiuae/falcon-7b/iter-020883-ckpt.pth \
+    --output_dir $WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B-v0.0.1 \
+    --repo_id OpenLLM-France/Claire-7B-v0.0.1
 ```
-`--create_repo true`: create a new Hugging Face repo with `repo_id`, then upload files.  
-`--create_repo false`: upload files to the existing Hugging Face repo with `repo_id`  
 You'll need to provide your [User Access Tokens](https://huggingface.co/settings/tokens).

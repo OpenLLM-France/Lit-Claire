@@ -11,7 +11,7 @@ import lightning as L
 import torch
 
 # support running without installing as a package
-wd = Path(__file__).parent.resolve()
+wd = Path(__file__).parent.parent.resolve()
 sys.path = [str(wd / "lit_gpt")] + sys.path # Prepend to PYTHONPATH
 
 from lit_gpt.lora import GPT, Config, lora_filter, merge_lora_weights
@@ -19,9 +19,8 @@ from lit_gpt.utils import check_valid_checkpoint_dir, get_default_supported_prec
 
 
 def merge_lora(
+    lora_path: Path = Path("out/lora/Claire"),
     checkpoint_dir: Path = Path("checkpoints/tiiuae/falcon-7b"),
-    lora_dir: Path = Path("out/lora/Claire"),
-    lora_pth_name: str = "lit_model_lora_finetuned.pth",
     save_path: Optional[Path] = None, # checkpoint_dir.parent.parent / "OpenLLM-France" / "Claire-7b" / "lit_model.pth"
     precision: Optional[str] = None,
     model: Optional[GPT] = None,
@@ -32,12 +31,15 @@ def merge_lora(
     See `finetune/lora.py`.
 
     Args:
+        lora_path: Path to the checkpoint with trained adapter weights, which are the output of
+            `finetune/lora.py`.
         checkpoint_dir: The path to the checkpoint folder with pretrained GPT weights.
-        lora_dir: Path to the checkpoint folder with trained adapter weights, which are the output of `finetune/lora.py`
-        lora_pth_name: File name of the lora weights
+        out_dir: The path to the merged model that is created by this script.
         precision: Indicates the Fabric precision setting to use.
     """
     precision = precision or get_default_supported_precision(training=False)
+
+    lora_dir = lora_path.parent
 
     if save_path:
         assert not os.path.exists(save_path), f"{str(save_path)!r} already exists"
@@ -56,7 +58,6 @@ def merge_lora(
         with fabric.init_module(empty_init=False):
             model = GPT(config)
 
-    lora_path = lora_dir / lora_pth_name
     checkpoint_path = checkpoint_dir / "lit_model.pth"
     checkpoint = lazy_load(checkpoint_path)
     lora_checkpoint = lazy_load(lora_path)

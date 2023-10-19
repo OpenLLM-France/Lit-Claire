@@ -12,7 +12,7 @@ this_folder = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(this_folder)
 
 from pretrain import validate
-from merge_lora import merge_lora
+from utils.merge_lora import merge_lora
 from utils.data import create_dataloaders
 
 import torch
@@ -135,9 +135,8 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
 
             if use_lora:
                 model = merge_lora(
+                    lora_path=checkpoint_path,
                     checkpoint_dir=checkpoint_dir,
-                    lora_dir=out_dir,
-                    lora_pth_name=os.path.basename(checkpoint_path),
                     model=None,
                     fabric=fabric,
                 )
