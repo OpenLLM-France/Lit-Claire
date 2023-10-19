@@ -74,6 +74,14 @@ def name_order(name):
         return (5, name)
     return (0, name)
 
+def format_xtick_value(xtick, unit="", prec=1e-6):
+    if abs(round(xtick) - xtick) < prec:
+        return f"{int(xtick):d}"
+    if abs(round(xtick*10) - xtick*10) < prec:
+        return f"{xtick:.1f}"
+    return str(xtick)
+
+
 if __name__ == "__main__":
 
     import os
@@ -87,6 +95,7 @@ if __name__ == "__main__":
     parser.add_argument("--min_loss", help="Minimum loss to plot", type=float, default=None)
     args = parser.parse_args()
 
+    # Plotting parameters
     COLOR_TRAIN = "cornflowerblue"
     COLOR_VALID = "gray"
     COLOR_BEST = "b"
@@ -103,6 +112,9 @@ if __name__ == "__main__":
         "yellow",
         "black",
     ]
+    XTICKS_MIN_POINTS = 5
+    XTICKS_MAX_POINTS = 20
+    XTICKS_STEPS = [1, 2, 5] # Then multiple of 10
 
     num_expes = len(args.folders)
     num_columns = num_expes # 1
@@ -253,21 +265,34 @@ if __name__ == "__main__":
         ax.legend()
 
         num_devices = devices[iexpe]
+        batch_factor = num_devices
 
-        for iax, (label, factor, step, unit) in enumerate([
-            ("batches",         num_devices,                      1000,     "k"),
-            ("sequences",       batch_size*num_devices,           5000,     "k"),
-            ("tokens",          batch_size*num_devices*args.segment_length, 10000000, "M"),
-            ("training",        factor_time,                      3600,     "hrs"),
-            ("GPU",             factor_time*num_devices,          3600*num_devices, "hrs"),
+        for iax, (label, factor, unit) in enumerate([
+            ("batches",         batch_factor,                                "k"),
+            ("sequences",       batch_size*batch_factor,                     "k"),
+            ("tokens",          batch_size*batch_factor*args.segment_length, "M"),
+            ("training",        factor_time,                                 "hrs"),
+            ("GPU",             factor_time*num_devices,                     "hrs"),
         ]):
-            factor2 = {"k": 1000, "M": 1000000, "hrs": 3600}.get(unit, 1)
+            scale = {"k": 1000, "M": 1000000, "hrs": 3600}.get(unit, 1)
             _zero = "0" if iax == 0 else ""
             ax = axes[iax][icolumn]
             ax.set_xlim(0, max_x)
-            xticks = np.arange(0, max_x+1, step / factor)
-            _unit = "" # unit if unit != "hrs" else ""
-            xticks_string = [f"{int(round(x*factor/factor2))}{_unit}" if x > 0 else _zero for x in xticks]
+
+            # Automatically choose the step
+            step0 = scale / 10
+            def get_xticks(istep):
+                step = step0 * XTICKS_STEPS[istep % len(XTICKS_STEPS)] * (10 ** (istep // len(XTICKS_STEPS)))
+                return np.arange(0, max_x+1, step / factor)            
+            istep = 0
+            xticks = get_xticks(istep)
+            while len(xticks) > XTICKS_MAX_POINTS:
+                istep += 1
+                xticks = get_xticks(istep)
+            while len(xticks) < XTICKS_MIN_POINTS and istep > 0:
+                istep -= 1
+                xticks = get_xticks(istep)
+            xticks_string = [f"{format_xtick_value(x*factor/scale, unit)}" if x > 0 else _zero for x in xticks]
             # xticks_string[-1] += " " + label
             ax.set_xticks(xticks, xticks_string)
             xlabel = (unit + " " + label).strip()
