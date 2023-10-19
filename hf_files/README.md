@@ -1,8 +1,12 @@
 ---
 language:
 - fr
-inference: true
 license: apache-2.0
+inference:
+    parameters:
+        temperature: 1.0
+        max_new_tokens: 200
+        top_k: 10
 ---
 
 # Claire-7B
@@ -30,7 +34,7 @@ pipeline = transformers.pipeline(
 )
 sequences = pipeline(
    "[Intervenant 1:] Bonjour, pouvez-vous nous parler de votre sport préféré ?\n[Intervenant 2:] Alors euh oui,",
-    max_length=200,
+    max_new_tokens=200,
     do_sample=True,
     top_k=10,
     num_return_sequences=1,
