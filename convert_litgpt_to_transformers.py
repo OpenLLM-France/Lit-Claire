@@ -167,7 +167,7 @@ def convert_lit_checkpoint(
             os.remove(pytorch_model_path)
 
     if repo_id:
-        upload_to_huggingface_hub(output_dir, repo_id)
+        upload_to_huggingface_hub(repo_id=repo_id, input_dir=output_dir)
 
 if __name__ == "__main__":
     from jsonargparse import CLI
