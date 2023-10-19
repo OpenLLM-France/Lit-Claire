@@ -9,6 +9,7 @@ wd = Path(__file__).parent.parent.resolve()
 def upload_to_huggingface_hub(
     repo_id: str,
     input_dir: Path = wd / "hf_files",
+    message: Optional[str] = None,
     create_repo: Optional[bool] = None,
 ):
     print(f"Uploading repository https://huggingface.co/{repo_id} with:\n" + "\n".join(os.listdir(input_dir)))
@@ -24,6 +25,8 @@ def upload_to_huggingface_hub(
             create_repo = True
 
     if create_repo:
+        if not message:
+            message = "initial commit"
         print(f"Creating repository https://huggingface.co/{repo_id}")
         api.create_repo(
             repo_id=repo_id,
@@ -37,6 +40,7 @@ def upload_to_huggingface_hub(
         repo_id=repo_id,
         repo_type="model",
         ignore_patterns=["lit_*", "pytorch_model.bin"],
+        commit_message=message,
     )
 
 
