@@ -5,7 +5,7 @@ import re
 
 
 class EndpointHandler:
-    def __init__(self, path=""):
+    def __init__(self, path):
         tokenizer = AutoTokenizer.from_pretrained(path)
         model = AutoModelForCausalLM.from_pretrained(
             path, device_map="auto", torch_dtype=torch.bfloat16, load_in_4bit=True
@@ -17,22 +17,24 @@ class EndpointHandler:
     def __call__(self, data: Dict[str, Any]) -> Dict[str, str]:
         # process input
         inputs = data.pop("inputs", data)
-        inputs = claire_text_preproc(inputs)
 
         # default parameters
         parameters = {
-            "max_length": 128,
+            "max_new_tokens": 128,
             "do_sample": True,
             "top_k": 10,
             "temperature": 1.0,
             "return_full_text": False,
         }
 
+        # user parameters
         parameters.update(data.pop("parameters", {}))
+
+        inputs = claire_text_preproc(inputs)
 
         sequences = self.pipeline(inputs, **parameters)
 
-        return [{"generated_text": sequences[0]["generated_text"]}]
+        return [{"generated_text": seq["generated_text"]} for seq in sequences]
 
 
 def claire_text_preproc(text):
