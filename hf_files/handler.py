@@ -30,16 +30,24 @@ class EndpointHandler:
         # user parameters
         parameters.update(data.pop("parameters", {}))
 
-        inputs = claire_text_preproc(inputs)
+        unique = isinstance(inputs, str)
+        inputs, denormalize_funcs = claire_text_preproc(inputs)
 
         sequences = self.pipeline(inputs, **parameters)
 
-        return [{"generated_text": seq["generated_text"]} for seq in sequences]
+        if unique:
+            return [{"generated_text": denormalize_funcs(sequences[0]["generated_text"])}]
+        else:
+            assert len(denormalize_funcs) == len(sequences)
+            return [{"generated_text": denormalize_func(seq[0]["generated_text"])} for denormalize_func, seq in zip(denormalize_funcs, sequences)]
 
 
 def claire_text_preproc(text):
     if isinstance(text, (list, tuple)):
-        return [claire_text_preproc(t) for t in text]
+        assert len(text)
+        # Apply and transpose
+        texts, denormalize_funcs = zip(*[claire_text_preproc(t) for t in text])
+        return list(texts), list(denormalize_funcs)
 
     if not isinstance(text, str):
         return text
@@ -48,28 +56,51 @@ def claire_text_preproc(text):
 
     # text = remove_ligatures(text)
 
-    text = re.sub(" - | -$|^- ", " ", text.strip())
+    text = re.sub(" - | -$|^- ", " ", text.strip(" "))
 
+    global _reverse_tag_transfo
+    _reverse_tag_transfo = {}
     text = format_special_tags(text)
 
     text = collapse_whitespaces(text)
 
-    return text
+    if _reverse_tag_transfo:
+        reverse_tag_transfo = _reverse_tag_transfo.copy()
+        def denormalize_func(t):
+            for k, v in reverse_tag_transfo.items():
+                if k in t:
+                    t = t.replace(k, v)
+            return t
+
+        return text, lambda x: denormalize_func(x)
+
+    else:
+        return text, lambda x: x
 
 
 _brackets = re.compile(r"\[([^\]]*)\]")
 _pattern_speaker = re.compile(r"[^\]]+:")
 _non_printable_pattern = r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]"
 
+# Global variable to remember some normalizations that were done and apply it back
+_reverse_tag_transfo = {}
+_anonymized_prefix = None
 
 def collapse_whitespaces(text):
     text = re.sub(r" +", " ", text)
+    text = re.sub(r"\n+", "\n", text)
     text = re.sub(r" ([\.,])", r"\1", text)
-    return text.strip()
+    return text.lstrip().rstrip(" ")
 
 
 def format_special_tags(text):
-    return re.sub(_brackets, _format_special_tags, text)
+    global _reverse_tag_transfo, _anonymized_prefix
+    _anonymized_prefix = None
+    text = re.sub(_brackets, _format_special_tags, text)
+    # At last the generic anonymization
+    if _anonymized_prefix:
+        _reverse_tag_transfo["[Intervenant "] = _anonymized_prefix
+    return text
 
 
 def _format_special_tags(match):
@@ -79,18 +110,34 @@ def _format_special_tags(match):
     else:
         return ""
 
-
 def _format_tag(text):
+    global _reverse_tag_transfo, _anonymized_prefix
     if text.endswith(":]"):
-        if text.startswith("[speaker"):
-            # "[speaker001:]" -> "[Intervenant 1:]"
-            index = int(text[8:11])
-            return f"\n[Intervenant {index}:]"
-        else:
-            # "[claude-marie Claude-Marie JR:]" -> "[Claude-Marie Claude-Marie JR:]"
-            speaker = text[1:-2]
-            speaker = capitalize(speaker)
-            return f"\n[{speaker}:]"
+        anonymized_spk_prefixes = ["speaker", "spk", "locuteur"]
+        # Conversion "[speaker001:]" -> "[Intervenant 1:]"
+        for prefix in anonymized_spk_prefixes:
+            if text.lower().startswith("["+prefix):
+                try:
+                    index = int(text[len(prefix)+1:-2])
+                except ValueError:
+                    return text
+                new_spk_tag = f"[Intervenant {index}:]"
+                _reverse_tag_transfo[new_spk_tag] = text
+                if _anonymized_prefix is None:
+                    prefix = "["+prefix
+                    while len(prefix) < len(text) and text[len(prefix)] in " 0":
+                        prefix += text[len(prefix)]
+                    _anonymized_prefix = prefix
+                return "\n" + new_spk_tag
+
+        # Capitalize speaker name
+        speaker = text[1:-2]
+        speaker = capitalize(speaker)
+        new_spk_tag = f"[{speaker}:]"
+        if text != new_spk_tag:
+            _reverse_tag_transfo[new_spk_tag] = text
+        return "\n" + new_spk_tag
+
     if text == "[PII]":
         return "[Nom]"
     if text == "[NOISE]":
@@ -131,7 +178,6 @@ def format_special_characters(text):
         (r"[’‘‛ʿ]", "'"),
         ("‚", ","),
         (r"–", "-"),
-        # non
         ("[  ]", " "),  # weird whitespace
         (_non_printable_pattern, ""),  # non-printable characters
         ("·", "."),
