@@ -19,7 +19,7 @@ FR/NAMED_FreD/DEV,fr,True,False,False,True,29,1475,80257,10673,1476
 FR/NAMED_TheatreClassique,fr,True,False,True,False,4321,474740,13481842,2414441,477635
 FR/NAMED_TheatreClassique/TRAIN,fr,True,False,True,False,4305,473677,13433519,2406027,477635
 FR/NAMED_TheatreClassique/DEV,fr,True,False,True,False,16,1063,48323,8414,1065
-FR/NAMED_TheatreGratuit,fr,True,False,True,False,3738,157792,2737175,661658,157792
+FR/NAMED_TheatreGratuit,fr,True,False,True,False,3724,154961,2677450,644905,154961
 FR/OFROM,fr,False,False,False,True,151,43840,590459,1,43840
 FR/OFROM/TRAIN,fr,False,False,False,True,137,42494,549880,1,43840
 FR/OFROM/DEV,fr,False,False,False,True,14,1346,40579,0,1346
