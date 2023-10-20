@@ -32,7 +32,7 @@ FR/ORFEO_reunions-de-travail,fr,False,False,False,True,29,12222,210314,2,16010
 FR/ORFEO_reunions-de-travail/TRAIN,fr,False,False,False,True,27,11148,184610,2,16010
 FR/ORFEO_reunions-de-travail/DEV,fr,False,False,False,True,2,1074,25704,0,1472
 FR/ORFEO_valibel,fr,False,False,False,True,72,18812,469470,3,19234
-FR/OTG,fr,False,False,False,True,315,4167,27570,13,4368
+FR/OTG,fr,False,False,False,True,315,4167,27570,0,4368
 FR/PFC,fr,False,False,False,True,306,27665,464389,111447,32824
 FR/RhapsodieParisStories,fr,False,False,False,True,95,1309,56399,14001,1424
 FR/RhapsodieParisStories/TRAIN,fr,False,False,False,True,73,931,40652,10275,1424
