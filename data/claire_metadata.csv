@@ -19,7 +19,7 @@ FR/NAMED_FreD/DEV,fr,True,False,False,True,29,1475,80257,10673,1476
 FR/NAMED_TheatreClassique,fr,True,False,True,False,4321,474740,13481842,2414441,477635
 FR/NAMED_TheatreClassique/TRAIN,fr,True,False,True,False,4305,473677,13433519,2406027,477635
 FR/NAMED_TheatreClassique/DEV,fr,True,False,True,False,16,1063,48323,8414,1065
-FR/NAMED_TheatreGratuit,fr,True,False,True,False,2085,144823,2397002,593965,144825
+FR/NAMED_TheatreGratuit,fr,True,False,True,False,3738,157792,2737175,661658,157792
 FR/OFROM,fr,False,False,False,True,151,43840,590459,1,43840
 FR/OFROM/TRAIN,fr,False,False,False,True,137,42494,549880,1,43840
 FR/OFROM/DEV,fr,False,False,False,True,14,1346,40579,0,1346
@@ -32,7 +32,7 @@ FR/ORFEO_reunions-de-travail,fr,False,False,False,True,29,12222,210314,2,16010
 FR/ORFEO_reunions-de-travail/TRAIN,fr,False,False,False,True,27,11148,184610,2,16010
 FR/ORFEO_reunions-de-travail/DEV,fr,False,False,False,True,2,1074,25704,0,1472
 FR/ORFEO_valibel,fr,False,False,False,True,72,18812,469470,3,19234
-FR/OTG,fr,False,False,False,True,315,4167,27570,506,4368
+FR/OTG,fr,False,False,False,True,315,4167,27570,13,4368
 FR/PFC,fr,False,False,False,True,306,27665,464389,111447,32824
 FR/RhapsodieParisStories,fr,False,False,False,True,95,1309,56399,14001,1424
 FR/RhapsodieParisStories/TRAIN,fr,False,False,False,True,73,931,40652,10275,1424
