@@ -1,9 +1,9 @@
 import unittest
 import random
 
-from hf_files.handler import EndpointHandler
+from hf_files.v00.handler import EndpointHandler as EndpointHandlerV00
 
-class MockHandler(EndpointHandler, unittest.TestCase):
+class MockHandler(EndpointHandlerV00, unittest.TestCase):
     def __init__(self, path):
         pass
 

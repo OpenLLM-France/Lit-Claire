@@ -11,7 +11,7 @@ wd = os.path.dirname(os.path.realpath(__file__))
 from utils.run_command import run_command
 from utils.hf_upload_model import upload_to_huggingface_hub
 
-hf_files_dir = Path(os.path.join(wd, "hf_files"))
+hf_files_dir = Path(wd) / "hf_files" / "v00"
 assert os.path.isdir(hf_files_dir), f"Cannot find {hf_files_dir}"
 
 path_lit_gpt_script = os.path.join(wd, "lit_gpt", "scripts")
