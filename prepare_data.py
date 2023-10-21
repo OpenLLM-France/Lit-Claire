@@ -223,7 +223,7 @@ def prepare_fn(
             min_len = 1e10
             max_len = 0
 
-            random.seed(51) # For deterministic text augmentation
+            random.seed(num_conversations) # For deterministic text augmentation
 
             for sample in tqdm(dataset_hf["train"], total=num_conversations, unit="conversations", desc=f"{prefix} ({2 if build_it else 1}/2)"):
                 text = sample["text"]
