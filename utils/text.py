@@ -23,7 +23,7 @@ PATTERN_SPEAKER_UNANONYMIZED = re.compile(r"\[(?!speaker\d+:)([^]]+):]")
 
 PATTERN_SPECIAL = re.compile(r"\[([^\]]*)\]")
 PATTERN_SPECIAL_NOSPEAKER = re.compile(r"\[([^\]]*[^:])\]")
-PATTERN_PUNCTUATIONS = re.compile(r"[,\.!?…]")
+PATTERN_PUNCTUATIONS = re.compile(r"[,;\.!?…]|: ")
 
 
 def format_text(text, keep_specials=True):
@@ -91,7 +91,17 @@ def remove_punctuations(text):
     return collapse_whitespaces(text)
 
 def to_lower_case(text):
+    """ Lowercase all except text within brackets """
+    pattern = r'(\[[^\]]*\])|([^\[]+)'
+    result = re.sub(pattern, _lowercase_except_brackets, text)
+    return result
+
+def _lowercase_except_brackets(match):
+    text = match.group(0)
+    if text.startswith("["):
+        return text
     return text.lower()
+
 
 def capitalize(text):
     # michel JR claude-marie -> Michel JR Claude-Marie
@@ -127,7 +137,7 @@ def unanonymize_speakers(text):
     return text
 
 def has_upper_case(text):
-    return bool(re.search(r"[A-Z]", text))
+    return bool(re.search(r"[A-Z]", re.sub(r"\[[^]]+\]", "", text)))
 
 def has_speaker_id(text):
     return bool(re.search(PATTERN_SPEAKER_UNANONYMIZED, text))
