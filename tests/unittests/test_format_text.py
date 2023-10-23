@@ -103,3 +103,29 @@ class TestFormatText(unittest.TestCase):
             "Jean Jean Jean JR Jean-Claude Jean-Claude D'Estaing D'Estaing"
         )
 
+    def test_remove_empty_turns(self):
+
+        text = "[speaker001:] Je veux dire que Jean-Paul [speaker002:] [rire] [speaker001:] que tu ne peux pas [speaker002:] que je ne peux pas ?... [speaker001:] te moquer de moi comme ça! [spkeaker002:] ... [speaker001:] Bah oui [speaker002:] ..."
+        normed_text = self.normalize_text(text)
+        self.assertEqual(normed_text,
+            "[Intervenant 1:] Je veux dire que Jean-Paul que tu ne peux pas [Intervenant 2:] que je ne peux pas ?... [Intervenant 1:] te moquer de moi comme ça! Bah oui [Intervenant 2:] ...")
+
+        text = "[speaker001:] Je veux dire que Jean-Paul\n[speaker002:] [rire]\n[speaker001:] que tu ne peux pas\n[speaker002:] que je ne peux pas ?...\n[speaker001:] te moquer de moi comme ça!\n[spkeaker002:] ...\n[speaker001:] Bah oui\n[speaker002:] ..."
+        normed_text = self.normalize_text(text)
+        self.assertEqual(normed_text,
+            "[Intervenant 1:] Je veux dire que Jean-Paul que tu ne peux pas\n[Intervenant 2:] que je ne peux pas ?...\n[Intervenant 1:] te moquer de moi comme ça! Bah oui\n[Intervenant 2:] ...")
+
+        text = "[M. Jean-Marie:] Hey [Dr. Docteur JR:] Ow [M. Jean-Marie:] [blah]. [M. Hide:] Hey [M. Jean-Marie:] [re] [m. hide:] Ow"
+        normed_text = self.normalize_text(text)
+        self.assertEqual(normed_text,
+            "[M. Jean-Marie:] Hey [Dr. Docteur JR:] Ow [M. Hide:] Hey Ow"
+        )
+
+        text = "[M. Jean-Marie:] Hey\n[Dr. Docteur JR:] Ow\n[M. Jean-Marie:] [blah].\n[M. Hide:] Hey\n[M. Jean-Marie:] [re]\n[m. hide:] Ow"
+        normed_text = self.normalize_text(text)
+        self.assertEqual(normed_text,
+            "[M. Jean-Marie:] Hey\n[Dr. Docteur JR:] Ow\n[M. Hide:] Hey Ow"
+        )
+
+    def normalize_text(self, text):
+        return list(augmented_texts_generator(text, 0))[0]

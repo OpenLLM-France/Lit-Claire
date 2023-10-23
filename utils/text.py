@@ -1,4 +1,4 @@
-import re
+import regex as re
 import random
 try:
     import names
@@ -17,20 +17,21 @@ SPECIALS_TO_KEEP = [
 
 FRANCIZISE_SPECIALS = True
 
-PATTERN_SPEAKER = re.compile(r"[^\]]+:")
-PATTERN_SPEAKER_COMPLETE = re.compile(r"\[" + PATTERN_SPEAKER.pattern + r"\]")
+PATTERN_SPEAKER_INBRACKETS = re.compile(r"[^\]]+:")
+PATTERN_SPEAKER = re.compile(r"\[" + PATTERN_SPEAKER_INBRACKETS.pattern + r"\]")
 PATTERN_SPEAKER_UNANONYMIZED = re.compile(r"\[(?!speaker\d+:)([^]]+):]")
 
 PATTERN_SPECIAL = re.compile(r"\[([^\]]*)\]")
 PATTERN_SPECIAL_NOSPEAKER = re.compile(r"\[([^\]]*[^:])\]")
-PATTERN_PUNCTUATIONS = re.compile(r"[,;\.!?…]|: ")
 
+PATTERN_PUNCTUATIONS = re.compile(r"[,;\.!?…]|: ")
 
 def format_text(text, keep_specials=True):
     if keep_specials:
         text = re.sub(PATTERN_SPECIAL, _remove_all_except_specials, text)
     else:
         text = re.sub(PATTERN_SPECIAL, _remove_all_except_speakers_and_pii, text)
+    text = remove_empty_turns(text)
     return collapse_whitespaces(text)
 
 if FRANCIZISE_SPECIALS:
@@ -67,14 +68,14 @@ else:
 
 def _remove_all_except_specials(match):
     content_within_brackets = match.group(1)
-    if re.match(PATTERN_SPEAKER, content_within_brackets) or content_within_brackets in SPECIALS_TO_KEEP:
+    if re.match(PATTERN_SPEAKER_INBRACKETS, content_within_brackets) or content_within_brackets in SPECIALS_TO_KEEP:
         return format_special(match.group())
     else:
         return ""
     
 def _remove_all_except_speakers_and_pii(match):
     content_within_brackets = match.group(1)
-    if re.match(PATTERN_SPEAKER, content_within_brackets):
+    if re.match(PATTERN_SPEAKER_INBRACKETS, content_within_brackets):
         return format_special(match.group())
     elif content_within_brackets in ["Nom", "nom", "PII", "pii"]:
         return names.get_first_name()
@@ -82,8 +83,8 @@ def _remove_all_except_speakers_and_pii(match):
         return ""
 
 def collapse_whitespaces(text):
-    text = re.sub(r" +", " ", text)
-    text = re.sub(r" ([\.,])", r"\1", text)
+    text = re.sub(r"[\t ]+", " ", text)
+    text = re.sub(r"(\w) ([\.,])", r"\1\2", text)
     return text.strip()
 
 def remove_punctuations(text):
@@ -116,7 +117,7 @@ def capitalize(text):
 def anonymize_speakers(text):
     # Get all speakers
     speakers = [] 
-    [speakers.append(x) for x in re.findall(PATTERN_SPEAKER_COMPLETE, text) if x not in speakers] 
+    [speakers.append(x) for x in re.findall(PATTERN_SPEAKER, text) if x not in speakers] 
     new_speakers = [speaker_tag(i) for i in range(len(speakers))]
     for spk, nspk in zip(speakers, new_speakers):
         text = text.replace(spk, nspk)
@@ -125,7 +126,7 @@ def anonymize_speakers(text):
 def unanonymize_speakers(text):
     # Get all speakers
     speakers = [] 
-    [speakers.append(x) for x in re.findall(PATTERN_SPEAKER_COMPLETE, text) if x not in speakers] 
+    [speakers.append(x) for x in re.findall(PATTERN_SPEAKER, text) if x not in speakers] 
     if random.random() < 0.5:
         # Use first names only
         new_speakers = [f"[{names.get_first_name()}:]" for i in range(len(speakers))]
@@ -147,6 +148,17 @@ def has_punctuation(text):
 
 def has_specials(text):
     return bool(re.search(PATTERN_SPECIAL_NOSPEAKER, text))
+
+def remove_empty_turns(text):
+    if re.search(PATTERN_EMPTY_TURN, text):
+        # Remove empty turns
+        text = re.sub(PATTERN_EMPTY_TURN, r"\1", text)
+        # Remove same speaker speaking twice
+        text = re.sub(PATTERN_REPEATED_TURN, r"\1 \2", text)
+    return text
+
+PATTERN_EMPTY_TURN = re.compile(PATTERN_SPEAKER.pattern + r"[^\p{L}]*" + "("+PATTERN_SPEAKER.pattern+")")
+PATTERN_REPEATED_TURN = re.compile(r"("+PATTERN_SPEAKER.pattern+r") ([^:]*)\s\1")
 
 def augmented_texts_generator(text, max_variants=4, force_augmentation=False, keep_specials=False):
     """
@@ -222,7 +234,7 @@ if __name__ == "__main__":
 
     INCLUDE_LINE_BREAKS = False
     if INCLUDE_LINE_BREAKS:
-        text = re.sub(r" ("+PATTERN_SPEAKER_COMPLETE.pattern+r")", r"\n\1", text)
+        text = re.sub(r" ("+PATTERN_SPEAKER.pattern+r")", r"\n\1", text)
     def format_stdout(text):
         return text.replace("\n", "\\n")
     print("Original      :", format_stdout(text))
