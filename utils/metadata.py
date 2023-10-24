@@ -36,7 +36,7 @@ group_to_datasets = {}
 for dataset, group in list(dataset_to_group.items()):
     assert dataset in METADATA_DICT, f"Dataset {dataset} not in metadata."
     assert group not in METADATA_DICT, f"Dataset {group} already in metadata."
-    for subset in "", "/TRAIN", "/DEV":
+    for subset in "", "/TRAIN", "/TEST":
         group_to_datasets[group+(subset or "/TRAIN")] = group_to_datasets.get(group+subset, []) + [dataset+subset]
         dataset_to_group[dataset+subset] = group+(subset or "/TRAIN")
 
@@ -104,8 +104,8 @@ def get_pseudo(path):
         foldername = os.path.dirname(path)
         if filename in ["train"]:
             foldername += "/TRAIN"
-        elif filename in ["dev"]:
-            foldername += "/DEV"
+        elif filename in ["test", "dev"]:
+            foldername += "/TEST"
         try:
             return get_pseudo(foldername)
         except RuntimeError as e:

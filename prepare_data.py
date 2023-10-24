@@ -43,7 +43,7 @@ def prepare_fn(
     pad_id=-1,
     filename_full="full.txt",
     filename_train="train.txt",
-    filename_dev="dev.txt",
+    filename_dev="test.txt",
     skip_if_exists=True,
     update_metadata=False,
     cut_around_turns=True,

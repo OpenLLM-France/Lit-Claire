@@ -52,7 +52,7 @@ def create_dataloaders(
     if language:
         all_prefixes = [p for p in all_prefixes if p.startswith(language.upper())]
 
-    prefixes_dev = [p for p in all_prefixes if "--DEV" in p]
+    prefixes_dev = [p for p in all_prefixes if ("--TEST" in p or "--DEV" in p)]
     prefixes_train = [p for p in all_prefixes if p not in prefixes_dev]
 
     if try_small:
