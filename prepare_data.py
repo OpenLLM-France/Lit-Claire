@@ -102,7 +102,8 @@ def prepare_fn(
         dtype = np.int32
 
     # Get tokens around tags for turns
-    tag_tokens = [tokenizer.encode(s, bos=False, eos=False) for s in ("[speaker001:]", "[Intervenant 1:]", "[A:]")]
+    simple_chars = ["[" + chr(o) + ":]" for o in list(range(65,90+1)) + list(range(48,57+1)) + list(range(192, 212+1))]  # A-Z0-9À...
+    tag_tokens = [tokenizer.encode(s, bos=False, eos=False) for s in ["[speaker001:]", "[Intervenant 1:]"] + simple_chars]
     dtype_torch = tag_tokens[0].dtype
     if cut_around_turns:
         tag_tokens = [t.tolist() for t in tag_tokens]
