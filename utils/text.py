@@ -16,6 +16,7 @@ SPECIALS_TO_KEEP = [
 ]
 
 FRANCIZISE_SPECIALS = True
+USE_DASHES = True
 
 PATTERN_SPEAKER_INBRACKETS = re.compile(r"[^\]]+:")
 PATTERN_SPEAKER = re.compile(r"\[" + PATTERN_SPEAKER_INBRACKETS.pattern + r"\]")
@@ -46,7 +47,7 @@ if FRANCIZISE_SPECIALS:
                 # "[claude-marie Claude-Marie JR:]" -> "[Claude-Marie Claude-Marie JR:]"
                 speaker = text[1:-2]
                 speaker = capitalize(speaker)
-                assert re.match(r"[A-ZÉÈËÊÔÀÁÂ]", speaker), f"Unexpected speaker {speaker}"
+                assert re.match(r"[A-ZÉÈËÊÔÀÁÂ0-9]", speaker), f"Unexpected speaker {speaker}"
                 return f"[{speaker}:]"
         if text == "[PII]":
             return "[Nom]"
@@ -84,7 +85,9 @@ def _remove_all_except_speakers_and_pii(match):
 
 def collapse_whitespaces(text):
     text = re.sub(r"[\t ]+", " ", text)
+    # Remove extra spaces that could appear when removing special tags
     text = re.sub(r"(\w) ([\.,])", r"\1\2", text)
+    text = re.sub(r"\s+\n", "\n", text)
     return text.strip()
 
 def remove_punctuations(text):
@@ -137,6 +140,9 @@ def unanonymize_speakers(text):
         text = text.replace(spk, nspk)
     return text
 
+def dash_speakers(text):
+    return re.sub(PATTERN_SPEAKER, "-", text)
+
 def has_upper_case(text):
     return bool(re.search(r"[A-Z]", re.sub(r"\[[^]]+\]", "", text)))
 
@@ -159,6 +165,7 @@ def remove_empty_turns(text):
 
 PATTERN_EMPTY_TURN = re.compile(PATTERN_SPEAKER.pattern + r"[^\p{L}]*" + "("+PATTERN_SPEAKER.pattern+")")
 PATTERN_REPEATED_TURN = re.compile(r"("+PATTERN_SPEAKER.pattern+r") ([^:]*)\s\1")
+PATTERN_SPEAKER_LOOSE = re.compile(r"\s*"+PATTERN_SPEAKER.pattern+r"\s*")
 
 def augmented_texts_generator(text, max_variants=4, force_augmentation=False, keep_specials=False):
     """
@@ -199,9 +206,23 @@ def augmented_texts_generator(text, max_variants=4, force_augmentation=False, ke
         yield text2
     else:
         text2 = unanonymize_speakers(text1)
-        yield text2            
+        yield text2
 
-    for text in text1, text2:
+    texts = [text1, text2]
+
+    if USE_DASHES:
+        text3 = None
+        num_speakers = len(set(re.findall(PATTERN_SPEAKER, text)))
+        assert num_speakers
+        if num_speakers == 2:
+            text3 = dash_speakers(text1)
+        elif num_speakers == 1:
+            text3 = re.sub(PATTERN_SPEAKER_LOOSE, "", text1)
+        if text3:
+            yield text3
+            texts.append(text3)
+
+    for text in texts:
         has_lower_cased = False
         if (do_lower_case and do_remove_punc) and random.random() < 0.5:
             # lowercase first 
