@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=pretrain_lora
-#SBATCH --gres=gpu:8
-#SBATCH --ntasks-per-node=8
+#SBATCH --gres=gpu:4
+#SBATCH --ntasks-per-node=4
 #SBATCH --nodes=1
 #SBATCH --hint=nomultithread
-#SBATCH --time=20:00:00
+#SBATCH --time=20:05:00
 #SBATCH --qos=qos_gpu-t3
 #SBATCH --cpus-per-task=8
 #SBATCH -C a100
@@ -19,13 +19,13 @@ conda activate claire
 set -x
 
 MODEL=tiiuae/falcon-7b
-OUTDIR=$SCRATCH/../commun/Claire/pretrain-Claire-7B-v0.05/lora/$MODEL
+OUTDIR=$SCRATCH/../commun/Claire/pretrain/pretrain-Claire-7B-v0.0.2/lora/$MODEL
 mkdir -p $OUTDIR
 
 # execute script
-srun --output=$OUTDIR/pretrain_lora.out --error=$OUTDIR/pretrain_lora.out \
+srun --output=$OUTDIR/training_log.out --error=$OUTDIR/training_log.out \
 python pretrain.py \
---devices 8 \
+--devices 4 \
 --num_nodes 1 \
 --data_dir $SCRATCH/../commun/preprocessed_data/Claire/lit-gpt/padded_8_grouped/$MODEL \
 --checkpoint_dir $WORK/../commun/Claire/checkpoints/$MODEL \
@@ -33,6 +33,8 @@ python pretrain.py \
 --out_dir $OUTDIR \
 --precision bf16-true \
 --num_epochs 1000 \
---max_checkpoints 20 \
+--max_checkpoints 39 \
 --enable_validation true \
---early_stopping 2 \
+--save_interval 1800 \
+--eval_interval 1800 \
+--early_stopping 4 \

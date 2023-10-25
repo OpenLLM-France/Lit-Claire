@@ -103,9 +103,9 @@ python pretrain.py \
 sbatch slurm/pretrain_<<version>>.slurm
 ```
 In the `.slurm` file, these 3 arguments should be equal:
-- `#SBATCH --gres=gpu:2`
-- `#SBATCH --ntasks-per-node=2`
-- `srun python pretrain.py --devices 2`
+- `#SBATCH --gres=gpu:8`
+- `#SBATCH --ntasks-per-node=8`
+- `srun python pretrain.py --devices 8`
   
 These 2 arguments should be equal:
 - `#SBATCH --nodes=1`
@@ -126,7 +126,7 @@ cancel the job with `scancel 100813`, connect to the node with `ssh jean-zay-iam
 MODEL=tiiuae/falcon-7b
 DATA_DIR=$SCRATCH/../commun/preprocessed_data/Claire/lit-gpt/padded_8_grouped/$MODEL
 FOUNDATION_MODEL_DIR=$WORK/../commun/Claire/checkpoints/$MODEL
-TRAINING_DIR=$SCRATCH/../commun/Claire/pretrain-Claire-7B-v0.06_mono/lora/$MODEL
+TRAINING_DIR=$SCRATCH/../commun/Claire/pretrain/pretrain-Claire-7B-v0.0.1/lora/$MODEL
 
 srun --ntasks=1 --gres=gpu:1 -C a100 --qos=qos_gpu-dev \
 --output=$OUTDIR/validation.out --error=$OUTDIR/validation.out \
