@@ -165,7 +165,7 @@ def create_dataloader(
             "num_files": len(filenames),
             "n_chunks": n_chunks,
             "num_processes": num_processes_this,
-            "num_batches": round(num_samples // batch_size),
+            "num_batches": math.ceil(num_samples / batch_size),
         })
 
         kwargs = dict(
@@ -366,7 +366,8 @@ if __name__ == "__main__":
     iter_parser.add_argument("--max_valid_iters", type=int, default=0, help="Max. number of validation batches to iterate over")
     iter_parser.add_argument("--wrap_validation", default=False, action="store_true")
     iter_parser.add_argument("--inspect", default=False, action="store_true", help="Inspect from which dataset comes each sample")
-    iter_parser.add_argument("--show_samples", type=int, nargs="*", help="Index of dataset from which to show samples (0, 1, ...)")
+    iter_parser.add_argument("--short_samples", default=False, action="store_true", help="Show shortened samples")
+    iter_parser.add_argument("--filter_samples", type=int, nargs="*", help="Index of dataset from which to show samples (0, 1, ...)")
     iter_parser.add_argument("-o", "--output", help="output folder", default=None)
     args = parser.parse_args()
 
@@ -489,11 +490,12 @@ if __name__ == "__main__":
                         assert which_index is not None
                         new_batch.append((which_dataset, which_index) if which_dataset >= 0 else None)
                         stats[which_dataset] = stats.get(which_dataset, 0) + 1
-                    if not args.inspect or (args.show_samples and which_dataset in args.show_samples):
+                    if not args.inspect or (args.filter_samples and which_dataset in args.filter_samples):
                         sample_text = tokenizer.decode(sample.clamp_min(0)).replace("\n", "\\n")
+                        short_sample_text = (sample_text[:60] + " [...] " + sample_text[-60:]) if len(sample_text) > 120 else sample_text
                         if not sample_text:
                             sample_text = "***"
-                        print(sample_text[:100])
+                        print(short_sample_text)
                         if args.output:
                             if not is_list_of_datasets:
                                 assert which_dataset is not None
@@ -501,7 +503,7 @@ if __name__ == "__main__":
                                 if dataset_name not in output_filenames:
                                     output_filenames[dataset_name] = open(os.path.join(args.output, f"COMBINED_{max_validation_samples}_" + dataset_name.replace("/","_")+".txt"), "w")
                                 output_file = output_filenames[dataset_name]
-                            print(sample_text, file=output_file)
+                            print(short_sample_text if args.short_samples else sample_text, file=output_file)
                 if do_inspect and len(new_batch) != batch_size:
                     print(f"WARNING: Batch size is {len(new_batch)} instead of {batch_size}")
                 sample_indices += new_batch
