@@ -50,7 +50,8 @@ FR/ORFEO_fleuron/TEST,fr,False,False,False,True,2,50,846,0,50
 FR/ORFEO_reunions-de-travail,fr,False,False,False,True,29,12222,210314,2,16010
 FR/ORFEO_reunions-de-travail/TRAIN,fr,False,False,False,True,27,11148,184610,2,16010
 FR/ORFEO_reunions-de-travail/TEST,fr,False,False,False,True,2,1074,25704,0,1472
-FR/ORFEO_valibel,fr,False,False,False,True,72,18812,469470,1,19234
+FR/ORFEO_valibel_discourse,fr,False,False,False,True,5,5,11790,0,5
+FR/ORFEO_valibel_interview,fr,False,False,False,True,67,18807,457676,1,19229
 FR/OTG,fr,False,False,False,True,315,4167,27455,0,4368
 FR/PFC_free,fr,False,False,False,True,146,14413,230775,51479,17109
 FR/PFC_guided,fr,False,False,False,True,173,14894,267643,58398,17354
