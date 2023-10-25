@@ -45,14 +45,16 @@ FR/OFROM/TEST,fr,False,False,False,True,14,1346,40579,0,1346
 FR/ORFEO_coralrom,fr,False,False,False,True,152,6215,248025,0,7186
 FR/ORFEO_crfp,fr,False,False,False,True,124,9153,405182,0,9661
 FR/ORFEO_fleuron,fr,False,False,False,True,51,2220,32533,0,2372
-FR/ORFEO_fleuron/TRAIN,fr,False,False,False,True,49,2170,31687,0,2372
-FR/ORFEO_fleuron/TEST,fr,False,False,False,True,2,50,846,0,50
+FR/ORFEO_fleuron/TRAIN,fr,False,False,False,True,49,2160,31349,0,2372
+FR/ORFEO_fleuron/TEST,fr,False,False,False,True,2,60,1184,0,65
 FR/ORFEO_reunions-de-travail,fr,False,False,False,True,29,12222,210314,2,16010
 FR/ORFEO_reunions-de-travail/TRAIN,fr,False,False,False,True,27,11148,184610,2,16010
 FR/ORFEO_reunions-de-travail/TEST,fr,False,False,False,True,2,1074,25704,0,1472
 FR/ORFEO_valibel_discourse,fr,False,False,False,True,5,5,11790,0,5
 FR/ORFEO_valibel_interview,fr,False,False,False,True,67,18807,457676,1,19229
 FR/OTG,fr,False,False,False,True,315,4167,27455,0,4368
+FR/OTG/TRAIN,fr,False,False,False,True,314,4150,27370,0,4368
+FR/OTG/TEST,fr,False,False,False,True,1,17,85,0,18
 FR/PFC_free,fr,False,False,False,True,146,14413,230775,51479,17109
 FR/PFC_guided,fr,False,False,False,True,173,14894,267643,58398,17354
 FR/ParisStories,fr,False,False,False,True,54,351,28361,6634,382
@@ -63,6 +65,8 @@ FR/Rhapsodie/TRAIN,fr,False,False,False,True,32,719,19018,5441,1042
 FR/Rhapsodie/TEST,fr,False,False,False,True,9,239,9020,1926,252
 FR/TCOF_Adults,fr,False,False,False,True,237,49112,765124,5935,68127
 FR/UBS,fr,False,False,False,True,41,952,7274,0,1186
+FR/UBS/TRAIN,fr,False,False,False,True,40,916,6921,0,1186
+FR/UBS/TEST,fr,False,False,False,True,1,36,353,0,36
 EN/AMI,en,False,False,False,True,139,75194,712099,118122,115909
 EN/AMI/TRAIN,en,False,False,False,True,119,64508,603594,100563,115909
 EN/AMI/TEST,en,False,False,False,True,20,10686,108505,17559,15968
