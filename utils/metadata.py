@@ -76,7 +76,10 @@ def accumulate_metadata_by_group(datasets, metadatas=None):
 # Add sampling weights
 def get_scaled_num_samples(metadata):
     num_samples = metadata["words"] + metadata["turns"]
-    if not metadata["spontaneous"]:
+    # penalty factors
+    if not metadata["spontaneous"]: # Theatre, Assemblée Nationale...
+        num_samples /= 4
+    if "AssembleeNationale" in metadata["dataset"]: # Assemblée Nationale...
         num_samples /= 4
     return num_samples
 
