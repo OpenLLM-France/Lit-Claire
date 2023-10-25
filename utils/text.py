@@ -194,8 +194,13 @@ def augmented_texts_generator(text, max_variants=4, force_augmentation=False, ke
     do_anonymize = has_speaker_id(text)
     do_lower_case = has_upper_case(text)
     do_remove_punc = has_punctuation(text)
+    if USE_DASHES:
+        num_speakers = len(set(re.findall(PATTERN_SPEAKER, text)))
+        assert num_speakers
+    else:
+        num_speakers = 0
 
-    # print(f"{do_specials=} {do_anonymize=} {do_lower_case=} {do_remove_punc=}")
+    # print(f"{do_specials=} {do_anonymize=} {do_lower_case=} {do_remove_punc=} {num_speakers=}")
 
     if do_specials:
         text1 = format_text(text1, keep_specials=False)
@@ -210,17 +215,14 @@ def augmented_texts_generator(text, max_variants=4, force_augmentation=False, ke
 
     texts = [text1, text2]
 
-    if USE_DASHES:
-        text3 = None
-        num_speakers = len(set(re.findall(PATTERN_SPEAKER, text)))
-        assert num_speakers
-        if num_speakers == 2:
-            text3 = dash_speakers(text1)
-        elif num_speakers == 1:
-            text3 = re.sub(PATTERN_SPEAKER_LOOSE, "", text1)
-        if text3:
-            yield text3
-            texts.append(text3)
+    text3 = None
+    if num_speakers == 2:
+        text3 = dash_speakers(text1)
+    elif num_speakers == 1:
+        text3 = re.sub(PATTERN_SPEAKER_LOOSE, "", text1)
+    if text3:
+        yield text3
+        texts.append(text3)
 
     for text in texts:
         has_lower_cased = False
