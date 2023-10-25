@@ -133,7 +133,7 @@ def prepare_fn(
         num_conversations = int(metadata["conversations"])
         is_spontaneous = metadata["spontaneous"]
         assert is_spontaneous in [True, False]
-        augmentation_level = 4 if is_spontaneous else 1
+        augmentation_level = 8 if is_spontaneous else 1
         force_augmentation = True
 
         # Do not augment validation
