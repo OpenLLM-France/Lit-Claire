@@ -173,7 +173,8 @@ def augmented_texts_generator(text, max_variants=4, force_augmentation=False, ke
     max_variants: maximum number of variants returned
     force_augmentation: if True when max_variants=0, return a random augmentation (including original text normalized)
     """
-    if bool(max_variants) or (max_variants == 0 and force_augmentation):
+    only_one_variant = (max_variants == 1)
+    if not only_one_variant and (bool(max_variants) or (max_variants == 0 and force_augmentation)):
         all_variants = list(augmented_texts_generator(text, max_variants=None))
         if max_variants:
             # Provide normalized text first
@@ -191,7 +192,8 @@ def augmented_texts_generator(text, max_variants=4, force_augmentation=False, ke
         return
 
     do_specials = keep_specials and has_specials(text1)
-    do_anonymize = has_speaker_id(text)
+    do_anonymize = True
+    can_anonymize = has_speaker_id(text)
     do_lower_case = has_upper_case(text)
     do_remove_punc = has_punctuation(text)
     if USE_DASHES:
@@ -200,20 +202,33 @@ def augmented_texts_generator(text, max_variants=4, force_augmentation=False, ke
     else:
         num_speakers = 0
 
-    # print(f"{do_specials=} {do_anonymize=} {do_lower_case=} {do_remove_punc=} {num_speakers=}")
+    if only_one_variant:
+        # print(f"Original: {do_specials=} {do_anonymize=} {do_lower_case=} {do_remove_punc=} {num_speakers=}")
+
+        do_dash = num_speakers in [1, 2]
+        # Optimized path for single variant: (because processing big corpus like "Assemblée Nationale" was taking too long)
+        # We randomly choose
+        do_specials, do_anonymize, do_lower_case, do_remove_punc, do_dash = randomize_boolean_variables(do_specials, do_anonymize, do_lower_case, do_remove_punc, do_dash)
+        if not do_dash:
+            num_speakers = 0
+
+    # print(f"Applying: {do_specials=} {do_anonymize=} {do_lower_case=} {do_remove_punc=} {num_speakers=}")
 
     if do_specials:
         text1 = format_text(text1, keep_specials=False)
-        yield text1
+        if not only_one_variant:
+            yield text1
 
     if do_anonymize:
-        text2 = anonymize_speakers(text1)
-        yield text2
+        if can_anonymize:
+            text2 = anonymize_speakers(text1)
+        else:
+            text2 = unanonymize_speakers(text1)
+        if not only_one_variant:
+            yield text2
+        texts = [text1, text2]
     else:
-        text2 = unanonymize_speakers(text1)
-        yield text2
-
-    texts = [text1, text2]
+        texts= [text1]
 
     text3 = None
     if num_speakers == 2:
@@ -221,8 +236,11 @@ def augmented_texts_generator(text, max_variants=4, force_augmentation=False, ke
     elif num_speakers == 1:
         text3 = re.sub(PATTERN_SPEAKER_LOOSE, "", text1)
     if text3:
-        yield text3
-        texts.append(text3)
+        if not only_one_variant:
+            yield text3
+            texts.append(text3)
+        else:
+            texts = [text3]
 
     for text in texts:
         has_lower_cased = False
@@ -231,13 +249,42 @@ def augmented_texts_generator(text, max_variants=4, force_augmentation=False, ke
             if do_lower_case:
                 text = to_lower_case(text)
                 has_lower_cased = True
-                yield text
+                if not only_one_variant:
+                    yield text
         if do_remove_punc:
             text = remove_punctuations(text)
-            yield text
+            if not only_one_variant:
+                yield text
         if do_lower_case and not has_lower_cased:
             text = to_lower_case(text)
-            yield text
+            if not only_one_variant:
+                yield text
+    
+    if only_one_variant:
+        yield text
+
+
+def randomize_boolean_variables(*variables):
+    variables = list(variables)
+
+    # Create a list of indices for True variables
+    true_indices = [i for i, var in enumerate(variables) if var]
+
+    # Ends early if not True variables
+    if not true_indices:
+        return variables
+
+    # Randomly choose one of the True variables to keep as True
+    random.shuffle(true_indices)
+    num_to_turn_on = random.randint(1, len(true_indices))
+    true_to_keep = true_indices[:num_to_turn_on]
+
+    # Randomly change the status of the other True variables to False
+    for i in true_indices:
+        if i not in true_to_keep:
+            variables[i] = False
+
+    return variables
 
 
 if __name__ == "__main__":
