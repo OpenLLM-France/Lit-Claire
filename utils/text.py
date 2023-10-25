@@ -47,7 +47,7 @@ if FRANCIZISE_SPECIALS:
                 # "[claude-marie Claude-Marie JR:]" -> "[Claude-Marie Claude-Marie JR:]"
                 speaker = text[1:-2]
                 speaker = capitalize(speaker)
-                assert re.match(r"[A-ZÉÈËÊÔÀÁÂ0-9]", speaker), f"Unexpected speaker {speaker}"
+                assert re.match(r"[A-ZÉÈËÊÔÀÁÂ0-9]", speaker), f"Unexpected speaker {text} ({[ord(c) for c in text[:6]]}) -> {speaker}"
                 return f"[{speaker}:]"
         if text == "[PII]":
             return "[Nom]"
