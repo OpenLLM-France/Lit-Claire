@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=pretrain_lora
+#SBATCH --job-name=v0.0.2
 #SBATCH --gres=gpu:4
 #SBATCH --ntasks-per-node=4
 #SBATCH --nodes=1
 #SBATCH --hint=nomultithread
-#SBATCH --time=20:05:00
+#SBATCH --time=20:00:00
 #SBATCH --qos=qos_gpu-t3
 #SBATCH --cpus-per-task=8
 #SBATCH -C a100
@@ -25,7 +25,7 @@ mkdir -p $OUTDIR
 # execute script
 srun --output=$OUTDIR/training_log.out --error=$OUTDIR/training_log.out \
 python pretrain.py \
---devices 4 \
+--devices 2 \
 --num_nodes 1 \
 --data_dir $SCRATCH/../commun/preprocessed_data/Claire/lit-gpt/padded_8_grouped/$MODEL \
 --checkpoint_dir $WORK/../commun/Claire/checkpoints/$MODEL \
@@ -37,4 +37,4 @@ python pretrain.py \
 --enable_validation true \
 --save_interval 1800 \
 --eval_interval 1800 \
---early_stopping 4 \
+--early_stopping 4
