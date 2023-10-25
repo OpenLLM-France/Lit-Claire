@@ -1,6 +1,5 @@
 dataset,language,named,asr,text,spontaneous,conversations,turns,words,punctuation,special
 FR/ACSYNT,fr,False,False,False,True,144,2718,61570,2847,3204
-FR/ASR_Old_MINEFI,fr,False,True,False,True,27,6587,925769,38616,6587
 FR/ASR_Whisper_SUMM-RE,fr,False,True,False,True,283,38577,1306988,99458,38577
 FR/ASR_Whisper_SUMM-RE/TRAIN,fr,False,True,False,True,210,27482,960466,72730,38577
 FR/ASR_Whisper_SUMM-RE/TEST,fr,False,True,False,True,73,11095,346522,26728,11095
@@ -24,13 +23,18 @@ FR/LINAGORA_discourse/TRAIN,fr,False,False,False,True,3,1234,30933,7383,1601
 FR/LINAGORA_discourse/TEST,fr,False,False,False,True,1,298,7513,2179,322
 FR/LINAGORA_free,fr,False,False,False,True,4,2002,26072,7050,2057
 FR/LINAGORA_meetings,fr,False,False,False,True,6,1873,41521,8306,2027
-FR/NAMED_AssembleeNationale,fr,True,False,False,False,4494,1625289,133029106,13051656,1625289
-FR/NAMED_AssembleeNationale/TRAIN,fr,True,False,False,False,4488,1622928,132884325,13037458,1625289
-FR/NAMED_AssembleeNationale/TEST,fr,True,False,False,False,6,2361,144781,14198,2361
+FR/NAMED_AssembleeNationale/TEST,fr,True,False,False,False,9,2361,144781,14198,2361
+FR/NAMED_AssembleeNationale_13,fr,True,False,False,False,1249,444010,35517494,3591544,444010
+FR/NAMED_AssembleeNationale_13/TRAIN,fr,True,False,False,False,1248,443992,35516183,3591394,444010
+FR/NAMED_AssembleeNationale_14,fr,True,False,False,False,1321,455032,38867348,3799361,455032
+FR/NAMED_AssembleeNationale_14/TRAIN,fr,True,False,False,False,1320,454773,38843073,3796965,455032
+FR/NAMED_AssembleeNationale_15,fr,True,False,False,False,1541,558183,47754455,4634434,558183
+FR/NAMED_AssembleeNationale_15/TRAIN,fr,True,False,False,False,1539,557098,47683661,4627624,558183
+FR/NAMED_AssembleeNationale_16,fr,True,False,False,False,383,168064,10889809,1026317,168064
+FR/NAMED_AssembleeNationale_16/TRAIN,fr,True,False,False,False,381,167065,10841408,1021475,168064
 FR/NAMED_FreD,fr,True,False,False,True,144,7080,406421,56195,7083
 FR/NAMED_FreD/TRAIN,fr,True,False,False,True,115,5605,326164,45522,7083
 FR/NAMED_FreD/TEST,fr,True,False,False,True,29,1475,80257,10673,1476
-FR/NAMED_Senat,fr,True,False,False,False,739,396039,53975061,5430262,396039
 FR/NAMED_TheatreClassique,fr,True,False,True,False,27085,478274,13600225,2434771,478795
 FR/NAMED_TheatreClassique/TRAIN,fr,True,False,True,False,26910,475430,13514982,2419378,478795
 FR/NAMED_TheatreClassique/TEST,fr,True,False,True,False,175,2844,85243,15393,2850
@@ -57,8 +61,7 @@ FR/Rhapsodie,fr,False,False,False,True,41,958,28038,7367,1042
 FR/Rhapsodie/TRAIN,fr,False,False,False,True,32,719,19018,5441,1042
 FR/Rhapsodie/TEST,fr,False,False,False,True,9,239,9020,1926,252
 FR/TCOF_Adults,fr,False,False,False,True,237,49112,765124,5935,68127
-FR/TCOF_Children,fr,False,False,False,True,382,97696,740778,32744,178398
-FR/UBS,fr,False,False,False,True,41,804,7274,1,1038
+FR/UBS,fr,False,False,False,True,41,952,7274,0,1186
 EN/AMI,en,False,False,False,True,139,75194,712099,118122,115909
 EN/AMI/TRAIN,en,False,False,False,True,119,64508,603594,100563,115909
 EN/AMI/TEST,en,False,False,False,True,20,10686,108505,17559,15968
@@ -114,3 +117,6 @@ EN/OANC_Charlotte,en,False,False,False,True,73,2655,134355,23453,2684
 EN/OANC_Switchboard,en,False,False,False,True,3460,286988,4598204,377007,306842
 EN/OANC_Switchboard/TRAIN,en,False,False,False,True,3212,264280,4274821,334982,306842
 EN/OANC_Switchboard/TEST,en,False,False,False,True,248,22708,323383,42025,24946
+discarded/FR/ASR_Old_MINEFI,fr,False,True,False,True,27,6587,925769,38616,6587
+discarded/FR/NAMED_Senat,fr,True,False,False,False,739,396039,53975061,5430262,396039
+discarded/FR/TCOF_Children,fr,False,False,False,True,382,97696,740778,32744,178398

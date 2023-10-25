@@ -71,20 +71,19 @@ def prepare_fn(
     all_files = {}
     for root, dirs, files in os.walk(source_path, followlinks=True):
         root = os.path.realpath(root)
-        for file in files:
-            if file == filename_full:
-                files_for_this_dataset = [file]
-                if filename_train in files:
-                    files_for_this_dataset = [filename_train]
-                if filename_dev in files:
-                    files_for_this_dataset += [filename_dev]
-                    if file in files_for_this_dataset:
-                        files_for_this_dataset.remove(file)
-                for f in files_for_this_dataset:
-                    filepath = os.path.join(root, f)
-                    metadata = get_metadata(filepath)
-                    metadata["is_dev"] = (f == filename_dev)
-                    all_files[filepath] = metadata
+        files_for_this_dataset = []
+        if filename_train in files:
+            files_for_this_dataset = [filename_train]
+        elif filename_full in files:
+            files_for_this_dataset = [filename_full]
+        if filename_dev in files:
+            assert filename_full not in files_for_this_dataset
+            files_for_this_dataset += [filename_dev]
+        for f in files_for_this_dataset:
+            filepath = os.path.join(root, f)
+            metadata = get_metadata(filepath)
+            metadata["is_dev"] = (f == filename_dev)
+            all_files[filepath] = metadata
 
     if group_datasets_by_genre:
         # Group files together

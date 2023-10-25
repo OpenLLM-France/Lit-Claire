@@ -34,11 +34,14 @@ with open(groups_filename, "r") as jsonfile:
     dataset_to_group = json.load(jsonfile)
 group_to_datasets = {}
 for dataset, group in list(dataset_to_group.items()):
-    assert dataset in METADATA_DICT, f"Dataset {dataset} not in metadata."
     assert group not in METADATA_DICT, f"Dataset {group} already in metadata."
     for subset in "", "/TRAIN", "/TEST":
+        if dataset+subset not in METADATA_DICT:
+            continue
+        has_found_one = True
         group_to_datasets[group+(subset or "/TRAIN")] = group_to_datasets.get(group+subset, []) + [dataset+subset]
         dataset_to_group[dataset+subset] = group+(subset or "/TRAIN")
+    assert has_found_one, f"Dataset {dataset} not found in metadata."
 
 def accumulate_metadata_by_group(datasets, metadatas=None):
     if metadatas is None:
