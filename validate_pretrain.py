@@ -82,7 +82,7 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
     checkpoints = sorted(checkpoints, key=lambda x: get_iter_info(x)["iter"])
 
     if os.path.isdir(out_dir / "src"):
-        for file in __file__, os.path.join(this_folder, "merge_lora.py"), :
+        for file in __file__, os.path.join(this_folder, "utils", "merge_lora.py"), :
             shutil.copy2(file, out_dir / "src" / os.path.basename(file))
 
     check_valid_checkpoint_dir(checkpoint_dir)  # check if there is lit-gpt format model
@@ -135,8 +135,8 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
 
             if use_lora:
                 model = merge_lora(
-                    lora_path=checkpoint_path,
-                    checkpoint_dir=checkpoint_dir,
+                    lora_path=Path(checkpoint_path),
+                    checkpoint_dir=Path(checkpoint_dir),
                     model=None,
                     fabric=fabric,
                 )
@@ -181,7 +181,7 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
                 # break
 
             # Test one checkpoint at a time to avoid bugs...
-            break
+            # break
 
 def get_iter_info(checkpoint_path):
     iter_num = int(os.path.basename(checkpoint_path).split("-")[1])
