@@ -79,7 +79,7 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
 
     checkpoints = [os.path.join(out_dir, f) for f in os.listdir(out_dir) if f.endswith(".pth") and f.startswith("iter-")]
     assert len(checkpoints) > 0, f"No checkpoints found in {out_dir}"    
-    checkpoints = sorted(checkpoints, key=lambda x: get_iter_info(x)["iter"])
+    checkpoints = sorted(checkpoints, key=lambda x: get_iter_info(x)["iter"], reverse=True)
 
     if os.path.isdir(out_dir / "src"):
         for file in __file__, os.path.join(this_folder, "utils", "merge_lora.py"), :
