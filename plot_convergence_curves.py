@@ -115,6 +115,8 @@ if __name__ == "__main__":
     XTICKS_MIN_POINTS = 5
     XTICKS_MAX_POINTS = 20
     XTICKS_STEPS = [1, 2, 5] # Then multiple of 10
+    PLOT_BEST_IN_LEGEND = True
+    DISABLE_OFFLINE_VALIDATION = False
 
     num_expes = len(args.folders)
     num_columns = num_expes # 1
@@ -182,7 +184,10 @@ if __name__ == "__main__":
                         # Look at modification times
                         if os.path.getmtime(os.path.join(root, filename)) > os.path.getmtime(training_file):
                             training_file = os.path.join(root, filename)
-        
+
+        if DISABLE_OFFLINE_VALIDATION:
+            validation_file = None
+
         # assert validation_file is not None, f"Could not find validation_results.csv in {args.folder}"
         assert training_file is not None, f"Could not find metrics.csv in {args.folder}"
 
@@ -222,16 +227,6 @@ if __name__ == "__main__":
             sorted_names = sorted(conv_validation.keys(), key = lambda name: name_order(name))
 
             for ivalid, name in enumerate(sorted_names):
-                empty = not conv_validation[name]
-                if not empty:
-                    x, y, _ = zip(*sorted(conv_validation[name]))
-                    ax.plot(x, y, label=format_dataset_name(name),
-                        marker="+" if name != "Validation" else None,
-                        linewidth = 2 if name == "Validation" else 1,
-                        color = COLORS_VALID_OFFLINE[ivalid % len(COLORS_VALID_OFFLINE)] if name != "Validation" else COLOR_VALID,
-                    )
-                else:
-                    ax.plot([], [], label=None)
                 # Exclude online validation if there is offline validation to compute best results
                 if len(conv_validation) == 1 or name != "Validation":
                     for i, yi in enumerate(y):
@@ -245,13 +240,26 @@ if __name__ == "__main__":
             ax.axvline(x=best_x, color=COLOR_BEST, linestyle=':') #, label=f"Best ({files[best_valid]})")
             ax.text(best_x, 0.5, f"{os.path.basename(files[best_valid])}", color=COLOR_BEST, fontsize=9, rotation=90, ha="right", va="center", transform=ax.get_xaxis_transform())
             for ivalid, name in enumerate(sorted_names):
-                if name == "Validation" and len(conv_validation) > 1:
-                    continue
                 values = conv_validation[name]
                 x, y, files = zip(*sorted(values))
-                if best_x not in x:
+                i = x.index(best_x)if best_x in x else None
+                empty = not conv_validation[name]
+                if not empty:
+                    x, y, _ = zip(*sorted(conv_validation[name]))
+                    label = format_dataset_name(name)
+                    if PLOT_BEST_IN_LEGEND and i is not None:
+                        label += f" ({y[i]:.2f})"
+                    ax.plot(x, y, label=label,
+                        marker="+" if name != "Validation" else None,
+                        linewidth = 2 if name == "Validation" else 1,
+                        color = COLORS_VALID_OFFLINE[ivalid % len(COLORS_VALID_OFFLINE)] if name != "Validation" else COLOR_VALID,
+                    )
+                else:
+                    ax.plot([], [], label=None)
+                if name == "Validation" and len(conv_validation) > 1:
                     continue
-                i = x.index(best_x)
+                if i is None:
+                    continue
                 ax.axhline(y=y[i], color=COLORS_VALID_OFFLINE[ivalid % len(COLORS_VALID_OFFLINE)], linestyle=':')
                 ax.text(-0.05, y[i], f"{y[i]:.2f}", color=COLORS_VALID_OFFLINE[ivalid % len(COLORS_VALID_OFFLINE)], fontsize=9, ha="right", va="center", transform=ax.get_yaxis_transform())
             
