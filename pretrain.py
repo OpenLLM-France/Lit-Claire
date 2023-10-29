@@ -10,6 +10,9 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
+# Avoid possible memory overflow that can happen after sometime, because of reserved memory
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:1024"
+
 import lightning as L
 import torch
 from lightning.fabric.strategies import FSDPStrategy
@@ -90,6 +93,8 @@ def setup(
     lora_mlp: bool = True,
     lora_head: bool = True,
 
+    seed: int = 1337,
+
     # debug
     debug: bool = False,
 ):
@@ -131,6 +136,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
     weight_decay        = hparams["weight_decay"]
     use_lora            = hparams["use_lora"]
     debug               = hparams["debug"]
+    seed                = hparams["seed"]
 
     assert batch_size % micro_batch_size == 0 and batch_size > 0 and micro_batch_size > 0
     hparams["gradient_accumulation_iters"] = batch_size // micro_batch_size
@@ -139,7 +145,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
 
     speed_monitor = SpeedMonitor(fabric, window_size=50, time_unit="seconds")
 
-    fabric.seed_everything(1337)  # same seed for every process to init model (FSDP)
+    fabric.seed_everything(seed)  # same seed for every process to init model (FSDP)
 
     # Make output folder and copy source code and hyperparameters to out_dir
     os.makedirs(out_dir / "src", exist_ok=True)
@@ -175,7 +181,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
         shuffle=True,
         num_processes=fabric.world_size,
         process_rank=fabric.global_rank,
-        seed=(1337 + fabric.global_rank),
+        seed=(seed + fabric.global_rank),
         verbose=True,
         try_small=try_small,
         max_validation_samples=200 if try_small else 4000,
@@ -237,7 +243,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
     # strict=False because missing keys due to LoRA weights not contained in state dict
     load_checkpoint(fabric, model, checkpoint_path, strict=not use_lora)
 
-    fabric.seed_everything(1337 + fabric.global_rank)
+    fabric.seed_everything(seed + fabric.global_rank)
 
     train_time = time.perf_counter()
     train(

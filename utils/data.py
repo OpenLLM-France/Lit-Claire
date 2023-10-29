@@ -74,7 +74,6 @@ def create_dataloaders(
         effective_block_size=effective_block_size,
         num_processes=num_processes,
         process_rank=process_rank,
-        seed=seed,
         verbose=verbose,
         return_details=return_details,
     )
@@ -85,6 +84,7 @@ def create_dataloaders(
         prefixes=prefixes_train,
         shuffle=shuffle, use_weights=True,
         wrap=wrap_train,
+        seed=seed,
         **kwargs) \
         if enable_train else no_output
 
@@ -94,6 +94,7 @@ def create_dataloaders(
         wrap=wrap_validation,
         max_samples=max_validation_samples,
         split_in_subsets=split_validation_in_subsets,
+        seed=1337,
         **kwargs) \
         if enable_validation else no_output
 
