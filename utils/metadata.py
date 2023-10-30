@@ -29,7 +29,7 @@ with open(metadata_filename, "r") as csvfile:
         METADATA_DICT[row["dataset"]] = format_dict_values(row)
 
 # Read groups
-MUST_BE_EQUAL = ["spontaneous", "text", "language"]
+MUST_BE_EQUAL = ["spontaneous", "text", "language", "is_dev"]
 with open(groups_filename, "r") as jsonfile:
     dataset_to_group = json.load(jsonfile)
 group_to_datasets = {}
@@ -95,7 +95,7 @@ for dataset, metadata in METADATA_DICT.items():
     metadata["sampling_rate"] = 100. * get_scaled_num_samples(metadata) * scale_per_languages[metadata["language"]] / (num_samples_per_language[metadata["language"]])
 
 def get_metadata(path):
-    return METADATA_DICT[get_pseudo(path)]
+    return METADATA_DICT[get_pseudo(path)].copy()
 
 def get_pseudo(path):
     """Get metadata from a path."""
