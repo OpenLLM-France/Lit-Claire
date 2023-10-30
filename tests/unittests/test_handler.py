@@ -1,13 +1,15 @@
 import unittest
 import random
 
-from hf_files.falcon_v00.handler import EndpointHandler as EndpointHandlerFalcon0
+from hf_files.falcon_v00.handler import EndpointHandler as EndpointHandlerFalcon00
+from hf_files.falcon_v01.handler import EndpointHandler as EndpointHandlerFalcon01
 
 class TestHandler(unittest.TestCase):
 
     def test_handlers(self):
         for classe in [
-            EndpointHandlerFalcon0
+            EndpointHandlerFalcon00,
+            EndpointHandlerFalcon01,
         ]:
             self.do_test_handler(classe)
 
