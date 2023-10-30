@@ -125,7 +125,6 @@ cancel the job with `scancel 100813`, connect to the node with `ssh jean-zay-iam
 ```bash
 MODEL=tiiuae/falcon-7b
 DATA_DIR=$SCRATCH/../commun/preprocessed_data/Claire/lit-gpt/padded_8_grouped/$MODEL
-FOUNDATION_MODEL_DIR=$WORK/../commun/Claire/checkpoints/$MODEL
 TRAINING_DIR=$SCRATCH/../commun/Claire/pretrain/pretrain-Claire-7B-v0.0.1/lora/$MODEL
 
 srun --ntasks=1 --gres=gpu:1 -C a100 --qos=qos_gpu-dev \
@@ -133,7 +132,6 @@ srun --ntasks=1 --gres=gpu:1 -C a100 --qos=qos_gpu-dev \
 --time=00:10:00 \
 python validate_pretrain.py \
 --data_dir       $DATA_DIR \
---checkpoint_dir $FOUNDATION_MODEL_DIR \
 --out_dir        $TRAINING_DIR \
 --language fr \
 --max 40 --batch_size 8 \

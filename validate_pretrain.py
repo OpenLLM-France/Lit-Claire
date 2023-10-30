@@ -30,8 +30,8 @@ from lit_gpt.tokenizer import Tokenizer
 def setup(
     # Folders
     data_dir: Path = Path("data/preprocessed_data"),
-    checkpoint_dir: Path = Path("checkpoints/tiiuae/falcon-7b"),
     out_dir: Path = Path("out/lora/Claire"),
+    checkpoint_dir: Optional[Path] = None,
     out_file: Optional[Path] = None,
     language: Optional[str] = None,
 
@@ -76,6 +76,15 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
     debug               = hparams["debug"]
 
     assert os.path.isdir(out_dir), f"Output directory {out_dir} does not exist."
+
+    if checkpoint_dir is None:
+        hparams = out_dir / "hparams.json"
+        if not hparams.exists():
+            raise FileNotFoundError(f"Cannot find hyperparameter file {out_dir}/hparams.json")
+        with open(hparams, "r") as f:
+            hparams = json.load(f)
+        assert "checkpoint_dir" in hparams, f"Cannot find 'checkpoint_dir' in {hparams}"
+        checkpoint_dir = Path(hparams["checkpoint_dir"])
 
     checkpoints = [os.path.join(out_dir, f) for f in os.listdir(out_dir) if f.endswith(".pth") and f.startswith("iter-")]
     assert len(checkpoints) > 0, f"No checkpoints found in {out_dir}"    
