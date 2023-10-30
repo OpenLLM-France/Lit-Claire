@@ -57,13 +57,16 @@ def convert_lit_checkpoint(
     os.makedirs(output_dir, exist_ok=True)
 
     # Copy HuggingFace files
-    for file in (
-        "config.json",
-        "special_tokens_map.json",
-    ):
-        if not (checkpoint_dir / file).exists():
-            raise FileNotFoundError(f"Cannot find {checkpoint_dir / file}")
-        shutil.copy2(checkpoint_dir / file, output_dir / file)
+    if checkpoint_dir != output_dir:
+        for file in (
+            "config.json",
+            "special_tokens_map.json",
+        ):
+            if not overwrite_existing and (output_dir / file).exists():
+                continue
+            if not (checkpoint_dir / file).exists():
+                raise FileNotFoundError(f"Cannot find {checkpoint_dir / file}")
+            shutil.copy2(checkpoint_dir / file, output_dir / file)
 
     for file in (
         "README.md",
