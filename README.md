@@ -46,15 +46,19 @@ pip install --no-cache-dir -r requirements.txt
 
 ### Download then convert Hugging Face model to Lit-GPT format
 
+Those steps are only needed if you want to start from a Hugging Face model.
+The last one download additional files that will be needed for the packaging of the model, at last.
 ```bash
 # MODEL=mistralai/Mistral-7B-v0.1
 MODEL=tiiuae/falcon-7b
 
 python lit_gpt/scripts/download.py --repo_id $MODEL
 python lit_gpt/scripts/convert_hf_checkpoint.py --checkpoint_dir checkpoints/$MODEL
+python download_config.py --repo_id $MODEL --checkpoint_dir checkpoints/$MODEL
 ```
 
-On Jean Zay, you can do that from the folder `$WORK/../commun/Claire`.
+On Jean Zay, you can do that from the folder `$WORK/../commun/Claire`,
+so that all foundation models can be found in `$WORK/../commun/Claire/checkpoints`.
 
 ### Prepare data
 
