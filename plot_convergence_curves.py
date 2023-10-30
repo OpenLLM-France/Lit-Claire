@@ -248,6 +248,11 @@ if __name__ == "__main__":
             for ivalid, name in enumerate(sorted_names):
                 values = conv_validation[name]
                 x, y, files = zip(*sorted(values))
+                if best_x not in x and len(x) and x[-1] < best_x:
+                    x = list(x) + [best_x]
+                    y = list(y) + [y[-1]]
+                    files = list(files) + [files[-1]]
+                    conv_validation[name] = list(zip(x, y, files))
                 i = x.index(best_x)if best_x in x else None
                 empty = not conv_validation[name]
                 if not empty:
