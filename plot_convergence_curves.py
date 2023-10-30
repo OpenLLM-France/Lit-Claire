@@ -131,12 +131,18 @@ if __name__ == "__main__":
         axes = [[ax] for ax in axes]
     # plt.suptitle("Claire-7b v0.02 (batch size= 12 sequences)")
 
+    title_folder_names = False
     hparams = []
     batch_sizes = []
     devices = []
     for folder in args.folders:
-        hparams_file = os.path.join(folder, "hparams.json")
-        if os.path.isfile(hparams_file):
+        hparams_file = None
+        for root, dirs, files in os.walk(folder):
+            if "hparams.json" in files:
+                assert hparams_file is None
+                hparams_file = os.path.join(root, "hparams.json")
+
+        if hparams_file:
             hparams.append(json.load(open(hparams_file)))
             batch_sizes.append(hparams[-1]["micro_batch_size"])
             devices.append(hparams[-1]["devices"])
@@ -159,6 +165,13 @@ if __name__ == "__main__":
             all_same = all([(hparam[key] == hother[key]) if (key in hother and key not in ignore_keys) else True for hother in hparams])
             if all_same:
                 del hparam[key]
+
+    if "data_dir" in hparams[0] and "checkpoint_dir" in hparams[0]:
+        for hparam in hparams:
+            hparam.pop("data_dir", None)
+            hparam.pop("checkpoint_dir", None)
+            hparam.pop("seed", None)
+        title_folder_names = True
 
     min_loss = args.min_loss if args.min_loss else 1e10
     max_loss = args.max_loss if args.max_loss else 0
@@ -205,7 +218,9 @@ if __name__ == "__main__":
         
         ax = axes[0][icolumn]
         if hparams[iexpe]:
-            title = ",\n".join([f"{k}={v}" for k, v in hparams[iexpe].items()])
+            title = os.path.basename(folder)+"\n" if title_folder_names else ""
+            title += ",\n".join([f"{k}={v}" for k, v in hparams[iexpe].items()])
+            title = title.strip()
             ax.set_title(title, fontsize=9)
         elif num_columns > 1:
             ax.set_title(os.path.basename(folder))
@@ -248,11 +263,13 @@ if __name__ == "__main__":
             for ivalid, name in enumerate(sorted_names):
                 values = conv_validation[name]
                 x, y, files = zip(*sorted(values))
-                if best_x not in x and len(x) and x[-1] < best_x:
-                    x = list(x) + [best_x]
-                    y = list(y) + [y[-1]]
-                    files = list(files) + [files[-1]]
-                    conv_validation[name] = list(zip(x, y, files))
+                if best_x not in x:
+                    # Hack to print online validation loss, when it was not done on the last checkpoint (because training script ended before validation completion)
+                    if len(x) and x[-1] < best_x:
+                        x = list(x) + [best_x]
+                        y = list(y) + [y[-1]]
+                        files = list(files) + [files[-1]]
+                        conv_validation[name] = list(zip(x, y, files))
                 i = x.index(best_x)if best_x in x else None
                 empty = not conv_validation[name]
                 if not empty:
