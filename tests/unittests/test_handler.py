@@ -1,26 +1,33 @@
 import unittest
 import random
 
-from hf_files.v00.handler import EndpointHandler as EndpointHandlerV00
-
-class MockHandler(EndpointHandlerV00, unittest.TestCase):
-    def __init__(self, path):
-        pass
-
-    def pipeline(self, inputs, **parameters):
-        if isinstance(inputs, str):
-            return self.pipeline([inputs], **parameters)[0]
-
-        self.assertTrue(isinstance(inputs, list))
-        self.assertTrue([isinstance(text, str) for text in inputs])
-
-        suffix = "\n[Intervenant 10:] Au revoir"
-        return [[{"generated_text": text+suffix}] for text in inputs]
-
+from hf_files.falcon_v00.handler import EndpointHandler as EndpointHandlerFalcon0
 
 class TestHandler(unittest.TestCase):
 
-    def test_handler(self):
+    def test_handlers(self):
+        for classe in [
+            EndpointHandlerFalcon0
+        ]:
+            self.do_test_handler(classe)
+
+
+    def do_test_handler(self, mother_class):
+
+        class MockHandler(mother_class, unittest.TestCase):
+            def __init__(self, path):
+                pass
+
+            def pipeline(self, inputs, **parameters):
+                if isinstance(inputs, str):
+                    return self.pipeline([inputs], **parameters)[0]
+
+                self.assertTrue(isinstance(inputs, list))
+                self.assertTrue([isinstance(text, str) for text in inputs])
+
+                suffix = "\n[Intervenant 10:] Au revoir"
+                return [[{"generated_text": text+suffix}] for text in inputs]
+
         self.maxDiff = None
 
         mock_handler = MockHandler(None)
