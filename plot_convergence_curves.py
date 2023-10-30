@@ -1,6 +1,7 @@
 import csv
 import json
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 
 def read_validation_csv(csvfile):
@@ -76,9 +77,9 @@ def name_order(name):
 
 def format_xtick_value(xtick, unit="", prec=1e-6):
     if abs(round(xtick) - xtick) < prec:
-        return f"{int(xtick):d}"
+        return f"{int(round(xtick)):d}"
     if abs(round(xtick*10) - xtick*10) < prec:
-        return f"{xtick:.1f}"
+        return f"{round(xtick,1):.1f}"
     return str(xtick)
 
 
@@ -91,6 +92,7 @@ if __name__ == "__main__":
     parser.add_argument("folders", help="folder where lies validation_results.csv and metrics.csv", default=".", nargs="+")
     parser.add_argument("--segment_length", help="Number of tokens in each sequence", type=int, default=2048)
     parser.add_argument("--max_iter", help="Maximum number of iterations", type=int, default=None)
+    parser.add_argument("--max_time", help="Maximum number of training time (in hours)", type=float, default=None)
     parser.add_argument("--max_loss", help="Maximum loss to plot", type=float, default=None)
     parser.add_argument("--min_loss", help="Minimum loss to plot", type=float, default=None)
     args = parser.parse_args()
@@ -213,11 +215,15 @@ if __name__ == "__main__":
         max_x = max(max_x, max(x))
         if args.max_iter and (max_x > args.max_iter or num_columns > 1):
             max_x = args.max_iter
+        if args.max_time:
+            max_x = args.max_time * 3600 / factor_time
 
         best_x = None
         if conv_validation:
             x_valids = None
             for name in sorted(conv_validation.keys(), key = lambda name: -len(conv_validation[name])):
+                if name == "Validation" and len(conv_validation) > 1:
+                    continue
                 x, y, files = zip(*sorted(conv_validation[name]))
                 x_valids = x
                 ckpt_files = files
@@ -248,7 +254,7 @@ if __name__ == "__main__":
                     x, y, _ = zip(*sorted(conv_validation[name]))
                     label = format_dataset_name(name)
                     if PLOT_BEST_IN_LEGEND and i is not None:
-                        label += f" ({y[i]:.2f})"
+                        label = f"loss={y[i]:.3f} | " + label
                     ax.plot(x, y, label=label,
                         marker="+" if name != "Validation" else None,
                         linewidth = 2 if name == "Validation" else 1,
@@ -256,12 +262,15 @@ if __name__ == "__main__":
                     )
                 else:
                     ax.plot([], [], label=None)
-                if name == "Validation" and len(conv_validation) > 1:
-                    continue
+                color = COLORS_VALID_OFFLINE[ivalid % len(COLORS_VALID_OFFLINE)]
+                if name == "Validation":
+                    color = COLOR_VALID
+                    if len(conv_validation) > 1:
+                        continue
                 if i is None:
                     continue
-                ax.axhline(y=y[i], color=COLORS_VALID_OFFLINE[ivalid % len(COLORS_VALID_OFFLINE)], linestyle=':')
-                ax.text(-0.05, y[i], f"{y[i]:.2f}", color=COLORS_VALID_OFFLINE[ivalid % len(COLORS_VALID_OFFLINE)], fontsize=9, ha="right", va="center", transform=ax.get_yaxis_transform())
+                ax.axhline(y=y[i], color=color, linestyle=':')
+                ax.text(-0.05, y[i], f"{y[i]:.3f}", color=color, fontsize=9, ha="right", va="center", transform=ax.get_yaxis_transform())
             
         ymin, ymax = ax.get_ylim()
         if not args.max_loss:
