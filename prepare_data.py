@@ -101,8 +101,8 @@ def prepare_fn(
         dtype = np.int32
 
     # Get tokens around tags for turns
-    simple_chars = ["[" + chr(o) + ":]" for o in list(range(65,90+1)) + list(range(48,57+1)) + list(range(192, 212+1))]  # A-Z0-9À...
-    tag_tokens = [tokenizer.encode(s, bos=False, eos=False) for s in ["[speaker001:]", "[Intervenant 1:]"] + simple_chars]
+    example_speakers = ["[speaker001:]", "[Intervenant 1:]"] + ["[" + chr(o) + ":]" for o in list(range(65,90+1)) + list(range(48,57+1)) + list(range(192, 212+1))]  # A-Z0-9À...
+    tag_tokens = [tokenizer.encode("a\n" + s, bos=False, eos=False) for s in example_speakers]
     dtype_torch = tag_tokens[0].dtype
     if cut_around_turns:
         tag_tokens = [t.tolist() for t in tag_tokens]
@@ -110,13 +110,13 @@ def prepare_fn(
         tag_tokens_suffix = common_suffix(tag_tokens)
         assert len(tag_tokens_prefix) > 0, f"Weird tokenizer. Cannot find common prefix for {tag_tokens}"
         assert len(tag_tokens_suffix) > 0, f"Weird tokenizer. Cannot find common suffix for {tag_tokens}"
-        for tokens, expected in [(tag_tokens_prefix, "["), (tag_tokens_suffix, ":]")]:
+        for tokens, expected in [(tag_tokens_prefix, "a\n["), (tag_tokens_suffix, ":]")]:
             actual = tokenizer.decode(torch.tensor(tokens, dtype=dtype_torch))
             assert actual == expected, f"Unexpected tokenizer behaviour. got {actual} instead of {expected} ({tokens=})"
-        if len(tag_tokens_prefix) > 1 or len(tag_tokens_suffix) > 1:
-            raise NotImplementedError("Tokenizer with several tokens for starting and ending tags are not supported")
-        tag_token_prefix = tag_tokens_prefix[0]
-        tag_token_suffix = tag_tokens_suffix[0]
+        if len(tag_tokens_prefix) != 3 or len(tag_tokens_suffix) > 2:
+            raise NotImplementedError(f"Tokenizer not supported: {tag_tokens_prefix=}, {tag_tokens_suffix=}")
+        tag_token_prefix = tag_tokens_prefix[-1]
+        tag_token_suffix = tag_tokens_suffix[-1]
 
         no_prefix = torch.tensor([], dtype=dtype_torch)
         bos_seq = torch.tensor([tokenizer.bos_id], dtype=dtype_torch)
@@ -279,6 +279,8 @@ def prepare_fn(
                                 if len(candidates_end) > 0:
                                     # Cut around the last end of turn tag
                                     candidates_start = torch.where(selec[:candidates_end[-1]] == tag_token_prefix)[0].tolist()
+                                    if 0 not in candidates_start:
+                                        candidates_start = [0] + candidates_start
                                     assert len(candidates_start)
 
                                     # There may be more "[" than ":]" because of special tokens ("[bruit]", ...)
@@ -288,7 +290,10 @@ def prepare_fn(
                                     new_start = None
                                     while i <= len(candidates_end):
                                         candidate_end = candidates_end[-i]
+                                        while i+shift > 1 and candidates_start[-i-shift+1] < candidate_end:
+                                            shift -= 1
                                         candidate_start = candidates_start[-i-shift]
+                                        # print(f"DBG PRINT {candidate_start=},  {candidate_end=} {tokenizer.decode(selec[candidate_start:candidate_end+1])}")
                                         while candidate_start > candidate_end:
                                             shift += 1
                                             candidate_start = candidates_start[-i-shift]
@@ -316,7 +321,7 @@ def prepare_fn(
                                             add_prefix = torch.cat([bos_seq, add_prefix])
                                         if istart < len(text_ids):
                                             # Avoid to cut in the middle of a word
-                                            while not tokenizer.decode(text_ids[istart]).startswith(" "):
+                                            while " " not in tokenizer.decode(text_ids[istart-1:istart+1]):
                                                 istart -= 1
                                 else:
                                     if DEBUG_PRINT: print("=== Case 2 - ", end='')
@@ -325,7 +330,7 @@ def prepare_fn(
                                     istart += effective_block_size
                                     if istart < len(text_ids):
                                         # Avoid to cut in the middle of a word
-                                        while not tokenizer.decode(text_ids[istart]).startswith(" "):
+                                        while " " not in tokenizer.decode(text_ids[istart-1:istart+1]):
                                             istart -= 1
                                 assert istart > previous_istart
 
