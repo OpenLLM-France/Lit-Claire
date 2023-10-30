@@ -56,18 +56,23 @@ def convert_lit_checkpoint(
     
     os.makedirs(output_dir, exist_ok=True)
 
-    # Copy HuggingFace files
+    # Copy HuggingFace files from foundation model
     if checkpoint_dir != output_dir:
         for file in (
             "config.json",
+            "generation_config.json",
             "special_tokens_map.json",
+            "tokenizer.json",
+            "tokenizer.model",
+            "tokenizer_config.json",
         ):
             if not overwrite_existing and (output_dir / file).exists():
                 continue
             if not (checkpoint_dir / file).exists():
-                raise FileNotFoundError(f"Cannot find {checkpoint_dir / file}")
+                continue
             shutil.copy2(checkpoint_dir / file, output_dir / file)
 
+    # Copy HuggingFace files specific to the new model
     for file in (
         "README.md",
         "handler.py",

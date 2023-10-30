@@ -2,6 +2,9 @@
 language:
 - fr
 license: apache-2.0
+pipeline_tag: text-generation
+tags:
+- pretrained
 inference:
     parameters:
         temperature: 1.0
