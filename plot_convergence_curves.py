@@ -91,10 +91,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("folders", help="folder where lies validation_results.csv and metrics.csv", default=".", nargs="+")
     parser.add_argument("--segment_length", help="Number of tokens in each sequence", type=int, default=2048)
-    parser.add_argument("--max_iter", help="Maximum number of iterations", type=int, default=None)
-    parser.add_argument("--max_time", help="Maximum number of training time (in hours)", type=float, default=None)
     parser.add_argument("--max_loss", help="Maximum loss to plot", type=float, default=None)
     parser.add_argument("--min_loss", help="Minimum loss to plot", type=float, default=None)
+    parser.add_argument("--max_iter", help="Maximum number of batches", type=int, default=None)
+    parser.add_argument("--max_time", help="Maximum number of training time (in hours)", type=float, default=None)
+    parser.add_argument("--max_gpu_time", help="Maximum number of training time (in GPU hours)", type=float, default=None)
+    parser.add_argument("--no_offline_valid", help="Do not plot offline validation curves", default=False, action="store_true")
+    parser.add_argument("--text", help="Print all validation loss values", default=False, action="store_true")
     args = parser.parse_args()
 
     # Plotting parameters
@@ -118,7 +121,8 @@ if __name__ == "__main__":
     XTICKS_MAX_POINTS = 20
     XTICKS_STEPS = [1, 2, 5] # Then multiple of 10
     PLOT_BEST_IN_LEGEND = True
-    DISABLE_OFFLINE_VALIDATION = False
+    DISABLE_OFFLINE_VALIDATION = args.no_offline_valid
+    DISABLE_BEST_VALIDATION = args.no_offline_valid
 
     num_expes = len(args.folders)
     num_columns = num_expes # 1
@@ -232,6 +236,8 @@ if __name__ == "__main__":
             max_x = args.max_iter
         if args.max_time:
             max_x = args.max_time * 3600 / factor_time
+        if args.max_gpu_time:
+            max_x = args.max_gpu_time * 3600 / factor_time / devices[iexpe]
 
         best_x = None
         if conv_validation:
@@ -258,8 +264,9 @@ if __name__ == "__main__":
             best_valid = mean_valids.index(min(mean_valids))
             print("Best loss:", os.path.join(folder, files[best_valid]))
             best_x = x_valids[best_valid]
-            ax.axvline(x=best_x, color=COLOR_BEST, linestyle=':') #, label=f"Best ({files[best_valid]})")
-            ax.text(best_x, 0.5, f"{os.path.basename(files[best_valid])}", color=COLOR_BEST, fontsize=9, rotation=90, ha="right", va="center", transform=ax.get_xaxis_transform())
+            if not DISABLE_BEST_VALIDATION:
+                ax.axvline(x=best_x, color=COLOR_BEST, linestyle=':') #, label=f"Best ({files[best_valid]})")
+                ax.text(best_x, 0.5, f"{os.path.basename(files[best_valid])}", color=COLOR_BEST, fontsize=9, rotation=90, ha="right", va="center", transform=ax.get_xaxis_transform())
             for ivalid, name in enumerate(sorted_names):
                 values = conv_validation[name]
                 x, y, files = zip(*sorted(values))
@@ -275,13 +282,20 @@ if __name__ == "__main__":
                 if not empty:
                     x, y, _ = zip(*sorted(conv_validation[name]))
                     label = format_dataset_name(name)
-                    if PLOT_BEST_IN_LEGEND and i is not None:
+                    if PLOT_BEST_IN_LEGEND and i is not None and not DISABLE_BEST_VALIDATION:
                         label = f"loss={y[i]:.3f} | " + label
+                    color = COLORS_VALID_OFFLINE[ivalid % len(COLORS_VALID_OFFLINE)] if name != "Validation" else COLOR_VALID
                     ax.plot(x, y, label=label,
-                        marker="+" if name != "Validation" else None,
+                        marker="+" if (name != "Validation" or len(conv_validation) == 1) else None,
                         linewidth = 2 if name == "Validation" else 1,
-                        color = COLORS_VALID_OFFLINE[ivalid % len(COLORS_VALID_OFFLINE)] if name != "Validation" else COLOR_VALID,
+                        color=color,
                     )
+                    if args.text:
+                        for xi, yi in zip(x, y):
+                            if xi > max_x or xi in (198, 550):  # NOCOMMIT
+                                continue
+                            print(xi,yi)
+                            ax.text(xi, yi, f"{yi:.3f}", color=color, fontsize=9, rotation=0, ha="left", va="bottom")
                 else:
                     ax.plot([], [], label=None)
                 color = COLORS_VALID_OFFLINE[ivalid % len(COLORS_VALID_OFFLINE)]
@@ -291,8 +305,9 @@ if __name__ == "__main__":
                         continue
                 if i is None:
                     continue
-                ax.axhline(y=y[i], color=color, linestyle=':')
-                ax.text(-0.05, y[i], f"{y[i]:.3f}", color=color, fontsize=9, ha="right", va="center", transform=ax.get_yaxis_transform())
+                if not DISABLE_BEST_VALIDATION:
+                    ax.axhline(y=y[i], color=color, linestyle=':')
+                    ax.text(-0.05, y[i], f"{y[i]:.3f}", color=color, fontsize=9, ha="right", va="center", transform=ax.get_yaxis_transform())
             
         ymin, ymax = ax.get_ylim()
         if not args.max_loss:
@@ -348,7 +363,7 @@ if __name__ == "__main__":
                 ax.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
 
                 # Plot best
-                if best_x is not None:
+                if best_x is not None and not DISABLE_BEST_VALIDATION:
                     ax.axvline(x=best_x, color=COLOR_BEST)
 
 
