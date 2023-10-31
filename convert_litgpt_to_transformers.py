@@ -30,6 +30,7 @@ def convert_lit_checkpoint(
     repo_id: Optional[str] = None,
     merge_lora: Optional[bool] = None,
     overwrite_existing: bool = False,
+    message: Optional[str] = None,
     clean: bool = False,
 ):
     if not input_path.is_file():
@@ -72,14 +73,10 @@ def convert_lit_checkpoint(
                 continue
             shutil.copy2(checkpoint_dir / file, output_dir / file)
 
-    # Copy HuggingFace files specific to the new model
-    for file in (
-        "README.md",
-        "handler.py",
-        "requirements.txt",
-    ):
-        if not (hf_files_dir / file).exists():
-            raise FileNotFoundError(f"Cannot find {hf_files_dir / file}")
+    # Copy HuggingFace files specific to the new model (always overwrite)
+    for file in os.listdir(hf_files_dir):
+        if not (hf_files_dir / file).is_file():
+            continue
         shutil.copy2(hf_files_dir / file, output_dir / file)
 
     lit_model_path = output_dir / "lit_model.pth" if merge_lora else None
@@ -176,7 +173,7 @@ def convert_lit_checkpoint(
             os.remove(pytorch_model_path)
 
     if repo_id:
-        upload_to_huggingface_hub(repo_id=repo_id, input_dir=output_dir)
+        upload_to_huggingface_hub(repo_id=repo_id, input_dir=output_dir, message=message)
 
 if __name__ == "__main__":
     from jsonargparse import CLI
