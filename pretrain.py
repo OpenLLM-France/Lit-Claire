@@ -470,6 +470,8 @@ def validate(
     losses = losses.nan_to_num()  # In case there is only padded sequences
     val_loss = losses.mean()
 
+    val_loss = fabric.all_reduce(val_loss, reduce_op="mean")
+
     sys.stdout.flush()
 
     model.train()
