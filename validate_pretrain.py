@@ -124,11 +124,14 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
     )
 
     already_done = []
+    valid_file_exists = False
     if os.path.isfile(out_file):
         with open(out_file, "r") as file:
             reader = csv.DictReader(file)
             for row in reader:
-                already_done.append(row["file"])
+                valid_file_exists = True
+                if row["max_iters"] == max_eval_iters0:
+                    already_done.append(row["file"])
 
     sys.stdout.flush()
 
@@ -171,7 +174,7 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
                     "loss": val_loss, # round(val_loss, 4 ) # f"{val_loss:.4f}",
                     "time": f"{t1:.3f} sec",
                     "batch_size": batch_size,
-                    "max_iters": max_eval_iters,
+                    "max_iters": max_eval_iters0,
                 })
                 if fabric.device.type == "cuda":
                     info.update({"peak_vram": f"{torch.cuda.max_memory_allocated() / 1e9:.02f} GB"})
@@ -179,7 +182,7 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
                 fabric.print(json.dumps(info, indent=4))
                 if logger is None:
                     logger = csv.DictWriter(file, fieldnames=info.keys(), lineterminator='\n')
-                    if not already_done:
+                    if not valid_file_exists:
                         logger.writeheader()
                 logger.writerows([info])
 
