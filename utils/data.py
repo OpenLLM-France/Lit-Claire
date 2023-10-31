@@ -147,8 +147,18 @@ def create_dataloader(
             filenames = prefix["filenames"]
             metadata = prefix["metadata"]
 
-        assert len(filenames) % num_processes == 0, \
-            f"Number of files ({len(filenames)}) must be a multiple of the number of processes ({num_processes}) : not fullfilled for {prefix}"
+        assert len(filenames) > 0
+        # assert len(filenames) % num_processes == 0, \
+        #     
+        if len(filenames) % num_processes != 0:
+            if len(filenames) > num_processes:
+                raise RuntimeError(f"Number of files ({len(filenames)}) must be a multiple of the number of processes ({num_processes}) : not fullfilled for {prefix}")
+            print(f"WARNING: Number of files ({len(filenames)}) not a multiple of the number of processes ({num_processes})  for {prefix}. Duplicating files to reach a multiple.")
+            i = -1
+            while len(filenames) % num_processes != 0:
+                i += 1
+                filenames.append(filenames[i % len(filenames)])
+                # Note: metadata["num_files"] will be updated later
 
         # Get the weight
         if use_weights:
@@ -355,6 +365,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("Test dataset iterator", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("path", type=str, default="/gpfsscratch/rech/qgz/commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae/falcon-7b/", nargs="?")
     parser.add_argument("checkpoint_dir", type=str, default="/gpfswork/rech/qgz/commun/Claire/checkpoints/tiiuae/falcon-7b", nargs="?")
+    parser.add_argument("--devices", type=int, default=1, help= "Number of devices")
     parser.add_argument("--batch_size", type=int, default=12, help= "Batch size")
     parser.add_argument("--language", default=None, help="Filter by language")
     parser.add_argument("--seed", type=int, default=random.randint(1, 1000), help="Use 0 to disable shuffling")
@@ -401,6 +412,7 @@ if __name__ == "__main__":
     (trainset, train_details), (devset, dev_details) = create_dataloaders(
         path=args.path,
         language=args.language,
+        num_processes=args.devices,
         max_validation_samples=max_validation_samples,
         split_validation_in_subsets=split_validation_in_subsets,
         try_small=try_small,
