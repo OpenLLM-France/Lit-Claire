@@ -130,7 +130,7 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
             reader = csv.DictReader(file)
             for row in reader:
                 valid_file_exists = True
-                if row["max_iters"] == max_eval_iters0:
+                if str(row["max_iters"]) == str(max_eval_iters0):
                     already_done.append(row["file"])
 
     sys.stdout.flush()
