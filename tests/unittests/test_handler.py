@@ -3,6 +3,7 @@ import random
 
 from hf_files.falcon_v00.handler import EndpointHandler as EndpointHandlerFalcon00
 from hf_files.falcon_v01.handler import EndpointHandler as EndpointHandlerFalcon01
+from hf_files.mistral_v01.handler import EndpointHandler as EndpointHandlerMistral01
 
 class TestHandler(unittest.TestCase):
 
@@ -10,6 +11,7 @@ class TestHandler(unittest.TestCase):
         for classe in [
             EndpointHandlerFalcon00,
             EndpointHandlerFalcon01,
+            EndpointHandlerMistral01,
         ]:
             self.do_test_handler(classe)
 
