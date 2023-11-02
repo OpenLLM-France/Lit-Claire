@@ -226,9 +226,10 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
     with fabric.init_module(empty_init=False):
         if use_lora:
             model = LoraGPT(config)
-            mark_only_lora_as_trainable(model)
         else:
             model = GPT(config)
+    if use_lora:
+        mark_only_lora_as_trainable(model)
 
     fabric.print(f"Number of trainable parameters: {num_parameters(model, requires_grad=True):,}")
     fabric.print(f"Number of non trainable parameters: {num_parameters(model, requires_grad=False):,}")
