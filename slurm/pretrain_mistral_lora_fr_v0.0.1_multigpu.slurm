@@ -24,7 +24,7 @@ mkdir -p $OUTDIR
 
 # execute script
 srun --output=$OUTDIR/training_log.out --error=$OUTDIR/training_log.out \
-python pretrain2.py \
+python pretrain.py \
 --devices 8 \
 --num_nodes 1 \
 --data_dir $SCRATCH/../commun/preprocessed_data/Claire/lit-gpt/padded_8_grouped/$MODEL \
