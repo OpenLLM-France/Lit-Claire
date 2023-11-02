@@ -79,6 +79,31 @@ def convert_lit_checkpoint(
             continue
         shutil.copy2(hf_files_dir / file, output_dir / file)
 
+    # Copy training files
+    training_log_dir = output_dir / "lit_training"
+    os.makedirs(training_log_dir, exist_ok=True)
+    for root, dirs, files in os.walk(input_dir):
+        for file in files:
+            if file in ["hparams.json", "lora_config.json", "training_log.out", "metrics.csv"] or (file.startswith("validation_results") and file.endswith(".csv")):
+                shutil.copy2(os.path.join(root, file), training_log_dir / file)
+        for dir in dirs:
+            if dir == "src":
+                shutil.copytree(os.path.join(root, dir), training_log_dir / dir, dirs_exist_ok=True)
+    with open(training_log_dir / "README.md", "w") as f:
+        f.write(
+            f"""Generated using:
+```bash
+{sys.executable} {sys.argv[0]} \\
+--input_path {input_path} \\
+--checkpoint_dir {checkpoint_dir} \\
+--merge_lora {merge_lora} \\
+--output_dir {output_dir} \\
+--hf_files_dir {hf_files_dir} \\
+--repo_id {repo_id}
+```
+            """
+        )
+
     lit_model_path = output_dir / "lit_model.pth" if merge_lora else None
     pytorch_model_path = output_dir / "pytorch_model.bin"
     has_splitted_torch_model = len(glob.glob(str(output_dir / "pytorch_model-*.bin")))
