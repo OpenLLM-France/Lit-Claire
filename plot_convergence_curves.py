@@ -256,13 +256,14 @@ if __name__ == "__main__":
             for ivalid, name in enumerate(sorted_names):
                 # Exclude online validation if there is offline validation to compute best results
                 if len(conv_validation) == 1 or name != "Validation":
+                    x, y, files = zip(*sorted(conv_validation[name]))
                     for i, yi in enumerate(y):
                         i = x_valids.index(x[i])
                         valids[i].append(yi)
 
             mean_valids = [np.median(v) if v else 1e10 for v in valids]
             best_valid = mean_valids.index(min(mean_valids))
-            print("Best loss:", os.path.join(folder, files[best_valid]))
+            print(f"Best loss:\n-file: {os.path.join(folder, files[best_valid])}\n-step: {best_valid}/{len(mean_valids)}\n-loss: {mean_valids[best_valid]:.3f}")
             best_x = x_valids[best_valid]
             if not DISABLE_BEST_VALIDATION:
                 ax.axvline(x=best_x, color=COLOR_BEST, linestyle=':') #, label=f"Best ({files[best_valid]})")
