@@ -1,7 +1,7 @@
 ---
 language:
 - fr
-license: apache-2.0
+license: cc-by-nc-sa-4.0
 pipeline_tag: text-generation
 tags:
 - pretrained
@@ -14,7 +14,7 @@ inference:
 
 # Claire-Mistral-7B
 
-**Claire-Mistral-7B is a 7B parameters causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France) adapted from [Mistral-7b](https://huggingface.co/mistralai/Mistral-7B-v0.1) on French conversational data. It is made available under the Apache 2.0 license.**
+**Claire-Mistral-7B is a 7B parameters causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France) adapted from [Mistral-7b](https://huggingface.co/mistralai/Mistral-7B-v0.1) on French conversational open data. Given that some of the corpora used are available under CC-BY-NC-SA or CC-BY-SA licenses, it is made available under CC-BY-NC-SA license.**
 
 
 ## How to use
@@ -96,7 +96,11 @@ Hyperparameters were the following:
 
 ## License
 
-Claire-Mistral-7B is made available under the Apache 2.0 license.
+Claire-Mistral-7B is made available under the CC-BY-NC-SA 4.0 license.
+
+## Acknowledgements
+
+This work was performed using HPC resources from GENCI–IDRIS (Grant 2023-AD011014561). 
 
 ## Contact
 
