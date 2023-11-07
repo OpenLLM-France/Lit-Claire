@@ -73,9 +73,10 @@ Same validation set as for the "CC-BY-NC-SA version"
 ## Hyper-parameters
 
 ### Text data augmentation
-    * Anonymization / Desanonymization
-    * Remove punctuations & lower case
-    * Use dashes (instead of "[Intervenant X]") for dialogs with 2 people / nothing for monologs
+
+* Anonymization / Desanonymization
+* Remove punctuations & lower case
+* Use dashes (instead of "[Intervenant X]") for dialogs with 2 people / nothing for monologs
 
 ### mono GPU, no FSDP
 
@@ -116,7 +117,7 @@ Same validation set as for the "CC-BY-NC-SA version"
   "precision": "bf16-true",
   "batch_size": 132,
   "micro_batch_size": 12,
-  "...": "...",
+  "...": "..."
 }
 ```
 
