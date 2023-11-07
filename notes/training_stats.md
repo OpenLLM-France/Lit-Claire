@@ -2,7 +2,7 @@
 
 ## Dataset compositions
 
-### v0.0.1
+### 2023/10/25 -- v0.0 French
 
 Training set composition: 19132 conversations, 1802093 turns, 50662108 words, 155788 samples (of length 2049), 77992 batches (of 2):
 ```
@@ -24,7 +24,7 @@ Validation set composition: 303 conversations, 24821 turns, 840649 words, 889 sa
 * FR/Meetings/TEST               :   75 convs (24.75 %) 372k words (44.28 %)  338 samples (38.02 %)  172 batches (37.39 %)
 ```
 
-### v0.0.2
+### 2023/10/26-29 -- v0.1 French (CC-BY-NC-SA 4.0)
 
 Training set composition: 38219 conversations, 2933193 turns, 159568634 words, 373553 samples (of length 2049), 31181 batches (of 12):
 ```
@@ -53,9 +53,31 @@ Validation set composition: 343 conversations, 27365 turns, 834887 words, 893 sa
 * FR/Meetings/TEST              :   75 convs (21.87 %) 372k words (44.58 %)  337 samples (37.74 %)   29 batches (36.71 %)
 ```
 
+### 2023/11/07 -- v0.1 French (Apache)
+
+Training composition: 35816 conversations, 2291620 turns, 150475208 words, 313309 samples (of length 2049), 26155 batches (of 12):
+```
+* FR/FreeConversations/TRAIN    :    4 convs ( 0.01 %)  26k words ( 0.02 %)  159 samples ( 0.05 %)   14 batches ( 0.05 %) -- weights =  0.29 %
+* FR/PresDiscourse/TRAIN        :    3 convs ( 0.01 %)  31k words ( 0.02 %)  173 samples ( 0.06 %)   15 batches ( 0.06 %) -- weights =  0.33 %                               
+* FR/Debates/TRAIN              :  115 convs ( 0.32 %) 326k words ( 0.22 %) 1.9k samples ( 0.59 %)  156 batches ( 0.60 %) -- weights =  3.37 %                               
+* FR/AssembleeNationale_16/TRAIN:  381 convs ( 1.06 %)  11M words ( 7.20 %)  19k samples ( 6.13 %) 1.6k batches ( 6.13 %) -- weights =  4.66 %                               
+* FR/Meetings/TRAIN             :  216 convs ( 0.60 %) 1.0M words ( 0.67 %) 5.5k samples ( 1.76 %)  460 batches ( 1.76 %) -- weights = 10.49 %                               
+* FR/AssembleeNationale_13/TRAIN: 1.2k convs ( 3.48 %)  36M words (23.60 %)  64k samples (20.31 %) 5.3k batches (20.31 %) -- weights = 15.24 %                               
+* FR/AssembleeNationale_14/TRAIN: 1.3k convs ( 3.69 %)  39M words (25.81 %)  69k samples (22.02 %) 5.8k batches (22.01 %) -- weights = 16.65 %
+* FR/AssembleeNationale_15/TRAIN: 1.5k convs ( 4.30 %)  48M words (31.69 %)  85k samples (26.97 %) 7.1k batches (26.98 %) -- weights = 20.44 %
+* FR/Theatre/TRAIN              :  31k convs (86.53 %)  16M words (10.77 %)  69k samples (22.10 %) 5.8k batches (22.10 %) -- weights = 28.53 %
+```
+
+Same validation set as for the "CC-BY-NC-SA version"
+
 ## Hyper-parameters
 
-### v0.0.1
+### Text data augmentation
+    * Anonymization / Desanonymization
+    * Remove punctuations & lower case
+    * Use dashes (instead of "[Intervenant X]") for dialogs with 2 people / nothing for monologs
+
+### mono GPU, no FSDP
 
 ```json
 {
@@ -76,14 +98,42 @@ Validation set composition: 343 conversations, 27365 turns, 834887 words, 893 sa
   "lora_projection": true,
   "lora_mlp": true,
   "lora_head": true,
-  "max_checkpoints": 20,
   "early_stopping": 2,
-  "save_interval": 1800,
-  "eval_interval": 1800,
-  "interval_unit": "time"
+  "interval_unit": "time",
+  "save_interval": 3540,
+  "eval_interval": 3540,
+  "max_checkpoints": 20
 }
 ```
 
-* Text augmentation technics:
-    * Anonymization / Desanonymization
-    * Remove punctuations & lower case
+### mono GPU, with FSDP
+
+~50H training
+
+```json
+{
+  "devices": 1,
+  "precision": "bf16-true",
+  "batch_size": 132,
+  "micro_batch_size": 12,
+  "...": "...",
+}
+```
+
+### multi GPU
+
+~6H30 training
+
+```json
+{
+  "devices": 8,
+  "precision": "bf16-true",
+  "batch_size": 16,
+  "micro_batch_size": 8,
+  "...": "...",
+  "save_interval": 1800,
+  "eval_interval": 1800,
+  "max_checkpoints": 13,
+}
+```
+
