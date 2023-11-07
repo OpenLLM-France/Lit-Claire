@@ -14,7 +14,7 @@ inference:
 
 # Claire-Mistral-7B
 
-**Claire-Mistral-7B is a 7B parameters causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France) adapted from [Mistral-7b](https://huggingface.co/mistralai/Mistral-7B-v0.1) on French conversational open data. Given that some of the corpora used are available under CC-BY-NC-SA or CC-BY-SA licenses, it is made available under CC-BY-NC-SA license.**
+**Claire-Mistral-7B is a 7B parameters causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France) adapted from [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) on French conversational open data. Given that some of the corpora used are available under CC-BY-NC-SA or CC-BY-SA licenses, it is made available under CC-BY-NC-SA license.**
 
 
 ## How to use
@@ -74,7 +74,7 @@ The data was tokenized with the [Mistral-7B](https://huggingface.co/mistralai/Mi
 ### Training Procedure 
 
 Claire-Mistral-7B is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
-See [Mistral-7b](https://huggingface.co/mistralai/Mistral-7B-v0.1) for more details.
+See [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) for more details.
 
 Claire-Mistral-7B was trained on A100 80GB GPUs.
 
