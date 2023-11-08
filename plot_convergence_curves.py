@@ -63,15 +63,16 @@ def format_dataset_name(name):
     return name # "Validation: " + name
 
 def name_order(name):
+    lname = name.lower()
     if name == "Validation":
-        return (1e10, name)
-    if name == "Meetings":
+        return (-1, name)
+    if "meetings" in lname:
         return (2, name)
-    if name == "Politics":
+    if "politic" in lname or "debate" in lname:
         return (3, name)
-    if name == "AssembleeNationale":
+    if "assemblee" in lname or "senat" in lname:
         return (4, name)
-    if name == "Theatre":
+    if "theatre" in lname:
         return (5, name)
     return (0, name)
 
@@ -118,11 +119,12 @@ if __name__ == "__main__":
         "black",
     ]
     XTICKS_MIN_POINTS = 5
-    XTICKS_MAX_POINTS = 20
+    XTICKS_MAX_POINTS = 15
     XTICKS_STEPS = [1, 2, 5] # Then multiple of 10
     PLOT_BEST_IN_LEGEND = True
     DISABLE_OFFLINE_VALIDATION = args.no_offline_valid
     DISABLE_BEST_VALIDATION = args.no_offline_valid
+    INDICATE_BEST_CKPT_IN_FIGURE = True
 
     num_expes = len(args.folders)
     num_columns = num_expes # 1
@@ -170,11 +172,12 @@ if __name__ == "__main__":
             if all_same:
                 del hparam[key]
 
-    if "data_dir" in hparams[0] and "checkpoint_dir" in hparams[0]:
+    if "data_dir" in hparams[0] and ("checkpoint_dir" in hparams[0] or len(hparams[0]) == 1):
         for hparam in hparams:
             hparam.pop("data_dir", None)
             hparam.pop("checkpoint_dir", None)
             hparam.pop("seed", None)
+        hparams = [{}] * len(hparams) # NOCOMMIT
         title_folder_names = True
 
     min_loss = args.min_loss if args.min_loss else 1e10
@@ -251,8 +254,10 @@ if __name__ == "__main__":
                 break
             valids = [[] for _ in x_valids]
             num_valid = len(conv_validation)
+            offset_online_valid = 1
             if num_valid > 1 and "Validation" in conv_validation:
                 num_valid -= 1
+                offset_online_valid = 1
 
             sorted_names = sorted(conv_validation.keys(), key = lambda name: name_order(name))
 
@@ -270,7 +275,8 @@ if __name__ == "__main__":
             best_x = x_valids[best_valid]
             if not DISABLE_BEST_VALIDATION:
                 ax.axvline(x=best_x, color=COLOR_BEST, linestyle=':') #, label=f"Best ({files[best_valid]})")
-                ax.text(best_x, 0.5, f"{os.path.basename(ckpt_files[best_valid])}", color=COLOR_BEST, fontsize=9, rotation=90, ha="right", va="center", transform=ax.get_xaxis_transform())
+                if INDICATE_BEST_CKPT_IN_FIGURE:
+                    ax.text(best_x, 0.5, f"{os.path.basename(ckpt_files[best_valid])}", color=COLOR_BEST, fontsize=9, rotation=90, ha="right", va="center", transform=ax.get_xaxis_transform())
             for ivalid, name in enumerate(sorted_names):
                 values = conv_validation[name]
                 x, y, files = zip(*sorted(values))
@@ -288,7 +294,7 @@ if __name__ == "__main__":
                     label = format_dataset_name(name)
                     if PLOT_BEST_IN_LEGEND and i is not None and not DISABLE_BEST_VALIDATION:
                         label = f"loss={y[i]:.3f} | " + label
-                    color = COLORS_VALID_OFFLINE[ivalid % len(COLORS_VALID_OFFLINE)] if name != "Validation" else COLOR_VALID
+                    color = COLORS_VALID_OFFLINE[(ivalid-offset_online_valid) % len(COLORS_VALID_OFFLINE)] if name != "Validation" else COLOR_VALID
                     ax.plot(x, y, label=label,
                         marker="+" if (name != "Validation" or len(conv_validation) == 1) else None,
                         linewidth = 2 if name == "Validation" else 1,
@@ -299,7 +305,7 @@ if __name__ == "__main__":
                             ax.text(xi, yi, f"{yi:.3f}", color=color, fontsize=9, rotation=0, ha="left", va="bottom")
                 else:
                     ax.plot([], [], label=None)
-                color = COLORS_VALID_OFFLINE[ivalid % len(COLORS_VALID_OFFLINE)]
+                color = COLORS_VALID_OFFLINE[(ivalid-offset_online_valid) % len(COLORS_VALID_OFFLINE)]
                 if name == "Validation":
                     color = COLOR_VALID
                     if len(conv_validation) > 1:
