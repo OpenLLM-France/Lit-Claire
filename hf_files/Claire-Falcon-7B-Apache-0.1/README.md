@@ -64,9 +64,9 @@ Claire-7B-Apache-0.1 was tuned from Falcon-7b on the following data distribution
 |-----------------------------------------|------------|------------------------------|-------------------------------------------|
 | Assemblée Nationale                     | 135M       | 57%                          | assemblee-nationale.fr                    |
 | Theatre                                 |  16M       | 28.5%                        | theatre-classique.fr, theatregratuit.com  |
-| Meetings                                |   1.0M     | 10.5%                        | SUMM-RE, LinTO,                           |
+| Meetings                                |   1.0M     | 10.5%                        | SUMM-RE, LinTO                            |
 | Debates                                 |   326k     |  3.4%                        | FreD                                      |
-| Presentation, Conversations, Discourse  |    58k     | <1%                          | Valibel, LinTO, ESLO                      |
+| Presentation, Conversations, Discourse  |    58k     | <1%                          | LinTO                                     |
 
 The data was tokenized with the [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) tokenizer.
 

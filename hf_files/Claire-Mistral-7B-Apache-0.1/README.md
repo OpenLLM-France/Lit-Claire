@@ -65,9 +65,9 @@ Claire-Mistral-7B-Apache-0.1 was tuned from Mistral-7B-v0.1 on the following dat
 |-----------------------------------------|------------|------------------------------|-------------------------------------------|
 | Assemblée Nationale                     | 135M       | 57%                          | assemblee-nationale.fr                    |
 | Theatre                                 |  16M       | 28.5%                        | theatre-classique.fr, theatregratuit.com  |
-| Meetings                                |   1.0M     | 10.5%                        | SUMM-RE, LinTO,                           |
+| Meetings                                |   1.0M     | 10.5%                        | SUMM-RE, LinTO                            |
 | Debates                                 |   326k     |  3.4%                        | FreD                                      |
-| Presentation, Conversations, Discourse  |    58k     | <1%                          | Valibel, LinTO, ESLO                      |
+| Presentation, Conversations, Discourse  |    58k     | <1%                          | LinTO                                     |
 
 The data was tokenized with the [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) tokenizer.
 
