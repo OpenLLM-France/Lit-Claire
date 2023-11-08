@@ -12,9 +12,11 @@ inference:
         top_k: 10
 ---
 
-# Claire-Falcon-7B
+# Claire-7B-0.1
 
-**Claire-Falcon-7B is a 7B parameters causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France) adapted from [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) on French conversational data.  Given that some of the corpora used are available under CC-BY-NC-SA or CC-BY-SA licenses, it is made available under CC-BY-NC-SA license.**
+**Claire-7B-0.1 is a 7B parameters causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France)**
+**adapted from [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) on French conversational data.**
+**Given that some of the corpora used are available under CC-BY-NC-SA or CC-BY-SA licenses, it is made available under CC-BY-NC-SA license.**
 
 
 ## How to use
@@ -24,7 +26,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import transformers
 import torch
 
-model = "OpenLLM-France/Claire-Falcon-7B-v0.1"
+model = "OpenLLM-France/Claire-7B-0.1"
 
 tokenizer = AutoTokenizer.from_pretrained(model)
 pipeline = transformers.pipeline(
@@ -50,13 +52,13 @@ for seq in sequences:
 
 For fast inference with Claire, check-out [Text Generation Inference](https://github.com/huggingface/text-generation-inference).
 
-You will need **at least 16GB of memory** to swiftly run inference with Claire-Falcon-7B.
+You will need **at least 16GB of memory** to swiftly run inference with Claire-7B-0.1.
 
 ## Training Details
 
 ### Training Data
 
-Claire-Falcon-7B was tuned from Falcon-7B on the following data distribution:
+Claire-7B-0.1 was tuned from Falcon-7b on the following data distribution:
 
 | **Data source**               | **Words**  | **Training Sampling Weight** | **Sources**                                         |
 |-------------------------------|------------|------------------------------|-----------------------------------------------------|
@@ -69,14 +71,14 @@ Claire-Falcon-7B was tuned from Falcon-7B on the following data distribution:
 | Assistance                    |   159k     | <1%                          | ORFEO fleuron, UBS, OTG, ESLO             |
 | Presentation, Free Discourse  |    86k     | <0.5%                        | Valibel, LinTO, ESLO                      |
 
-The data was tokenized with the [Falcon-7B](https://huggingface.co/tiiuae/falcon-7b) tokenizer.
+The data was tokenized with the [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) tokenizer.
 
 ### Training Procedure 
 
-Claire-Falcon-7B is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
+Claire-7B-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
 See [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) for more details.
 
-Claire-Falcon-7B was trained on A100 80GB GPUs.
+Claire-7B-0.1 was trained on A100 80GB GPUs.
 
 Training happened in October 2023.
 
@@ -90,13 +92,13 @@ Hyperparameters were the following:
 | Weight decay       | 1e-2       |
 | Batch size         | 132        |
 | LoRA rank          | 16         |
-| LoRA alpha         | 16         |
+| LoRA alpha         | 32         |
 | Dropout            | 0.05       |
 | gradient clipping  | 1          |
 
 ## License
 
-Claire-Falcon-7B is made available under the CC-BY-NC-SA 4.0 license.
+Claire-7B-0.1 is made available under the CC-BY-NC-SA 4.0 license.
 
 ## Acknowledgements
 

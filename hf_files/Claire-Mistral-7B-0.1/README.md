@@ -7,14 +7,16 @@ tags:
 - pretrained
 inference:
     parameters:
-        temperature: 0.7
+        temperature: 1.0
         max_new_tokens: 200
         top_k: 10
 ---
 
-# Claire-Mistral-7B
+# Claire-Mistral-7B-0.1
 
-**Claire-Mistral-7B is a 7B parameters causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France) adapted from [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) on French conversational open data. Given that some of the corpora used are available under CC-BY-NC-SA or CC-BY-SA licenses, it is made available under CC-BY-NC-SA license.**
+**Claire-Mistral-7B-0.1 is a 7B parameters causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France)**
+**adapted from [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) on French conversational open data.**
+**Given that some of the corpora used are available under CC-BY-NC-SA or CC-BY-SA licenses, it is made available under CC-BY-NC-SA license.**
 
 
 ## How to use
@@ -24,7 +26,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import transformers
 import torch
 
-model = "OpenLLM-France/Claire-Mistral-7B-v0.1"
+model = "OpenLLM-France/Claire-Mistral-7B-0.1"
 
 tokenizer = AutoTokenizer.from_pretrained(model)
 pipeline = transformers.pipeline(
@@ -50,13 +52,13 @@ for seq in sequences:
 
 For fast inference with Claire, check-out [Text Generation Inference](https://github.com/huggingface/text-generation-inference).
 
-You will need **at least 16GB of memory** to swiftly run inference with Claire-Mistral-7B.
+You will need **at least 16GB of memory** to swiftly run inference with Claire-Mistral-7B-0.1.
 
 ## Training Details
 
 ### Training Data
 
-Claire-Mistral-7B was tuned from Mistral-7B on the following data distribution:
+Claire-Mistral-7B-0.1 was tuned from Mistral-7B-v0.1 on the following data distribution:
 
 | **Data source**               | **Words**  | **Training Sampling Weight** | **Sources**                                         |
 |-------------------------------|------------|------------------------------|-----------------------------------------------------|
@@ -73,10 +75,10 @@ The data was tokenized with the [Mistral-7B](https://huggingface.co/mistralai/Mi
 
 ### Training Procedure 
 
-Claire-Mistral-7B is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
+Claire-Mistral-7B-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
 See [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) for more details.
 
-Claire-Mistral-7B was trained on A100 80GB GPUs.
+Claire-Mistral-7B-0.1 was trained on A100 80GB GPUs.
 
 Training happened in October 2023.
 
@@ -90,13 +92,13 @@ Hyperparameters were the following:
 | Weight decay       | 1e-2       |
 | Batch size         | 132        |
 | LoRA rank          | 16         |
-| LoRA alpha         | 16         |
+| LoRA alpha         | 32         |
 | Dropout            | 0.05       |
 | gradient clipping  | 1          |
 
 ## License
 
-Claire-Mistral-7B is made available under the CC-BY-NC-SA 4.0 license.
+Claire-Mistral-7B-0.1 is made available under the CC-BY-NC-SA 4.0 license.
 
 ## Acknowledgements
 

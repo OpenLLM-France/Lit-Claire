@@ -26,6 +26,7 @@ def convert_lit_checkpoint(
     input_path: Path,
     output_dir: Path,
     hf_files_dir = Path(wd) / "hf_files" / "falcon_v01",
+    hf_files_common_dir = Path(wd) / "hf_files" / "common",
     checkpoint_dir: Optional[Path] = None,
     repo_id: Optional[str] = None,
     merge_lora: Optional[bool] = None,
@@ -36,8 +37,9 @@ def convert_lit_checkpoint(
     if not input_path.is_file():
         raise FileNotFoundError(f"Cannot find input chekpoint file {input_path}")
 
-    if not hf_files_dir.is_dir():
-        raise FileNotFoundError(f"Cannot find input folder {hf_files_dir}")
+    for hf_dir in [hf_files_dir, hf_files_common_dir]:
+        if not hf_dir.is_dir():
+            raise FileNotFoundError(f"Cannot find input folder {hf_dir}")
 
     input_dir = input_path.parent
 
@@ -74,10 +76,11 @@ def convert_lit_checkpoint(
             shutil.copy2(checkpoint_dir / file, output_dir / file)
 
     # Copy HuggingFace files specific to the new model (always overwrite)
-    for file in os.listdir(hf_files_dir):
-        if not (hf_files_dir / file).is_file():
-            continue
-        shutil.copy2(hf_files_dir / file, output_dir / file)
+    for hf_dir in [hf_files_dir, hf_files_common_dir]:
+        for file in os.listdir(hf_dir):
+            if not (hf_dir / file).is_file():
+                continue
+            shutil.copy2(hf_dir / file, output_dir / file)
 
     # Copy training files
     training_log_dir = output_dir / "lit_training"
