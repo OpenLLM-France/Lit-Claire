@@ -16,6 +16,7 @@ inference:
 
 **Claire-7B-Apache-0.1 is a 7B parameters causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France)**
 **adapted from [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) on French conversational data.**
+
 **It is made available under the Apache 2.0 license.**
 
 ## How to use
