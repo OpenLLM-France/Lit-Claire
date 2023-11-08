@@ -117,6 +117,9 @@ Same validation set as for the "CC-BY-NC-SA version"
   "precision": "bf16-true",
   "batch_size": 132,
   "micro_batch_size": 12,
+  "...": "...",
+  "lora_r": 16,
+  "lora_alpha": 32,
   "...": "..."
 }
 ```
