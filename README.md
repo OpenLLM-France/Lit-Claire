@@ -47,7 +47,7 @@ pip install --no-cache-dir -r requirements.txt
 ### Download then convert Hugging Face model to Lit-GPT format
 
 Those steps are only needed if you want to start from a Hugging Face model.
-The last one download additional files that will be needed for the packaging of the model, at last.
+The last one download additional files that will be needed for the packaging of the trained model in the end.
 ```bash
 # MODEL=mistralai/Mistral-7B-v0.1
 MODEL=tiiuae/falcon-7b
@@ -80,7 +80,7 @@ An example command to launch pre-training on 8 GPU:
 MODEL=tiiuae/falcon-7b
 DATA_DIR=$SCRATCH/../commun/preprocessed_data/Claire/lit-gpt/padded_8_grouped/$MODEL
 FOUNDATION_MODEL_DIR=$WORK/../commun/Claire/checkpoints/$MODEL
-TRAINING_DIR=$SCRATCH/../commun/Claire/pretrain-Claire-7B-v0.06_mono/lora/$MODEL
+TRAINING_DIR=$SCRATCH/../commun/Claire/pretrain-Claire-Falcon-7B-v0.0.1
 
 python pretrain.py \
 --data_dir       $DATA_DIR \
@@ -97,7 +97,6 @@ python pretrain.py \
 --eval_interval 1800 \
 --enable_validation true \
 --early_stopping 2 \
-
 ```
 
 
@@ -127,19 +126,15 @@ cancel the job with `scancel 100813`, connect to the node with `ssh jean-zay-iam
 ### Offline validation
 
 ```bash
-MODEL=tiiuae/falcon-7b
-DATA_DIR=$SCRATCH/../commun/preprocessed_data/Claire/lit-gpt/padded_8_grouped/$MODEL
-TRAINING_DIR=$SCRATCH/../commun/Claire/pretrain/pretrain-Claire-7B-v0.0.1/lora/$MODEL
+TRAINING_DIR=$SCRATCH/../commun/Claire/pretrain/pretrain-Claire-Falcon-7B-v0.0.1
 
 srun --ntasks=1 --gres=gpu:1 -C a100 --qos=qos_gpu-dev \
 --output=$OUTDIR/validation.out --error=$OUTDIR/validation.out \
 --time=00:10:00 \
 python validate_pretrain.py \
---data_dir       $DATA_DIR \
 --out_dir        $TRAINING_DIR \
 --language fr \
---max 40 --batch_size 8 \
---precision bf16-true
+--max 40 --batch_size 8
 ```
 
 ## Check the model and make it available
@@ -149,7 +144,7 @@ python validate_pretrain.py \
 If trained with LoRA, you can first merge the weights, with a command like:
 ```bash
 MODEL=tiiuae/falcon-7b
-TRAINING_DIR=$WORK/../commun/Claire/pretrain/lora/$MODEL
+TRAINING_DIR=$SCRATCH/../commun/Claire/pretrain/pretrain-Claire-Falcon-7B-v0.0.1
 TRAINED_MODEL_PATH=$TRAINING_DIR/iter-020883-ckpt.pth  # lit_model_lora_finetuned.pth
 FOUNDATION_MODEL_DIR=$WORK/../commun/Claire/checkpoints/$MODEL
 SAVE_DIR=$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B-v0.0.1
@@ -207,8 +202,8 @@ The steps done by this script are:
 
 ### Update Hugging Face model card
 
-The model card [README.md](hf_files/v00/README.md),
-as well as files requided to make an endpoint ([handler.py](hf_files/v00/handler.py) and [requirements.txt](hf_files/v00/requirements.txt))
+The model card [README.md](hf_files/falcon_v01/README.md),
+as well as files requided to make an endpoint ([handler.py](hf_files/falcon_v01/handler.py) and [requirements.txt](hf_files/falcon_v01/requirements.txt))
 can be updated on the Hugging Face model hub page [OpenLLM-France/Claire-7B-v0.0.1](https://huggingface.co/OpenLLM-France/Claire-7B-v0.0.1) with the following command:
 ```bash
 python utils/hf_upload_model.py \
@@ -224,7 +219,7 @@ OpenLLM-France/Claire-7B-v0.0.1 \
 --message "Upload weights"
 ```
 
-You will need to provide your [User Access Tokens](https://huggingface.co/settings/tokens).
+You will need to provide your [HuggingFace User Access Tokens](https://huggingface.co/settings/tokens).
 
 ## Acknowledgements
 
@@ -232,4 +227,4 @@ You will need to provide your [User Access Tokens](https://huggingface.co/settin
 * [Lit-GPT](https://github.com/Lightning-AI/lit-gpt): Hackable implementation of state-of-the-art open-source Large Language Models.
 * [HuggingFace](https://huggingface.co/models): Model hub containing state-of-the-art open-source Large Language Models.
 
-This work was granted access to the HPC resources of IDRIS under the allocation 20XX-AD011014561 made by GENCI
+This work was granted access to the HPC resources of IDRIS under the allocation 2023-AD011014561 made by GENCI
