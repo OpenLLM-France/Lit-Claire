@@ -29,8 +29,8 @@ from lit_gpt.tokenizer import Tokenizer
 
 def setup(
     # Folders
-    data_dir: Path = Path("data/preprocessed_data"),
     out_dir: Path = Path("out/lora/Claire"),
+    data_dir: Optional[Path] = None,
     checkpoint_dir: Optional[Path] = None,
     out_file: Optional[Path] = None,
     language: Optional[str] = None,
@@ -50,7 +50,7 @@ def setup(
 ):
     hparams = dict((k,v) for k,v in locals().items())
 
-    precision = precision or get_default_supported_precision(training=True)
+    precision = precision or get_default_supported_precision(training=False)
 
     if devices > 1 or num_nodes > 1:
         raise NotImplementedError("Multi-node offline validation not supported yet")
@@ -77,14 +77,26 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
 
     assert os.path.isdir(out_dir), f"Output directory {out_dir} does not exist."
 
-    if checkpoint_dir is None:
-        hparams = out_dir / "hparams.json"
-        if not hparams.exists():
-            raise FileNotFoundError(f"Cannot find hyperparameter file {out_dir}/hparams.json")
+    hparams = out_dir / "hparams.json"
+    if not hparams.exists():
+        hparams = None
+    else:
         with open(hparams, "r") as f:
             hparams = json.load(f)
+
+    if checkpoint_dir is None:
+        if hparams is None: raise FileNotFoundError(f"Cannot find hyperparameter file {out_dir}/hparams.json")
         assert "checkpoint_dir" in hparams, f"Cannot find 'checkpoint_dir' in {hparams}"
         checkpoint_dir = Path(hparams["checkpoint_dir"])
+    if not checkpoint_dir.exists():
+        raise FileNotFoundError(f"Cannot find {checkpoint_dir}")
+
+    if data_dir is None:
+        if hparams is None: raise FileNotFoundError(f"Cannot find hyperparameter file {out_dir}/hparams.json")
+        assert "data_dir" in hparams, f"Cannot find 'data_dir' in {hparams}"
+        data_dir = Path(hparams["data_dir"])
+    if not data_dir.exists():
+        raise FileNotFoundError(f"Cannot find {data_dir}")
 
     checkpoints = [os.path.join(out_dir, f) for f in os.listdir(out_dir) if f.endswith(".pth") and f.startswith("iter-")]
     assert len(checkpoints) > 0, f"No checkpoints found in {out_dir}"    
