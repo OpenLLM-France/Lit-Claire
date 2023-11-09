@@ -46,7 +46,7 @@ inference:
 import transformers
 import torch
 
-model = "OpenLLM-France/Claire-Mistral-7B-Apache-0.1"
+model_name = "OpenLLM-France/Claire-Mistral-7B-Apache-0.1"
 
 tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
 model = transformers.AutoModelForCausalLM.from_pretrained(model_name,
