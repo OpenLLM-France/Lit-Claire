@@ -23,37 +23,50 @@ inference:
 ## How to use
 
 ```python
-from transformers import AutoTokenizer, AutoModelForCausalLM
 import transformers
 import torch
 
 model = "OpenLLM-France/Claire-Mistral-7B-Apache-0.1"
 
-tokenizer = AutoTokenizer.from_pretrained(model)
-pipeline = transformers.pipeline(
-    "text-generation",
-    model=model,
-    tokenizer=tokenizer,
-    torch_dtype=torch.bfloat16,
-    trust_remote_code=True,
+tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
+model = transformers.AutoModelForCausalLM.from_pretrained(model_name,
     device_map="auto",
+    torch_dtype=torch.bfloat16,
+    load_in_4bit=True                          # For efficient inference, if supported by the GPU card
 )
-sequences = pipeline(
-   "[Intervenant 1:] Bonjour, pouvez-vous nous parler de votre sport préféré ?\n[Intervenant 2:] Alors euh oui,",
-    max_new_tokens=200,
-    do_sample=True,
-    top_k=10,
-    num_return_sequences=1,
-    eos_token_id=tokenizer.eos_token_id,
-)
-for seq in sequences:
-    print(f"Result: {seq['generated_text']}")
 
+pipeline = transformers.pipeline("text-generation", model=model, tokenizer=tokenizer)
+generation_kwargs = dict(
+    num_return_sequences=1,                    # Number of variations to generate.
+    return_full_text= False,                   # Do not include the prompt in the generated text.
+    max_new_tokens=200,                        # Maximum length for the output text.
+    do_sample=True, top_k=10, temperature=1.0, # Sampling parameters.
+    pad_token_id=tokenizer.eos_token_id,       # Just to avoid a harmless warning.
+)
+
+prompt = """\
+- Bonjour Dominique, qu'allez-vous nous cuisiner aujourd'hui ?
+- Bonjour Camille,\
+"""
+completions = pipeline(prompt, **generation_kwargs)
+for completion in completions:
+    print(prompt + " […]" + completion['generated_text'])
+```
+This will print something like:
+```
+- Bonjour Dominique, qu'allez-vous nous cuisiner aujourd'hui ?
+- Bonjour Camille, […] je vous prépare un plat de saison, une daube provençale.
+- Ah je ne connais pas cette recette.
+- C'est très facile à préparer, vous n'avez qu'à mettre de l'eau dans une marmite, y mettre de l'oignon émincé, des carottes coupées en petits morceaux, et vous allez mettre votre viande de bœuf coupé en petits morceaux également.
+- Je n'ai jamais cuisiné de viande de bœuf, mais c'est vrai que ça a l'air bien facile.
+- Vous n'avez plus qu'à laisser mijoter, et ensuite il sera temps de servir les clients.
+- Très bien.
 ```
 
-For fast inference with Claire, check-out [Text Generation Inference](https://github.com/huggingface/text-generation-inference).
+You will need at least 5GB of VRAM to run inference using 4bit quantization (16GB of VRAM without 4bit quantization).
 
-You will need **at least 16GB of memory** to swiftly run inference with Claire-Mistral-7B-Apache-0.1.
+If you have troubles running this code, make sure you have recent versions of `torch`, `transformers` and `accelerate` (see [requirements.txt](requirements.txt)).
+
 
 ## Training Details
 
