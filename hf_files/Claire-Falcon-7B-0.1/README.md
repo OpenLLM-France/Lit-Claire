@@ -37,7 +37,7 @@ model = transformers.AutoModelForCausalLM.from_pretrained(model_name,
 
 pipeline = transformers.pipeline("text-generation", model=model, tokenizer=tokenizer)
 generation_kwargs = dict(
-    num_return_sequences=1,                    # Number of variations to generate.
+    num_return_sequences=1,                    # Number of variants to generate.
     return_full_text= False,                   # Do not include the prompt in the generated text.
     max_new_tokens=200,                        # Maximum length for the output text.
     do_sample=True, top_k=10, temperature=1.0, # Sampling parameters.
@@ -65,14 +65,14 @@ This will print something like:
 
 You will need at least 5GB of VRAM to run inference using 4bit quantization (16GB of VRAM without 4bit quantization).
 
-If you have troubles running this code, make sure you have recent versions of `torch`, `transformers` and `accelerate` (see [requirements.txt](requirements.txt)).
+If you have trouble running this code, make sure you have recent versions of `torch`, `transformers` and `accelerate` (see [requirements.txt](requirements.txt)).
 
 ### Typical prompts
 
-Clare-7B-0.1 was trained on diarized conversations, normalized in several formats.
+Claire-7B-0.1 was trained on diarized conversations, normalized in several formats.
 The possible formats for expected prompts are the following.
 
-A monologue can be specified as a single line prompt:
+A monologue can be specified as a single line prompt (though keep in mind that Claire might still return a dialogue because of its training):
 ```python
 prompt = "Mesdames et messieurs les députés, chers collègues, bonsoir. Vous l'aurez peut-être remarqué, je cite rarement"
 ```
@@ -128,7 +128,7 @@ The model has been trained and evaluated on French dialogues but may be able to 
 Claire-7B-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
 See [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) for more details.
 
-Claire-7B-0.1 was trained on A100 80GB during about 50 GPU hours.
+Claire-7B-0.1 was trained on 1 A100 80GB for about 50 GPU hours.
 
 Hyperparameters were the following:
 
