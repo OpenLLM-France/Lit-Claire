@@ -70,18 +70,18 @@ Claire-7B-0.1 was tuned from Falcon-7b on the following data distribution:
 | Meetings                      |   1.2M     |  5%                          | SUMM-RE, LinTO, ORFEO réunions de travail |
 | Debates                       |   402k     | <2%                          | FreD, ESLO                                |
 | Assistance                    |   159k     | <1%                          | ORFEO fleuron, UBS, OTG, ESLO             |
-| Presentation, Address         |    86k     | <0.5%                        | Valibel (ORFEO), LinTO, ESLO                      |
+| Presentation, Address         |    86k     | <0.5%                        | Valibel (ORFEO), LinTO, ESLO              |
 
 The data was tokenized with the [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) tokenizer.
+
+The model has been trained and evaluated on French dialogues but may be able to generate conversations in other languages from the original Falcon-7B training data.
 
 ### Training Procedure 
 
 Claire-7B-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
-See [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) for more details. The model has been trained and evaluated on French dialogues but may be able to generate conversations in other languages from the original Falcon-7B training data.
+See [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) for more details.
 
-Claire-7B-0.1 was trained on A100 80GB GPUs.
-
-Training happened in October 2023.
+Claire-7B-0.1 was trained on A100 80GB during about 50 GPU hours.
 
 Hyperparameters were the following:
 

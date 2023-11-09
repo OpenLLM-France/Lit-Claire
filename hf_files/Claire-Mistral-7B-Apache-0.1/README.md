@@ -14,7 +14,7 @@ inference:
 
 # Claire-Mistral-7B-Apache-0.1
 
-**Claire-Mistral-7B-Apache-0.1 is a 7B parameters causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France)**
+**Claire-Mistral-7B-Apache-0.1 is a 7B parameter causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France)**
 **adapted from [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) on French conversational open data.**
 
 **It is made available under the Apache 2.0 license.**
@@ -67,18 +67,18 @@ Claire-Mistral-7B-Apache-0.1 was tuned from Mistral-7B-v0.1 on the following dat
 | Theatre                                 |  16M       | 28.5%                        | theatre-classique.fr, theatregratuit.com  |
 | Meetings                                |   1.0M     | 10.5%                        | SUMM-RE, LinTO                            |
 | Debates                                 |   326k     |  3.4%                        | FreD                                      |
-| Presentation, Conversations, Discourse  |    58k     | <1%                          | LinTO                                     |
+| Presentation, Conversations             |    58k     | <1%                          | LinTO                                     |
 
 The data was tokenized with the [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) tokenizer.
+
+The model has been trained and evaluated on French dialogues but may be able to generate conversations in other languages from the original Falcon-7B training data.
 
 ### Training Procedure 
 
 Claire-Mistral-7B-Apache-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
 See [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) for more details.
 
-Claire-Mistral-7B-Apache-0.1 was trained on A100 80GB GPUs.
-
-Training happened in October 2023.
+Claire-7B-0.1 was trained on A100 80GB during about 50 GPU hours.
 
 Hyperparameters were the following:
 
