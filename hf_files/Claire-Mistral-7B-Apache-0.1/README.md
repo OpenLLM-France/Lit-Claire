@@ -37,7 +37,7 @@ model = transformers.AutoModelForCausalLM.from_pretrained(model_name,
 
 pipeline = transformers.pipeline("text-generation", model=model, tokenizer=tokenizer)
 generation_kwargs = dict(
-    num_return_sequences=1,                    # Number of variations to generate.
+    num_return_sequences=1,                    # Number of variants to generate.
     return_full_text= False,                   # Do not include the prompt in the generated text.
     max_new_tokens=200,                        # Maximum length for the output text.
     do_sample=True, top_k=10, temperature=1.0, # Sampling parameters.
@@ -63,10 +63,44 @@ This will print something like:
 - Très bien.
 ```
 
-You will need at least 5GB of VRAM to run inference using 4bit quantization (16GB of VRAM without 4bit quantization).
+You will need at least 6GB of VRAM to run inference using 4bit quantization (16GB of VRAM without 4bit quantization).
 
-If you have troubles running this code, make sure you have recent versions of `torch`, `transformers` and `accelerate` (see [requirements.txt](requirements.txt)).
+If you have trouble running this code, make sure you have recent versions of `torch`, `transformers` and `accelerate` (see [requirements.txt](requirements.txt)).
 
+### Typical prompts
+
+Claire-7B-0.1 was trained on diarized conversations, normalized in several formats.
+The possible formats for expected prompts are the following.
+
+A monologue can be specified as a single line prompt (though keep in mind that Claire might still return a dialogue because of its training):
+```python
+prompt = "Mesdames et messieurs les députés, chers collègues, bonsoir. Vous l'aurez peut-être remarqué, je cite rarement"
+```
+
+A dialogue between two speakers can be specified with one line per speech turn starting with a dash:
+```python
+prompt = """\
+- Bonjour Dominique, qu'allez-vous nous cuisiner aujourd'hui ?
+- Bonjour Camille,\
+"""
+```
+
+A monologue or a dialogue with two or more speakers can be specified with lines that start with `[Intervenant X:]` where `X` is a number:
+```python
+prompt = """\
+[Intervenant 1:] Bonjour Dominique, qu'allez-vous nous cuisiner aujourd'hui ?
+[Intervenant 2:] Bonjour Camille,\
+"""
+```
+
+A dialogue with named speakers can be specified with lines that start with `[SpeakerName:]`
+where `SpeakerName` can be a first name, a first and a last name, a nickname, a title…
+```python
+prompt = """\
+[Mme Camille Durand:] Bonjour Dominique, qu'allez-vous nous cuisiner aujourd'hui ?
+[Mr. Dominique Petit:] Bonjour Camille,\
+"""
+```
 
 ## Training Details
 
@@ -91,7 +125,7 @@ The model has been trained and evaluated on French dialogues but may be able to 
 Claire-Mistral-7B-Apache-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
 See [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) for more details.
 
-Claire-7B-0.1 was trained on A100 80GB during about 50 GPU hours.
+Claire-7B-0.1 was trained on 8 A100 80GB for about 50 GPU hours.
 
 Hyperparameters were the following:
 
@@ -101,7 +135,7 @@ Hyperparameters were the following:
 | Optimizer          | AdamW      |
 | Learning rate      | 1e-4       |
 | Weight decay       | 1e-2       |
-| Batch size         | 132        |
+| Batch size         | 128        |
 | LoRA rank          | 16         |
 | LoRA alpha         | 32         |
 | Dropout            | 0.05       |
@@ -114,6 +148,9 @@ Claire-7B-Apache-0.1 is made available under the Apache 2.0 license.
 ## Acknowledgements
 
 This work was performed using HPC resources from GENCI–IDRIS (Grant 2023-AD011014561). 
+
+This work is a collaborative effort of LINAGORA Labs and OpenLLM-France community.
+Special thanks to Christophe Cerisara (LORIA), Pierre Carl Langlais (Opsci) and Pierre Colombo for their valuable advices.
 
 ## Contact
 

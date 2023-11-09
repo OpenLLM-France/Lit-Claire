@@ -63,7 +63,7 @@ This will print something like:
 - Très bien.
 ```
 
-You will need at least 5GB of VRAM to run inference using 4bit quantization (16GB of VRAM without 4bit quantization).
+You will need at least 6GB of VRAM to run inference using 4bit quantization (16GB of VRAM without 4bit quantization).
 
 If you have trouble running this code, make sure you have recent versions of `torch`, `transformers` and `accelerate` (see [requirements.txt](requirements.txt)).
 
@@ -151,6 +151,9 @@ Claire-7B-0.1 is made available under the CC-BY-NC-SA 4.0 license.
 ## Acknowledgements
 
 This work was performed using HPC resources from GENCI–IDRIS (Grant 2023-AD011014561). 
+
+This work is a collaborative effort of LINAGORA Labs and OpenLLM-France community.
+Special thanks to Christophe Cerisara (LORIA), Pierre Carl Langlais (Opsci) and Pierre Colombo for their valuable advices.
 
 ## Contact
 
