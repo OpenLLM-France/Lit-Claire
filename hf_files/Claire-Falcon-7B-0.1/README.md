@@ -153,7 +153,7 @@ Claire-7B-0.1 is made available under the CC-BY-NC-SA 4.0 license.
 This work was performed using HPC resources from GENCI–IDRIS (Grant 2023-AD011014561). 
 
 This work is a collaborative effort of LINAGORA Labs and OpenLLM-France community.
-Special thanks to Christophe Cerisara (LORIA), Pierre Carl Langlais (Opsci) and Pierre Colombo for their valuable advices.
+Special thanks to Christophe Cerisara (LORIA), Pierre-Carl Langlais (OpSci) and Pierre Colombo for their valuable advices.
 
 ## Contact
 
