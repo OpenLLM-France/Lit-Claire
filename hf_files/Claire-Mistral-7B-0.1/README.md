@@ -5,6 +5,28 @@ license: cc-by-nc-sa-4.0
 pipeline_tag: text-generation
 tags:
 - pretrained
+- conversational
+widget:
+  - text: |-
+      - Bonjour Dominique, qu'allez-vous nous cuisiner aujourd'hui ?
+      - Bonjour Camille,
+    example_title: Request for a recipe
+    group: Dash
+  - text: |-
+      [Intervenant 1:] Bonjour Dominique, qu'allez-vous nous cuisiner aujourd'hui ?
+      [Intervenant 2:] Bonjour Camille,
+    example_title: Request for a recipe
+    group: Intervenant
+  - text: |-
+      [Camille:] Bonjour Dominique, qu'allez-vous nous cuisiner aujourd'hui ?
+      [Dominique:] Bonjour Camille,
+    example_title: Request for a recipe
+    group: FirstName
+  - text: |-
+      [Camille Durand:] Bonjour Dominique, qu'allez-vous nous cuisiner aujourd'hui ?
+      [Dominique Petit:] Bonjour Camille,
+    example_title: Request for a recipe
+    group: Named
 inference:
     parameters:
         temperature: 1.0
@@ -15,7 +37,7 @@ inference:
 # Claire-Mistral-7B-0.1
 
 **Claire-Mistral-7B-0.1 is a 7B parameter causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France)**
-**adapted from [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) on French conversational open data.**
+**adapted from [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) on French conversational data.**
 
 ## How to use
 

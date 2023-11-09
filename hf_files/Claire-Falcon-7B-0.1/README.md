@@ -5,6 +5,28 @@ license: cc-by-nc-sa-4.0
 pipeline_tag: text-generation
 tags:
 - pretrained
+- conversational
+widget:
+  - text: |-
+      - Bonjour Dominique, qu'allez-vous nous cuisiner aujourd'hui ?
+      - Bonjour Camille,
+    example_title: Request for a recipe
+    group: Dash
+  - text: |-
+      [Intervenant 1:] Bonjour Dominique, qu'allez-vous nous cuisiner aujourd'hui ?
+      [Intervenant 2:] Bonjour Camille,
+    example_title: Request for a recipe
+    group: Intervenant
+  - text: |-
+      [Camille:] Bonjour Dominique, qu'allez-vous nous cuisiner aujourd'hui ?
+      [Dominique:] Bonjour Camille,
+    example_title: Request for a recipe
+    group: FirstName
+  - text: |-
+      [Camille Durand:] Bonjour Dominique, qu'allez-vous nous cuisiner aujourd'hui ?
+      [Dominique Petit:] Bonjour Camille,
+    example_title: Request for a recipe
+    group: Named
 inference:
     parameters:
         temperature: 1.0
