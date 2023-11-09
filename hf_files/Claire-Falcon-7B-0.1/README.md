@@ -17,8 +17,6 @@ inference:
 **Claire-7B-0.1 is a 7B parameter causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France)**
 **adapted from [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) on French conversational data.**
 
-**Given that some of the corpora used for training are only available under CC-BY-NC-SA licenses, Claire-7B-0.1 is also made available under a CC-BY-NC-SA license.**
-
 
 ## How to use
 
@@ -146,6 +144,7 @@ Hyperparameters were the following:
 
 ## License
 
+Given that some of the corpora used for training are only available under CC-BY-NC-SA licenses,
 Claire-7B-0.1 is made available under the CC-BY-NC-SA 4.0 license.
 
 ## Acknowledgements

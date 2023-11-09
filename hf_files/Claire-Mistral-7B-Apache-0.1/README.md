@@ -17,8 +17,6 @@ inference:
 **Claire-Mistral-7B-Apache-0.1 is a 7B parameter causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France)**
 **adapted from [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) on French conversational open data.**
 
-**It is made available under the Apache 2.0 license.**
-
 
 ## How to use
 
