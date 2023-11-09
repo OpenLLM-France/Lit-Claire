@@ -14,10 +14,10 @@ inference:
 
 # Claire-7B-0.1
 
-**Claire-7B-0.1 is a 7B parameters causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France)**
+**Claire-7B-0.1 is a 7B parameter causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France)**
 **adapted from [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) on French conversational data.**
 
-**Given that some of the corpora used are available under CC-BY-NC-SA or CC-BY-SA licenses, it is made available under CC-BY-NC-SA license.**
+**Given that some of the corpora used for training are only available under CC-BY-NC-SA licenses, Claire-7B-0.1 is also made available under a CC-BY-NC-SA license.**
 
 
 ## How to use
@@ -65,19 +65,19 @@ Claire-7B-0.1 was tuned from Falcon-7b on the following data distribution:
 |-------------------------------|------------|------------------------------|-----------------------------------------------------|
 | Assemblée Nationale           | 135M       | 35%                          | assemblee-nationale.fr                              |
 | Theatre                       |  16M       | 18%                          | theatre-classique.fr, theatregratuit.com            |
-| Interviews                    |   6.4M     | 29%                          | TCOF, CFPP, CFPB, ACSYNT, PFC, Valibel              |
-| Free Conversations            |   2.2M     | 10%                          | CRFP, OFROM, CID, Rhapsodie, ParisStories, PFC, CLAPI C-ORAL-ROM, LinTO, ESLO |
+| Interviews                    |   6.4M     | 29%                          | TCOF, CFPP, CFPB, ACSYNT, PFC, Valibel (ORFEO), ESLO              |
+| Free Conversations            |   2.2M     | 10%                          | CRFP, OFROM, CID, Rhapsodie, ParisStories, PFC, CLAPI, C-ORAL-ROM (ORFEO), LinTO, ESLO |
 | Meetings                      |   1.2M     |  5%                          | SUMM-RE, LinTO, ORFEO réunions de travail |
 | Debates                       |   402k     | <2%                          | FreD, ESLO                                |
 | Assistance                    |   159k     | <1%                          | ORFEO fleuron, UBS, OTG, ESLO             |
-| Presentation, Free Discourse  |    86k     | <0.5%                        | Valibel, LinTO, ESLO                      |
+| Presentation, Address         |    86k     | <0.5%                        | Valibel (ORFEO), LinTO, ESLO                      |
 
 The data was tokenized with the [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) tokenizer.
 
 ### Training Procedure 
 
 Claire-7B-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
-See [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) for more details.
+See [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) for more details. The model has been trained and evaluated on French dialogues but may be able to generate conversations in other languages from the original Falcon-7B training data.
 
 Claire-7B-0.1 was trained on A100 80GB GPUs.
 
