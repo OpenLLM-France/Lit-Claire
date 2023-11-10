@@ -89,8 +89,9 @@ If you have trouble running this code, make sure you have recent versions of `to
 
 ### Typical prompts
 
-Claire-7B-0.1 was trained on diarized French conversations, normalized in several formats.
-The possible formats for expected prompts are the following.
+Claire-7B-0.1 was trained on diarized French conversations. Please note that as a result, the model is prone to generate dialogues with disfluencies and other constructions common to spoken language.
+
+During training, the dialogues were normalized in several formats. The possible formats for expected prompts are as follows:
 
 A monologue can be specified as a single line prompt (though keep in mind that Claire might still return a dialogue because of its training):
 ```python
@@ -136,12 +137,11 @@ Claire-7B-0.1 was tuned from Falcon-7b on the following data distribution:
 | Free Conversations            |   2.2M     | 10%                          | CRFP, OFROM, CID, Rhapsodie, ParisStories, PFC, CLAPI, C-ORAL-ROM (ORFEO), LinTO, ESLO |
 | Meetings                      |   1.2M     |  5%                          | SUMM-RE, LinTO, ORFEO réunions de travail |
 | Debates                       |   402k     | <2%                          | FreD, ESLO                                |
-| Assistance                    |   159k     | <1%                          | ORFEO fleuron, UBS, OTG, ESLO             |
+| Assistance                    |   159k     | <1%                          | ORFEO fleuron, Accueil UBS, OTG, ESLO             |
 | Presentation, Address         |    86k     | <0.5%                        | Valibel (ORFEO), LinTO, ESLO              |
 
 The data was tokenized with the [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) tokenizer.
 
-The model has been trained and evaluated on French dialogues but may be able to generate conversations in other languages from the original Falcon-7B training data.
 
 ### Training Procedure 
 
@@ -165,20 +165,17 @@ Hyperparameters were the following:
 
 ## Evaluation
 
-To evaluate Claire-7B-0.1’s ability to generate natural sounding, French conversations,
-we prompted it to continue discussion on several topics
-and compared its output for a given prompt to that of three other models:
+To evaluate Claire-7B-0.1’s ability to generate natural sounding, French conversations, we compared its responses to a variety of prompts to those of three other models:
 * [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b),
-* [Mistral-7B-v0.1](https://huggingface.co/mistralai/Mistral-7B-v0.1) and
+* [Mistral-7B-v0.1](https://huggingface.co/mistralai/Mistral-7B-v0.1) 
 * [Claire-Mistral-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-Mistral-7B-0.1) (a version of Mistral-7B-v0.1 adapted in the same fashion as Claire-7B-0.1).
+
 We tested an even mixture of monologue and dialogue-style prompts.
 Each of the four generated responses was evaluated along three dimensions:
-Interaction, Fluency and Topicality.
+Interaction, Fluency and Relevance.
 Evaluators were also asked to rank the four responses by preference.
 
-Our results confirm that continual pre-training of Falcon-7b and Mistral-7B-v0.1 leads to improvement
-over most desirable properties,
-and that Claire-7B-0.1 outperforms the adapted Mistral counterpart in the Fluency and Topicality categories
+Our results confirm that continual pre-training of Falcon-7b and Mistral-7B-v0.1 leads to improvement (relative to the base models) along all three evaluation dimensions and that Claire-7B-0.1 outperforms the adapted Mistral counterpart in the Fluency and Relevance categories
 (also in the Interaction category if we focus on dialogue-style prompts).
 
 Ranking results also reveal a clear subjective preference for Claire-7B-0.1,
@@ -191,13 +188,16 @@ as shown in the following table:
 | prefer<br /> **Falcon** ...         | _36.1%_              | _43.8%_               |               | **81.4%**           |
 | prefer<br /> **Mistral** ...        | _16.2%_              | _24.7%_               | _18.6%_       |                     |
 
-(in this table,
-Claire-Falcon stands for Claire-7B-0.1,
-Falcon stands for [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b),
-Mistral stands for [Mistral-7B-v0.1](https://huggingface.co/mistralai/Mistral-7B-v0.1)
-and Claire-Mistral stands for [Claire-Mistral-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-Mistral-7B-0.1))
+(In this table,
+"Claire-Falcon" stands for Claire-7B-0.1,
+"Falcon", for [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b),
+"Mistral", for [Mistral-7B-v0.1](https://huggingface.co/mistralai/Mistral-7B-v0.1)
+and "Claire-Mistral", for [Claire-Mistral-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-Mistral-7B-0.1).)
 
-More evaluation details will be provided in a separate publication.
+
+Please note that the model can generate disfluencies and humorous responses as a result of its training on spoken and theatrical text. 
+
+While the model has only been evaluated on French dialogues, it may be able to generate conversations in other languages present in the original Falcon-7B training data. More evaluation details will be provided in a separate publication.
 
 ## License
 
@@ -210,9 +210,9 @@ You can find a variant of this model published under the Apache 2.0 license at [
 
 This work was performed using HPC resources from GENCI–IDRIS (Grant 2023-AD011014561). 
 
-Claire-7B-0.1 was created by members of LINAGORA Labs (in alphabetical order): Ismaïl Harrando, Julie Hunter, Jean-Pierre Lorré, Jérôme Louradour, Michel-Marie Maudet, Virgile Rennard, Guokan Shang.
+Claire-7B-0.1 was created by members of LINAGORA Labs and OpenLLM-France (in alphabetical order): Ismaïl Harrando, Julie Hunter, Jean-Pierre Lorré, Jérôme Louradour, Michel-Marie Maudet, Virgile Rennard, Guokan Shang.
 
-Special thanks to partners from the OpenLLM-France community, especially Christophe Cerisara (LORIA), Pierre-Carl Langlais and Anastasia Stasenko (OpSci), and Pierre Colombo, for valuable advice.
+Special thanks to partners from the OpenLLM-France community, especially Christophe Cerisara (LORIA), Pierre-Carl Langlais and Anastasia Stasenko (OpSci), and Pierre Colombo, for valuable advice.
 
 ## Contact
 
