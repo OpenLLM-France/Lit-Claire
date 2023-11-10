@@ -137,10 +137,10 @@ Claire-7B-0.1 was tuned from Falcon-7b on the following data distribution:
 | Free Conversations            |   2.2M     | 10%                          | CRFP, OFROM, CID, Rhapsodie, ParisStories, PFC, CLAPI, C-ORAL-ROM (ORFEO), LinTO, ESLO |
 | Meetings                      |   1.2M     |  5%                          | SUMM-RE, LinTO, ORFEO réunions de travail |
 | Debates                       |   402k     | <2%                          | FreD, ESLO                                |
-| Assistance                    |   159k     | <1%                          | ORFEO fleuron, Accueil UBS, OTG, ESLO             |
+| Assistance                    |   159k     | <1%                          | ORFEO fleuron, Accueil UBS, OTG, ESLO     |
 | Presentation, Address         |    86k     | <0.5%                        | Valibel (ORFEO), LinTO, ESLO              |
 
-The data was tokenized with the [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) tokenizer.
+The model has been trained and evaluated on French dialogues but may be able to generate conversations in other languages from the original Falcon-7b training data.
 
 
 ### Training Procedure 
@@ -194,10 +194,9 @@ as shown in the following table:
 "Mistral", for [Mistral-7B-v0.1](https://huggingface.co/mistralai/Mistral-7B-v0.1)
 and "Claire-Mistral", for [Claire-Mistral-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-Mistral-7B-0.1).)
 
-
 Please note that the model can generate disfluencies and humorous responses as a result of its training on spoken and theatrical text. 
 
-While the model has only been evaluated on French dialogues, it may be able to generate conversations in other languages present in the original Falcon-7B training data. More evaluation details will be provided in a separate publication.
+More evaluation details will be provided in a separate publication.
 
 ## License
 
@@ -210,7 +209,7 @@ You can find a variant of this model published under the Apache 2.0 license at [
 
 This work was performed using HPC resources from GENCI–IDRIS (Grant 2023-AD011014561). 
 
-Claire-7B-0.1 was created by members of LINAGORA Labs and OpenLLM-France (in alphabetical order): Ismaïl Harrando, Julie Hunter, Jean-Pierre Lorré, Jérôme Louradour, Michel-Marie Maudet, Virgile Rennard, Guokan Shang.
+Claire-7B-0.1 was created by members of [LINAGORA](https://labs.linagora.com/) (in alphabetical order): Ismaïl Harrando, Julie Hunter, Jean-Pierre Lorré, Jérôme Louradour, Michel-Marie Maudet, Virgile Rennard, Guokan Shang.
 
 Special thanks to partners from the OpenLLM-France community, especially Christophe Cerisara (LORIA), Pierre-Carl Langlais and Anastasia Stasenko (OpSci), and Pierre Colombo, for valuable advice.
 

@@ -39,7 +39,9 @@ inference:
 **Claire-Mistral-7B-0.1 is a 7B parameter causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France)**
 **adapted from [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) on French conversational data.**
 
-## How to use
+Note that a qualitatively better version is available under [Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1).
+
+## Typical usage
 
 ```python
 import transformers
@@ -88,8 +90,9 @@ If you have trouble running this code, make sure you have recent versions of `to
 
 ### Typical prompts
 
-Claire-7B-0.1 was trained on diarized conversations, normalized in several formats.
-The possible formats for expected prompts are the following.
+Claire-Mistral-7B-0.1 was trained on diarized French conversations. Please note that as a result, the model is prone to generate dialogues with disfluencies and other constructions common to spoken language.
+
+During training, the dialogues were normalized in several formats. The possible formats for expected prompts are as follows:
 
 A monologue can be specified as a single line prompt (though keep in mind that Claire might still return a dialogue because of its training):
 ```python
@@ -104,7 +107,7 @@ prompt = """\
 """
 ```
 
-A monologue or a dialogue with two or more speakers can be specified with lines that start with `[Intervenant X:]` where `X` is a number:
+A dialogue or multilogue (with two or more speakers) can be specified with lines that start with `[Intervenant X:]` where `X` is a number:
 ```python
 prompt = """\
 [Intervenant 1:] Bonjour Dominique, qu'allez-vous nous cuisiner aujourd'hui ?
@@ -112,7 +115,7 @@ prompt = """\
 """
 ```
 
-A dialogue with named speakers can be specified with lines that start with `[SpeakerName:]`
+A dialogue or multilogue with named speakers can be specified with lines that start with `[SpeakerName:]`
 where `SpeakerName` can be a first name, a first and a last name, a nickname, a title…
 ```python
 prompt = """\
@@ -127,27 +130,25 @@ prompt = """\
 
 Claire-Mistral-7B-0.1 was tuned from Mistral-7B-v0.1 on the following data distribution:
 
-| **Data source**               | **Words**  | **Training Sampling Weight** | **Sources**                                         |
+| **Data type**                 | **Words**  | **Training Sampling Weight** | **Sources**                                         |
 |-------------------------------|------------|------------------------------|-----------------------------------------------------|
-| Assemblée Nationale           | 135M       | 35%                          | assemblee-nationale.fr                              |
+| Parliamentary Proceedings     | 135M       | 35%                          | assemblee-nationale.fr                              |
 | Theatre                       |  16M       | 18%                          | theatre-classique.fr, theatregratuit.com            |
 | Interviews                    |   6.4M     | 29%                          | TCOF, CFPP, CFPB, ACSYNT, PFC, Valibel (ORFEO), ESLO              |
 | Free Conversations            |   2.2M     | 10%                          | CRFP, OFROM, CID, Rhapsodie, ParisStories, PFC, CLAPI, C-ORAL-ROM (ORFEO), LinTO, ESLO |
 | Meetings                      |   1.2M     |  5%                          | SUMM-RE, LinTO, ORFEO réunions de travail |
 | Debates                       |   402k     | <2%                          | FreD, ESLO                                |
-| Assistance                    |   159k     | <1%                          | ORFEO fleuron, UBS, OTG, ESLO             |
+| Assistance                    |   159k     | <1%                          | ORFEO fleuron, Accueil UBS, OTG, ESLO     |
 | Presentation, Address         |    86k     | <0.5%                        | Valibel (ORFEO), LinTO, ESLO              |
 
-The data was tokenized with the [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) tokenizer.
-
-The model has been trained and evaluated on French dialogues but may be able to generate conversations in other languages from the original Falcon-7B training data.
+The model has been trained and evaluated on French dialogues but may be able to generate conversations in other languages from the original Mistral-7B-v0.1 training data.
 
 ### Training Procedure 
 
 Claire-Mistral-7B-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
 See [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) for more details.
 
-Claire-7B-0.1 was trained on 8 A100 80GB for about 50 GPU hours.
+Claire-Mistral-7B-0.1 was trained on 8 A100 80GB for about 50 GPU hours.
 
 Hyperparameters were the following:
 
@@ -163,17 +164,22 @@ Hyperparameters were the following:
 | Dropout            | 0.05       |
 | gradient clipping  | 1          |
 
+## Evaluation
+
+See [Evaluation section of Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1#evaluation).
+
 ## License
 
 Given that some of the corpora used for training are only available under CC-BY-NC-SA licenses,
-Claire-Mistral-7B-0.1 is made available under the CC-BY-NC-SA 4.0 license.
-
-This work is a collaborative effort of LINAGORA Labs and OpenLLM-France community.
-Special thanks to Christophe Cerisara (LORIA), Pierre-Carl Langlais (OpSci) and Pierre Colombo for their valuable advices.
+Claire-Mistral-7B-0.1 is made available under the [CC-BY-NC-SA 4.0 license](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 
 ## Acknowledgements
 
 This work was performed using HPC resources from GENCI–IDRIS (Grant 2023-AD011014561). 
+
+Claire-Mistral-7B-0.1 was created by members of [LINAGORA](https://labs.linagora.com/) (in alphabetical order): Ismaïl Harrando, Julie Hunter, Jean-Pierre Lorré, Jérôme Louradour, Michel-Marie Maudet, Virgile Rennard, Guokan Shang.
+
+Special thanks to partners from the OpenLLM-France community, especially Christophe Cerisara (LORIA), Pierre-Carl Langlais and Anastasia Stasenko (OpSci), and Pierre Colombo, for valuable advice.
 
 ## Contact
 
