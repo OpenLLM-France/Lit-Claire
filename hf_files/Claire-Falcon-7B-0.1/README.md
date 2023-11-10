@@ -89,7 +89,7 @@ If you have trouble running this code, make sure you have recent versions of `to
 
 ### Typical prompts
 
-Claire-7B-0.1 was trained on diarized conversations, normalized in several formats.
+Claire-7B-0.1 was trained on diarized French conversations, normalized in several formats.
 The possible formats for expected prompts are the following.
 
 A monologue can be specified as a single line prompt (though keep in mind that Claire might still return a dialogue because of its training):
@@ -105,7 +105,7 @@ prompt = """\
 """
 ```
 
-A monologue or a dialogue with two or more speakers can be specified with lines that start with `[Intervenant X:]` where `X` is a number:
+A dialogue or multilogue (with two or more speakers) can be specified with lines that start with `[Intervenant X:]` where `X` is a number:
 ```python
 prompt = """\
 [Intervenant 1:] Bonjour Dominique, qu'allez-vous nous cuisiner aujourd'hui ?
@@ -113,7 +113,7 @@ prompt = """\
 """
 ```
 
-A dialogue with named speakers can be specified with lines that start with `[SpeakerName:]`
+A dialogue or multilogue with named speakers can be specified with lines that start with `[SpeakerName:]`
 where `SpeakerName` can be a first name, a first and a last name, a nickname, a title…
 ```python
 prompt = """\
@@ -164,6 +164,15 @@ Hyperparameters were the following:
 | Dropout            | 0.05       |
 | gradient clipping  | 1          |
 
+## Evaluation
+
+To evaluate Claire-7B-0.1’s ability to generate natural sounding, French conversations, we prompted it to continue discussion on several topics and compared its output for a given prompt to that of three other models — Falcon-7b, Mistral-7B-v0.1 and a version of Mistral-7B-v0.1 fine-tuned in the same fashion as Claire-7B-0.1. We tested an even mixture of monologue and dialogue-style prompts. Each of the four generated responses was evaluated along three dimensions: Interaction, Fluency and Topicality. Evaluators were also asked to compare and rank the four responses.
+
+Our results confirm that fine-tuning Falcon-7b and Mistral-7B-v0.1 leads to improvement over almost all desirable properties and that Claire-7B-0.1 outperforms the fine-tuned Mistral in the Fluency and Topicality categories (and if we focus on dialogue-style prompts, in the Interaction category). Ranking results also reveal a clear subjective preference for Claire-7B-0.1. Evaluation details will be provided in a separate publication.
+
+
+
+
 ## License
 
 Given that some of the corpora used for training are only available under CC-BY-NC-SA licenses,
@@ -173,8 +182,9 @@ Claire-7B-0.1 is made available under the CC-BY-NC-SA 4.0 license.
 
 This work was performed using HPC resources from GENCI–IDRIS (Grant 2023-AD011014561). 
 
-This work is a collaborative effort of LINAGORA Labs and OpenLLM-France community.
-Special thanks to Christophe Cerisara (LORIA), Pierre-Carl Langlais (OpSci) and Pierre Colombo for their valuable advices.
+Claire-7B-0.1 was created by members of LINAGORA Labs (in alphabetical order): Ismaïl Harrando, Julie Hunter, Jean-Pierre Lorré, Jérôme Louradour, Virgile Rennard, Guokan Shang.
+
+Special thanks to partners from the OpenLLM-France community, especially Christophe Cerisara (LORIA), Pierre-Carl Langlais and Anastasia Stasenko (OpSci), and Pierre Colombo, for valuable advice.
 
 ## Contact
 
