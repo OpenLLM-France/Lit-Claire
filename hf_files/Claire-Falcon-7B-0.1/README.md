@@ -40,7 +40,7 @@ inference:
 **adapted from [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) on French conversational data.**
 
 
-## How to use
+## Typical usage
 
 ```python
 import transformers
@@ -128,9 +128,9 @@ prompt = """\
 
 Claire-7B-0.1 was tuned from Falcon-7b on the following data distribution:
 
-| **Data source**               | **Words**  | **Training Sampling Weight** | **Sources**                                         |
+| **Data type**                 | **Words**  | **Training Sampling Weight** | **Sources**                                         |
 |-------------------------------|------------|------------------------------|-----------------------------------------------------|
-| Assemblée Nationale           | 135M       | 35%                          | assemblee-nationale.fr                              |
+| Parliamentary Proceedings     | 135M       | 35%                          | assemblee-nationale.fr                              |
 | Theatre                       |  16M       | 18%                          | theatre-classique.fr, theatregratuit.com            |
 | Interviews                    |   6.4M     | 29%                          | TCOF, CFPP, CFPB, ACSYNT, PFC, Valibel (ORFEO), ESLO              |
 | Free Conversations            |   2.2M     | 10%                          | CRFP, OFROM, CID, Rhapsodie, ParisStories, PFC, CLAPI, C-ORAL-ROM (ORFEO), LinTO, ESLO |
@@ -151,7 +151,6 @@ See [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) for more details.
 Claire-7B-0.1 was trained on 1 A100 80GB for about 50 GPU hours.
 
 Hyperparameters were the following:
-
 | **Hyperparameter** | **Value**  |
 |--------------------|------------|
 | Precision          | `bfloat16` |
@@ -166,23 +165,52 @@ Hyperparameters were the following:
 
 ## Evaluation
 
-To evaluate Claire-7B-0.1’s ability to generate natural sounding, French conversations, we prompted it to continue discussion on several topics and compared its output for a given prompt to that of three other models — Falcon-7b, Mistral-7B-v0.1 and a version of Mistral-7B-v0.1 fine-tuned in the same fashion as Claire-7B-0.1. We tested an even mixture of monologue and dialogue-style prompts. Each of the four generated responses was evaluated along three dimensions: Interaction, Fluency and Topicality. Evaluators were also asked to compare and rank the four responses.
+To evaluate Claire-7B-0.1’s ability to generate natural sounding, French conversations,
+we prompted it to continue discussion on several topics
+and compared its output for a given prompt to that of three other models:
+* [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b),
+* [Mistral-7B-v0.1](https://huggingface.co/mistralai/Mistral-7B-v0.1) and
+* [Claire-Mistral-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-Mistral-7B-0.1) (a version of Mistral-7B-v0.1 adapted in the same fashion as Claire-7B-0.1).
+We tested an even mixture of monologue and dialogue-style prompts.
+Each of the four generated responses was evaluated along three dimensions:
+Interaction, Fluency and Topicality.
+Evaluators were also asked to rank the four responses by preference.
 
-Our results confirm that fine-tuning Falcon-7b and Mistral-7B-v0.1 leads to improvement over almost all desirable properties and that Claire-7B-0.1 outperforms the fine-tuned Mistral in the Fluency and Topicality categories (and if we focus on dialogue-style prompts, in the Interaction category). Ranking results also reveal a clear subjective preference for Claire-7B-0.1. Evaluation details will be provided in a separate publication.
+Our results confirm that continual pre-training of Falcon-7b and Mistral-7B-v0.1 leads to improvement
+over most desirable properties,
+and that Claire-7B-0.1 outperforms the adapted Mistral counterpart in the Fluency and Topicality categories
+(also in the Interaction category if we focus on dialogue-style prompts).
 
+Ranking results also reveal a clear subjective preference for Claire-7B-0.1,
+as shown in the following table:
+<!--|                               | **Claire-Falcon** | **Claire-Mistral** | **Falcon** | **Mistral** | -->
+| | <span style="font-weight: normal">... over</span><br /> **Claire-Falcon** | <span style="font-weight: normal">... over</span><br /> **Claire-Mistral** | <span style="font-weight: normal">... over</span><br /> **Falcon** | <span style="font-weight: normal">... over</span><br /> **Mistral** |
+|--------------------------------------|----------------------|-----------------------|---------------|---------------------|
+| prefer<br /> **Claire-Falcon** ...  |                      | **62.2%**             | **63.9%**     | **83.8%**           |
+| prefer<br /> **Claire-Mistral** ... | _34.8%_              |                       | **56.2%**     | **75.3%**           |
+| prefer<br /> **Falcon** ...         | _36.1%_              | _43.8%_               |               | **81.4%**           |
+| prefer<br /> **Mistral** ...        | _16.2%_              | _24.7%_               | _18.6%_       |                     |
 
+(in this table,
+Claire-Falcon stands for Claire-7B-0.1,
+Falcon stands for [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b),
+Mistral stands for [Mistral-7B-v0.1](https://huggingface.co/mistralai/Mistral-7B-v0.1)
+and Claire-Mistral stands for [Claire-Mistral-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-Mistral-7B-0.1))
 
+More evaluation details will be provided in a separate publication.
 
 ## License
 
 Given that some of the corpora used for training are only available under CC-BY-NC-SA licenses,
-Claire-7B-0.1 is made available under the CC-BY-NC-SA 4.0 license.
+Claire-7B-0.1 is made available under the [CC-BY-NC-SA 4.0 license](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+
+You can find a variant of this model published under the Apache 2.0 license at [OpenLLM-France/Claire-7B-Apache-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-Apache-0.1).
 
 ## Acknowledgements
 
 This work was performed using HPC resources from GENCI–IDRIS (Grant 2023-AD011014561). 
 
-Claire-7B-0.1 was created by members of LINAGORA Labs (in alphabetical order): Ismaïl Harrando, Julie Hunter, Jean-Pierre Lorré, Jérôme Louradour, Virgile Rennard, Guokan Shang.
+Claire-7B-0.1 was created by members of LINAGORA Labs (in alphabetical order): Ismaïl Harrando, Julie Hunter, Jean-Pierre Lorré, Jérôme Louradour, Michel-Marie Maudet, Virgile Rennard, Guokan Shang.
 
 Special thanks to partners from the OpenLLM-France community, especially Christophe Cerisara (LORIA), Pierre-Carl Langlais and Anastasia Stasenko (OpSci), and Pierre Colombo, for valuable advice.
 
