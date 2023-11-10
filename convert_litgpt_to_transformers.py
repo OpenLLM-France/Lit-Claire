@@ -25,7 +25,7 @@ assert os.path.isfile(script_merge_lora), f"Cannot find {script_merge_lora}"
 def convert_lit_checkpoint(
     input_path: Path,
     output_dir: Path,
-    hf_files_dir = Path(wd) / "hf_files" / "falcon_v01",
+    hf_files_dir = Path(wd) / "hf_files" / "Claire-Falcon-7B-0.1",
     hf_files_common_dir = Path(wd) / "hf_files" / "common",
     checkpoint_dir: Optional[Path] = None,
     repo_id: Optional[str] = None,

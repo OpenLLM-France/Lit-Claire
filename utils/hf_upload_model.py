@@ -8,7 +8,7 @@ wd = Path(__file__).parent.parent.resolve()
 
 def upload_to_huggingface_hub(
     repo_id: str,
-    input_dir: Path = wd / "hf_files" / "falcon_v01",
+    input_dir: Path = wd / "hf_files" / "Claire-Falcon-7B-0.1",
     message: Optional[str] = None,
     create_repo: Optional[bool] = None,
 ):
