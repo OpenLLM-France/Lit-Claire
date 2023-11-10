@@ -39,7 +39,7 @@ def upload_to_huggingface_hub(
         folder_path=input_dir,
         repo_id=repo_id,
         repo_type="model",
-        ignore_patterns=["lit_*", "pytorch_model.bin"],
+        ignore_patterns=["lit_*", "pytorch_model.bin", "__pycache__"],
         commit_message=message,
     )
 
