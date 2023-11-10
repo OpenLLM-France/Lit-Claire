@@ -1,3 +1,4 @@
 transformers>=4.34.0
+accelerate>=0.20.3
 bitsandbytes
 einops
