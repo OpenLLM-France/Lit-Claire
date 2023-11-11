@@ -36,10 +36,12 @@ inference:
 
 # Claire-Mistral-7B-0.1
 
-**Claire-Mistral-7B-0.1 is a 7B parameter causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France)**
+**Claire-Mistral-7B-0.1 is a 7B parameter causal decoder-only model built by [LINAGORA](https://labs.linagora.com/) and [OpenLLM-France](https://github.com/OpenLLM-France)**
 **adapted from [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) on French conversational data.**
 
-Note that a qualitatively better version is available under [Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1).
+Claire-Mistral-7B-0.1 is designed to be attuned to dialogue dynamics, manifested by its ability to generate natural sounding conversations, with the aim of improving downstream performance of models fine-tuned for dialogue generation (e.g., chat) and dialogue understanding (e.g., meeting summarization) tasks.
+
+Note that a qualitatively better variant of this model is available under [Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1).
 
 ## Typical usage
 
@@ -94,7 +96,7 @@ Claire-Mistral-7B-0.1 was trained on diarized French conversations. Please note 
 
 During training, the dialogues were normalized in several formats. The possible formats for expected prompts are as follows:
 
-A monologue can be specified as a single line prompt (though keep in mind that Claire might still return a dialogue because of its training):
+A monologue can be specified as a single line prompt (though keep in mind that the model might still return a dialogue because of its training):
 ```python
 prompt = "Mesdames et messieurs les députés, chers collègues, bonsoir. Vous l'aurez peut-être remarqué, je cite rarement"
 ```
@@ -136,19 +138,26 @@ Claire-Mistral-7B-0.1 was tuned from Mistral-7B-v0.1 on the following data distr
 | Theatre                       |  16M       | 18%                          | theatre-classique.fr, theatregratuit.com            |
 | Interviews                    |   6.4M     | 29%                          | TCOF, CFPP, CFPB, ACSYNT, PFC, Valibel (ORFEO), ESLO              |
 | Free Conversations            |   2.2M     | 10%                          | CRFP, OFROM, CID, Rhapsodie, ParisStories, PFC, CLAPI, C-ORAL-ROM (ORFEO), LinTO, ESLO |
-| Meetings                      |   1.2M     |  5%                          | SUMM-RE, LinTO, ORFEO réunions de travail |
+| Meetings                      |   1.2M     |  5%                          | SUMM-RE, LinTO, Réunions de travail (ORFEO) |
 | Debates                       |   402k     | <2%                          | FreD, ESLO                                |
-| Assistance                    |   159k     | <1%                          | ORFEO fleuron, Accueil UBS, OTG, ESLO     |
-| Presentation, Address         |    86k     | <0.5%                        | Valibel (ORFEO), LinTO, ESLO              |
+| Assistance                    |   159k     | <1%                          | Fleuron (ORFEO), Accueil UBS, OTG, ESLO     |
+| Presentation, Formal Address         |    86k     | <0.5%                        | Valibel (ORFEO), LinTO, ESLO              |
 
-The model has been trained and evaluated on French dialogues but may be able to generate conversations in other languages from the original Mistral-7B-v0.1 training data.
+While the model has been trained and evaluated only on French dialogues, it may be able to generate conversations in other languages from the original Mistral-7B-v0.1 training data.
 
 ### Training Procedure 
 
 Claire-Mistral-7B-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
 See [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) for more details.
 
-Claire-Mistral-7B-0.1 was trained on 8 A100 80GB for about 50 GPU hours.
+Training data was augmented with the following techniques:
+* varying the format used to indicate speech turns (dashes or [XXX:])
+* substituting [Intervenant X:] for [SpeakerName:] or vice versa, where [SpeakerName:] might be a real name or a randomly generated name
+* removing punctuation marks and/or casing (to prepare the model for transcripts produced by some Automatic Speech Recognition systems)
+
+Long conversations were truncated at a maximum of 4096 tokens. Where possible, they were split between speaker turns.
+
+Claire-Mistral-7B-0.1 was trained on 8 A100 80GB GPUs for about 50 GPU hours.
 
 Hyperparameters were the following:
 
@@ -166,7 +175,7 @@ Hyperparameters were the following:
 
 ## Evaluation
 
-See [Evaluation section of Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1#evaluation).
+See the [Evaluation section of Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1#evaluation).
 
 ## License
 

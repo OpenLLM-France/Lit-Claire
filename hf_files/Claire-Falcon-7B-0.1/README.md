@@ -39,6 +39,7 @@ inference:
 **Claire-7B-0.1 is a 7B parameter causal decoder-only model built by [LINAGORA](https://labs.linagora.com/) and [OpenLLM-France](https://github.com/OpenLLM-France)**
 **adapted from [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) on French conversational data.**
 
+Claire-7B-0.1 is designed to be attuned to dialogue dynamics, manifested by its ability to generate natural sounding conversations, with the aim of improving downstream performance of models fine-tuned for dialogue generation (e.g., chat) and dialogue understanding (e.g., meeting summarization) tasks.
 
 ## Typical usage
 
@@ -155,7 +156,7 @@ Training data was augmented with the following techniques:
 
 Long conversations were truncated at a maximum of 2048 tokens. Where possible, they were split between speaker turns.
 
-Claire-7B-0.1 was trained on 1 A100 80GB for about 50 GPU hours.
+Claire-7B-0.1 was trained on 1 A100 80GB GPU for about 50 GPU hours.
 
 Hyperparameters were the following:
 | **Hyperparameter** | **Value**  |

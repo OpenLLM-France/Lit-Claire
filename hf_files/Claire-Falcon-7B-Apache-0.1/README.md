@@ -36,12 +36,14 @@ inference:
 
 # Claire-7B-Apache-0.1
 
-**Claire-7B-Apache-0.1 is a 7B parameter causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France)**
+**Claire-7B-Apache-0.1 is a 7B parameter causal decoder-only model built by [LINAGORA](https://labs.linagora.com/) and [OpenLLM-France](https://github.com/OpenLLM-France)**
 **adapted from [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) on French conversational open data.**
+
+Claire-7B-Apache-0.1 is designed to be attuned to dialogue dynamics, manifested by its ability to generate natural sounding conversations, with the aim of improving downstream performance of models fine-tuned for dialogue generation (e.g., chat) and dialogue understanding (e.g., meeting summarization) tasks.
 
 It is made available under the [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0).
 
-Note that this model is a variant of [Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1) which is trained on more French conversational data
+Note that this model is a variant of [Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1), which is trained on a larger quantity of French conversational data,
 but published under the [CC-BY-NC-SA 4.0 license](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 
 ## Typical usage
@@ -139,16 +141,23 @@ Claire-7B-Apache-0.1 was tuned from Falcon-7b on the following data distribution
 | Theatre                                 |  16M       | 28.5%                        | theatre-classique.fr, theatregratuit.com  |
 | Meetings                                |   1.0M     | 10.5%                        | SUMM-RE, LinTO                            |
 | Debates                                 |   326k     |  3.4%                        | FreD                                      |
-| Presentation, Conversations             |    58k     | <1%                          | LinTO                                     |
+| Presentations, Conversations             |    58k     | <1%                          | LinTO                                     |
 
-The model has been trained and evaluated on French dialogues but may be able to generate conversations in other languages from the original Falcon-7b training data.
+While the model has been trained and evaluated only on French dialogues, it may be able to generate conversations in other languages from the original Falcon-7b training data.
 
 ### Training Procedure 
 
 Claire-7B-Apache-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
 See [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) for more details.
 
-Claire-7B-Apache-0.1 was trained on 8 A100 80GB for about 50 GPU hours.
+Training data was augmented with the following techniques:
+* varying the format used to indicate speech turns (dashes or [XXX:])
+* substituting [Intervenant X:] for [SpeakerName:] or vice versa, where [SpeakerName:] might be a real name or a randomly generated name
+* removing punctuation marks and/or casing (to prepare the model for transcripts produced by some Automatic Speech Recognition systems)
+
+Long conversations were truncated at a maximum of 2048 tokens. Where possible, they were split between speaker turns.
+
+Claire-7B-Apache-0.1 was trained on 8 A100 80GB GPUs for about 50 GPU hours.
 
 Hyperparameters were the following:
 
@@ -166,7 +175,7 @@ Hyperparameters were the following:
 
 ## Evaluation
 
-See [Evaluation section of Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1#evaluation).
+See the [Evaluation section of Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1#evaluation).
 
 ## License
 
