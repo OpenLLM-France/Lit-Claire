@@ -36,7 +36,7 @@ inference:
 
 # Claire-7B-0.1
 
-**Claire-7B-0.1 is a 7B parameter causal decoder-only model built by [OpenLLM-France](https://github.com/OpenLLM-France)**
+**Claire-7B-0.1 is a 7B parameter causal decoder-only model built by [LINAGORA](https://labs.linagora.com/) and [OpenLLM-France](https://github.com/OpenLLM-France)**
 **adapted from [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) on French conversational data.**
 
 
@@ -135,18 +135,25 @@ Claire-7B-0.1 was tuned from Falcon-7b on the following data distribution:
 | Theatre                       |  16M       | 18%                          | theatre-classique.fr, theatregratuit.com            |
 | Interviews                    |   6.4M     | 29%                          | TCOF, CFPP, CFPB, ACSYNT, PFC, Valibel (ORFEO), ESLO              |
 | Free Conversations            |   2.2M     | 10%                          | CRFP, OFROM, CID, Rhapsodie, ParisStories, PFC, CLAPI, C-ORAL-ROM (ORFEO), LinTO, ESLO |
-| Meetings                      |   1.2M     |  5%                          | SUMM-RE, LinTO, ORFEO réunions de travail |
+| Meetings                      |   1.2M     |  5%                          | SUMM-RE, LinTO, Réunions de travail (ORFEO) |
 | Debates                       |   402k     | <2%                          | FreD, ESLO                                |
-| Assistance                    |   159k     | <1%                          | ORFEO fleuron, Accueil UBS, OTG, ESLO     |
-| Presentation, Address         |    86k     | <0.5%                        | Valibel (ORFEO), LinTO, ESLO              |
+| Assistance                    |   159k     | <1%                          | Fleuron (ORFEO), Accueil UBS, OTG, ESLO     |
+| Presentation, Formal Address         |    86k     | <0.5%                        | Valibel (ORFEO), LinTO, ESLO              |
 
-The model has been trained and evaluated on French dialogues but may be able to generate conversations in other languages from the original Falcon-7b training data.
+While the model has been trained and evaluated only on French dialogues, it may be able to generate conversations in other languages from the original Falcon-7b training data.
 
 
 ### Training Procedure 
 
 Claire-7B-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
 See [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) for more details.
+
+Training data was augmented with the following techniques:
+* varying the format used to indicate speech turns (dashes or [XXX:])
+* substituting [Intervenant X:] for [SpeakerName:] or vice versa, where [SpeakerName:] might be a real name or a randomly generated name
+* removing punctuation marks and/or casing (to prepare the model for transcripts produced by some Automatic Speech Recognition systems)
+
+Long conversations were truncated at a maximum of 2048 tokens. Where possible, they were split between speaker turns.
 
 Claire-7B-0.1 was trained on 1 A100 80GB for about 50 GPU hours.
 
@@ -168,7 +175,7 @@ Hyperparameters were the following:
 To evaluate Claire-7B-0.1’s ability to generate natural sounding, French conversations, we compared its responses to a variety of prompts to those of three other models:
 * [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b),
 * [Mistral-7B-v0.1](https://huggingface.co/mistralai/Mistral-7B-v0.1) 
-* [Claire-Mistral-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-Mistral-7B-0.1) (a version of Mistral-7B-v0.1 adapted in the same fashion as Claire-7B-0.1).
+* [Claire-Mistral-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-Mistral-7B-0.1) (a version of Mistral-7B-v0.1 adapted in the same fashion as Claire-7B-0.1)
 
 We tested an even mixture of monologue and dialogue-style prompts.
 Each of the four generated responses was evaluated along three dimensions:
@@ -176,7 +183,7 @@ Interaction, Fluency and Relevance.
 Evaluators were also asked to rank the four responses by preference.
 
 Our results confirm that continual pre-training of Falcon-7b and Mistral-7B-v0.1 leads to improvement (relative to the base models) along all three evaluation dimensions and that Claire-7B-0.1 outperforms the adapted Mistral counterpart in the Fluency and Relevance categories
-(also in the Interaction category if we focus on dialogue-style prompts).
+(and in the Interaction category if we focus on dialogue-style prompts).
 
 Ranking results also reveal a clear subjective preference for Claire-7B-0.1,
 as shown in the following table:
