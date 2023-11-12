@@ -141,19 +141,19 @@ Claire-Mistral-7B-Apache-0.1 was tuned from Mistral-7B-v0.1 on the following dat
 | Debates                                 |   326k     |  3.4%                        | FreD                                      |
 | Presentations, Conversations             |    58k     | <1%                          | LinTO                                     |
 
-While the model has been trained and evaluated only on French dialogues, it may be able to generate conversations in other languages from the original Mistral-7B-v0.1 training data.
-
-### Training Procedure 
-
-Claire-Mistral-7B-Apache-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
-See [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) for more details.
-
 Training data was augmented with the following techniques:
 * varying the format used to indicate speech turns (dashes or [XXX:])
 * substituting [Intervenant X:] for [SpeakerName:] or vice versa, where [SpeakerName:] might be a real name or a randomly generated name
 * removing punctuation marks and/or casing (to prepare the model for transcripts produced by some Automatic Speech Recognition systems)
 
 Long conversations were truncated at a maximum of 4096 tokens. Where possible, they were split between speaker turns.
+
+While the model has been trained and evaluated only on French dialogues, it may be able to generate conversations in other languages from the original Mistral-7B-v0.1 training data.
+
+### Training Procedure 
+
+Claire-Mistral-7B-Apache-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
+See [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) for more details.
 
 Claire-Mistral-7B-Apache-0.1 was trained on 8 A100 80GB GPUs for about 50 GPU hours.
 
