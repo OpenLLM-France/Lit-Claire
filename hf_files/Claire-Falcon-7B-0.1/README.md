@@ -39,7 +39,7 @@ inference:
 **Claire-7B-0.1 is a 7B parameter causal decoder-only model built by [LINAGORA](https://labs.linagora.com/) and [OpenLLM-France](https://github.com/OpenLLM-France)**
 **adapted from [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) on French conversational data.**
 
-Claire-7B-0.1 is designed to be attuned to dialogue dynamics, manifested by its ability to generate natural sounding conversations, with the aim of improving downstream performance of models fine-tuned for dialogue generation (e.g., chat) and dialogue understanding (e.g., meeting summarization) tasks.
+Claire-7B-0.1 is a pretrained language model designed to be attuned to the dynamics of linguistic interactions in dialogue. Without further training, its expected use is to generate continuations of dialogues. Its main purpose is to serve as a base model for fine-tuning on dialogue generation (e.g., chat) and dialogue understanding (e.g., meeting summarization) tasks. Please note that due to its training, the model is prone to generate dialogues with disfluencies and other constructions common to spoken language.
 
 ## Typical usage
 
@@ -90,9 +90,7 @@ If you have trouble running this code, make sure you have recent versions of `to
 
 ### Typical prompts
 
-Claire-7B-0.1 was trained on diarized French conversations. Please note that as a result, the model is prone to generate dialogues with disfluencies and other constructions common to spoken language.
-
-During training, the dialogues were normalized in several formats. The possible formats for expected prompts are as follows:
+Claire-7B-0.1 was trained on diarized French conversations. During training, the dialogues were normalized in several formats. The possible formats for expected prompts are as follows:
 
 A monologue can be specified as a single line prompt (though keep in mind that Claire might still return a dialogue because of its training):
 ```python
@@ -173,7 +171,7 @@ Hyperparameters were the following:
 
 ## Evaluation
 
-To evaluate Claire-7B-0.1’s ability to generate natural sounding, French conversations, we compared its responses to a variety of prompts to those of three other models:
+To evaluate Claire-7B-0.1’s ability to generate natural sounding, French conversations, we compared its responses to a variety of prompts with those of three other models:
 * [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b),
 * [Mistral-7B-v0.1](https://huggingface.co/mistralai/Mistral-7B-v0.1) 
 * [Claire-Mistral-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-Mistral-7B-0.1) (a version of Mistral-7B-v0.1 adapted in the same fashion as Claire-7B-0.1)

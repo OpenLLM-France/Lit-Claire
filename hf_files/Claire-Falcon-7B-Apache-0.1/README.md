@@ -39,11 +39,11 @@ inference:
 **Claire-7B-Apache-0.1 is a 7B parameter causal decoder-only model built by [LINAGORA](https://labs.linagora.com/) and [OpenLLM-France](https://github.com/OpenLLM-France)**
 **adapted from [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) on French conversational open data.**
 
-Claire-7B-Apache-0.1 is designed to be attuned to dialogue dynamics, manifested by its ability to generate natural sounding conversations, with the aim of improving downstream performance of models fine-tuned for dialogue generation (e.g., chat) and dialogue understanding (e.g., meeting summarization) tasks.
+Claire-7B-Apache-0.1 is a pretrained language model designed to be attuned to the dynamics of linguistic interactions in dialogue. Without further training, its expected use is to generate continuations of dialogues. Its main purpose is to serve as a base model for fine-tuning on dialogue generation (e.g., chat) and dialogue understanding (e.g., meeting summarization) tasks. Please note that due to its training, the model is prone to generate dialogues with disfluencies and other constructions common to spoken language.
 
-It is made available under the [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0).
+This model is made available under the [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0).
 
-Note that this model is a variant of [Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1), which is trained on a larger quantity of French conversational data,
+It is a variant of [Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1), which is trained on a larger quantity of French conversational data,
 but published under the [CC-BY-NC-SA 4.0 license](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 
 ## Typical usage
@@ -95,9 +95,7 @@ If you have trouble running this code, make sure you have recent versions of `to
 
 ### Typical prompts
 
-Claire-7B-Apache-0.1 was trained on diarized French conversations. Please note that as a result, the model is prone to generate dialogues with disfluencies and other constructions common to spoken language.
-
-During training, the dialogues were normalized in several formats. The possible formats for expected prompts are as follows:
+Claire-7B-Apache-0.1 was trained on diarized French conversations. During training, the dialogues were normalized in several formats. The possible formats for expected prompts are as follows:
 
 A monologue can be specified as a single line prompt (though keep in mind that Claire might still return a dialogue because of its training):
 ```python

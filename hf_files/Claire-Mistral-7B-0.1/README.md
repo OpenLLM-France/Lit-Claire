@@ -39,9 +39,9 @@ inference:
 **Claire-Mistral-7B-0.1 is a 7B parameter causal decoder-only model built by [LINAGORA](https://labs.linagora.com/) and [OpenLLM-France](https://github.com/OpenLLM-France)**
 **adapted from [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) on French conversational data.**
 
-Claire-Mistral-7B-0.1 is designed to be attuned to dialogue dynamics, manifested by its ability to generate natural sounding conversations, with the aim of improving downstream performance of models fine-tuned for dialogue generation (e.g., chat) and dialogue understanding (e.g., meeting summarization) tasks.
+Claire-Mistral-7B-0.1 is a pretrained language model designed to be attuned to the dynamics of linguistic interactions in dialogue. Without further training, its expected use is to generate continuations of dialogues. Its main purpose is to serve as a base model for fine-tuning on dialogue generation (e.g., chat) and dialogue understanding (e.g., meeting summarization) tasks. Please note that due to its training, the model is prone to generate dialogues with disfluencies and other constructions common to spoken language.
 
-Note that a qualitatively better variant of this model is available under [Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1).
+A qualitatively better variant of this model is available under [Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1).
 
 ## Typical usage
 
@@ -92,9 +92,7 @@ If you have trouble running this code, make sure you have recent versions of `to
 
 ### Typical prompts
 
-Claire-Mistral-7B-0.1 was trained on diarized French conversations. Please note that as a result, the model is prone to generate dialogues with disfluencies and other constructions common to spoken language.
-
-During training, the dialogues were normalized in several formats. The possible formats for expected prompts are as follows:
+Claire-Mistral-7B-0.1 was trained on diarized French conversations. During training, the dialogues were normalized in several formats. The possible formats for expected prompts are as follows:
 
 A monologue can be specified as a single line prompt (though keep in mind that the model might still return a dialogue because of its training):
 ```python
