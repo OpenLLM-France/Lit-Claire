@@ -5,7 +5,6 @@ from typing import Optional
 
 wd = Path(__file__).parent.parent.resolve()
 
-
 def upload_to_huggingface_hub(
     repo_id: str,
     input_dir: Path = wd / "hf_files" / "Claire-Falcon-7B-0.1",
@@ -13,7 +12,8 @@ def upload_to_huggingface_hub(
     create_repo: Optional[bool] = None,
 ):
     print(f"Uploading repository https://huggingface.co/{repo_id} with:\n" + "\n".join(os.listdir(input_dir)))
-    huggingface_hub.login()
+    if not is_hf_logged_in():
+        huggingface_hub.login()
 
     api = huggingface_hub.HfApi()
 
@@ -42,6 +42,14 @@ def upload_to_huggingface_hub(
         ignore_patterns=["lit_*", "pytorch_model.bin", "__pycache__"],
         commit_message=message,
     )
+
+
+def is_hf_logged_in():
+    try:
+        huggingface_hub.HfApi().whoami()
+        return True
+    except:
+        return False
 
 
 if __name__ == "__main__":
