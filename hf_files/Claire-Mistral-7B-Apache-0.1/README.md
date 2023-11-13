@@ -3,6 +3,7 @@ language:
 - fr
 license: apache-2.0
 pipeline_tag: text-generation
+base_model: mistralai/Mistral-7B-v0.1
 tags:
 - pretrained
 - conversational
@@ -45,6 +46,17 @@ This model is made available under the [Apache 2.0 license](https://www.apache.o
 
 It is a variant of [Claire-Mistral-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-Mistral-7B-0.1), which is trained on a larger quantity of French conversational data,
 but published under the [CC-BY-NC-SA 4.0 license](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+
+* [Typical usage](#typical-usage)
+  * [Typical prompts](#typical-prompts)
+* [Training Details](#training-details)
+  * [Training Data](#training-data)
+  * [Training Procedure](#training-procedure)
+* [Evaluation](#evaluation)
+* [License](#license)
+* [Acknowledgements](#acknowledgements)
+* [Contact](#contact)
+
 
 ## Typical usage
 
@@ -136,10 +148,10 @@ Claire-Mistral-7B-Apache-0.1 was tuned from Mistral-7B-v0.1 on the following dat
 | **Data type**                           | **Words**  | **Training Sampling Weight** | **Sources**                               |
 |-----------------------------------------|------------|------------------------------|-------------------------------------------|
 | Parliamentary Proceedings               | 135M       | 57%                          | assemblee-nationale.fr                    |
-| Theatre                                 |  16M       | 28.5%                        | theatre-classique.fr, theatregratuit.com  |
+| Theatre                                 |  16M       | 28.5%                        | theatregratuit.com                        |
 | Meetings                                |   1.0M     | 10.5%                        | SUMM-RE, LinTO                            |
 | Debates                                 |   326k     |  3.4%                        | FreD                                      |
-| Presentations, Conversations             |    58k     | <1%                          | LinTO                                     |
+| Presentations, Conversations            |    58k     | <1%                          | LinTO                                     |
 
 Training data was augmented with the following techniques:
 * varying the format used to indicate speech turns (dashes or [XXX:])

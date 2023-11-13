@@ -1,6 +1,6 @@
-# Claire
+# Lit-Claire
 
-This is the code repository used to train Claire on the supercomputer [Jean Zay](http://www.idris.fr/eng/jean-zay/jean-zay-presentation-eng.html).
+This is the code repository used to train [Claire models](https://huggingface.co/OpenLLM-France/Claire-7B-0.1) on the supercomputer [Jean Zay](http://www.idris.fr/eng/jean-zay/jean-zay-presentation-eng.html).
 
 Claire is a reasonably sized LLM specialized for French conversational data
 (typically, transcribed and diarized spontaneous oral speech).
@@ -90,7 +90,7 @@ python pretrain.py \
 --language fr \
 --precision bf16-true \
 --micro_batch_size 12 \
---batch_size 132 \
+--batch_size 16 \
 --num_epochs 1000 \
 --max_checkpoints 20 \
 --save_interval 1800 \
@@ -99,6 +99,9 @@ python pretrain.py \
 --early_stopping 2 \
 ```
 
+Note that the `--batch_size` option has to be tuned accordingly to the number of GPU devices.
+The actual batch size will be `--batch_size` × `--devices`. We recommand an actual batch size around 130.
+Option `--micro_batch_size` has to be tuned accordingly to the available GPU memory.
 
 #### On Jean-Zay
 
@@ -116,12 +119,6 @@ These 2 arguments should be equal:
 
 Training checkpoints and monitoring log can be found under `out_dir`, standard output and error should be recorded in that same folder.
 
-On Jean Zay, you can check the status of the job with `squeue -u $USER`
-```
-JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
-100813    gpu_p5 pretrain  ugs29jo  R       0:52      1 jean-zay-iam36
-```
-cancel the job with `scancel 100813`, connect to the node with `ssh jean-zay-iam36` (on which you can run `nvidia-smi`)
 
 ### Offline validation
 
@@ -176,7 +173,7 @@ Note: you can also test LoRA weights directly, without merging first, by using `
 ### Convert trained Lit-GPT model to transformers and upload it to Hugging Face
 
 You can convert the model to transormers with the following command.
-Use option `--repo_id` if and only if you want to upload the model.
+Use option `--repo_id` if and only if you want to upload the model to Hugging Face.
 ```bash
 MODEL=tiiuae/falcon-7b
 TRAINING_DIR=$WORK/../commun/Claire/pretrain/lora/$MODEL
@@ -200,26 +197,25 @@ The steps done by this script are:
   * Create the Hugging Face repo if it does not exist
   * Upload the model and its companion files
 
+
 ### Update Hugging Face model card
 
-The model card [README.md](hf_files/falcon_v01/README.md),
-as well as files requided to make an endpoint ([handler.py](hf_files/falcon_v01/handler.py) and [requirements.txt](hf_files/falcon_v01/requirements.txt))
-can be updated on the Hugging Face model hub page [OpenLLM-France/Claire-7B-v0.0.1](https://huggingface.co/OpenLLM-France/Claire-7B-v0.0.1) with the following command:
+The model card ([README.md](hf_files/Claire-Falcon-7B-0.1/README.md)),
+files requided to make an endpoint ([handler.py](hf_files/common/handler.py) and [requirements.txt](hf_files/common/requirements.txt)),
+or model files
+can be updated on a Hugging Face model hub page (like [OpenLLM-France/Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1)) with the following command:
 ```bash
 python utils/hf_upload_model.py \
-OpenLLM-France/Claire-7B-v0.0.1 \
+OpenLLM-France/Claire-7B-0.1 \
+--input_dir $DIR \
 --message "<<your commit message>>"
 ```
-
-The model weights can be updated directly with `convert_litgpt_to_transformers.py` or with
-```bash
-python utils/hf_upload_model.py \
-OpenLLM-France/Claire-7B-v0.0.1 \
---input_dir $SAVE_DIR \
---message "Upload weights"
-```
+where `$DIR` can be something like `hf_files/Claire-Falcon-7B-0.1`, `hf_files/common` or the folder with the model weights (`pytorch_model*bin`).
 
 You will need to provide your [HuggingFace User Access Tokens](https://huggingface.co/settings/tokens).
+
+The model weights also can be updated with `convert_litgpt_to_transformers.py`.
+
 
 ## Acknowledgements
 

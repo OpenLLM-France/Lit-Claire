@@ -2,6 +2,7 @@ import torch, transformers
 from typing import Any, Dict
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import re
+import unicodedata
 
 
 class EndpointHandler:
@@ -31,7 +32,7 @@ class EndpointHandler:
         parameters.update(data.pop("parameters", {}))
 
         unique = isinstance(inputs, str)
-        inputs, denormalize_funcs = claire_text_preproc(inputs)
+        inputs, denormalize_funcs = claire_text_preproc_conversation(inputs)
 
         sequences = self.pipeline(inputs, **parameters)
 
@@ -42,11 +43,11 @@ class EndpointHandler:
             return [{"generated_text": denormalize_func(seq[0]["generated_text"])} for denormalize_func, seq in zip(denormalize_funcs, sequences)]
 
 
-def claire_text_preproc(text):
+def claire_text_preproc_conversation(text):
     if isinstance(text, (list, tuple)):
         assert len(text)
         # Apply and transpose
-        texts, denormalize_funcs = zip(*[claire_text_preproc(t) for t in text])
+        texts, denormalize_funcs = zip(*[claire_text_preproc_conversation(t) for t in text])
         return list(texts), list(denormalize_funcs)
 
     if not isinstance(text, str):
@@ -54,15 +55,13 @@ def claire_text_preproc(text):
 
     text = format_special_characters(text)
 
-    # text = remove_ligatures(text)
-
     text = re.sub(" - | -$|^- ", " ", text.strip(" "))
 
     global _reverse_tag_transfo
     _reverse_tag_transfo = {}
     text = format_special_tags(text)
 
-    text = collapse_whitespaces(text)
+    text = collapse_whitespaces_conversations(text)
 
     if _reverse_tag_transfo:
         reverse_tag_transfo = _reverse_tag_transfo.copy()
@@ -80,17 +79,10 @@ def claire_text_preproc(text):
 
 _brackets = re.compile(r"\[([^\]]*)\]")
 _pattern_speaker = re.compile(r"[^\]]+:")
-_non_printable_pattern = r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]"
 
 # Global variable to remember some normalizations that were done and apply it back
 _reverse_tag_transfo = {}
 _anonymized_prefix = None
-
-def collapse_whitespaces(text):
-    text = re.sub(r" +", " ", text)
-    text = re.sub(r"\n+", "\n", text)
-    text = re.sub(r" ([\.,])", r"\1", text)
-    return text.lstrip().rstrip(" ")
 
 
 def format_special_tags(text):
@@ -138,12 +130,14 @@ def _format_tag(text):
             _reverse_tag_transfo[new_spk_tag] = text
         return "\n" + new_spk_tag
 
-    if text == "[PII]":
-        return "[Nom]"
-    if text == "[NOISE]":
-        return "[bruit]"
-    if text == "[LAUGHTER]":
-        return "[rire]"
+    # if text == "[PII]":
+    #     return "[Nom]"
+    # if text == "[NOISE]":
+    #     return "[bruit]"
+    # if text == "[LAUGHTER]":
+    #     return "[rire]"
+    
+    return ""
 
 
 def capitalize(text):
@@ -159,18 +153,17 @@ def capitalize(text):
     return " ".join(words)
 
 
+def collapse_whitespaces_conversations(text):
+    text = re.sub(r"\n+", "\n", text)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n ", "\n", text)
+    text = re.sub(r" ([\.,])", r"\1", text)
+    return text.lstrip().rstrip(" ")
+
+
 def format_special_characters(text):
+    text = unicodedata.normalize("NFC", text)
     for before, after in [
-        ("â", "â"),
-        ("à", "à"),
-        ("á", "á"),
-        ("ê", "ê"),
-        ("é", "é"),
-        ("è", "è"),
-        ("ô", "ô"),
-        ("û", "û"),
-        ("î", "î"),
-        ("\x92", "'"),
         ("…", "..."),
         (r"[«“][^\S\r\n]*", '"'),
         (r"[^\S\r\n]*[»”″„]", '"'),
@@ -178,23 +171,12 @@ def format_special_characters(text):
         (r"[’‘‛ʿ]", "'"),
         ("‚", ","),
         (r"–", "-"),
-        ("[  ]", " "),  # weird whitespace
-        (_non_printable_pattern, ""),  # non-printable characters
-        ("·", "."),
+        ("[  ]", " "),  # unbreakable spaces
+        (r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]", ""),  # non-printable characters
+        # ("·", "."),
         (r"ᵉʳ", "er"),
         (r"ᵉ", "e"),
     ]:
         text = re.sub(before, after, text)
 
-    return text
-
-
-def remove_ligatures(text):
-    text = re.sub(r"œ", "oe", text)
-    text = re.sub(r"æ", "ae", text)
-    text = re.sub(r"ﬁ", "fi", text)
-    text = re.sub(r"ﬂ", "fl", text)
-    text = re.sub("ĳ", "ij", text)
-    text = re.sub(r"Œ", "Oe", text)
-    text = re.sub(r"Æ", "Ae", text)
     return text

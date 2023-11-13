@@ -3,6 +3,7 @@ language:
 - fr
 license: cc-by-nc-sa-4.0
 pipeline_tag: text-generation
+base_model: tiiuae/falcon-7b
 tags:
 - pretrained
 - conversational
@@ -40,6 +41,17 @@ inference:
 **adapted from [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) on French conversational data.**
 
 Claire-7B-0.1 is a pretrained language model designed to be attuned to the dynamics of linguistic interactions in dialogue. Without further training, its expected use is to generate continuations of dialogues. Its main purpose is to serve as a base model for fine-tuning on dialogue generation (e.g., chat) and dialogue understanding (e.g., meeting summarization) tasks. Please note that due to its training, the model is prone to generate dialogues with disfluencies and other constructions common to spoken language.
+
+* [Typical usage](#typical-usage)
+  * [Typical prompts](#typical-prompts)
+* [Training Details](#training-details)
+  * [Training Data](#training-data)
+  * [Training Procedure](#training-procedure)
+* [Evaluation](#evaluation)
+* [License](#license)
+* [Acknowledgements](#acknowledgements)
+* [Contact](#contact)
+
 
 ## Typical usage
 
@@ -131,7 +143,7 @@ Claire-7B-0.1 was tuned from Falcon-7b on the following data distribution:
 | **Data type**                 | **Words**  | **Training Sampling Weight** | **Sources**                                         |
 |-------------------------------|------------|------------------------------|-----------------------------------------------------|
 | Parliamentary Proceedings     | 135M       | 35%                          | assemblee-nationale.fr                              |
-| Theatre                       |  16M       | 18%                          | theatre-classique.fr, theatregratuit.com            |
+| Theatre                       |  16M       | 18%                          | dracor.org/fre, theatregratuit.com            |
 | Interviews                    |   6.4M     | 29%                          | TCOF, CFPP, CFPB, ACSYNT, PFC, Valibel (ORFEO), ESLO              |
 | Free Conversations            |   2.2M     | 10%                          | CRFP, OFROM, CID, Rhapsodie, ParisStories, PFC, CLAPI, C-ORAL-ROM (ORFEO), LinTO, ESLO |
 | Meetings                      |   1.2M     |  5%                          | SUMM-RE, LinTO, Réunions de travail (ORFEO) |
