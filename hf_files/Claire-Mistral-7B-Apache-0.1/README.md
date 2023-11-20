@@ -147,10 +147,10 @@ Claire-Mistral-7B-Apache-0.1 was tuned from Mistral-7B-v0.1 on the following dat
 
 | **Data type**                           | **Words**  | **Training Sampling Weight** | **Sources**                               |
 |-----------------------------------------|------------|------------------------------|-------------------------------------------|
-| Parliamentary Proceedings               | 135M       | 57%                          | assemblee-nationale.fr                    |
-| Theatre                                 |  16M       | 28.5%                        | theatregratuit.com                        |
+| Parliamentary Proceedings               | 135M       | 57%                          | Assemblée Nationale                   |
+| Theatre                                 |  16M       | 28.5%                        | Théâtre Gratuit                        |
 | Meetings                                |   1.0M     | 10.5%                        | SUMM-RE, LinTO                            |
-| Debates                                 |   326k     |  3.4%                        | FreD                                      |
+| Debates                                 |   326k     |  3.4%                        | FreDSum                                      |
 | Presentations, Conversations            |    58k     | <1%                          | LinTO                                     |
 
 Training data was augmented with the following techniques:
