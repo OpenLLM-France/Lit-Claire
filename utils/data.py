@@ -31,7 +31,7 @@ def create_dataloaders(
     max_validation_samples=None,
     split_validation_in_subsets=False,
     seed=51,
-    verbose=True,
+    verbose=1,
     try_small=False,
     return_details=False,
     enable_validation=True,
@@ -110,7 +110,7 @@ def create_dataloader(
     process_rank=0,
     wrap=False,
     seed=51,
-    verbose=True,
+    verbose=1,
     return_details=False,
     use_weights=True,
     split_in_subsets=False,
@@ -211,27 +211,26 @@ def create_dataloader(
 
     # Print proportions and weights
     if verbose:
+        keys = ["conversations", "turns", "words", "num_samples", "num_batches"]
         total = {}
-        for what in ("conversations", "turns", "words", "num_samples", "num_batches", ):
+        for what in keys:
             total[what] = sum([metadata[what] for metadata in metadatas])
         print(f"Dataset composition: {total['conversations']} conversations, {total['turns']} turns, {total['words']} words, {total_samples} samples (of length {effective_block_size}), {total['num_batches']} batches (of {batch_size}):")
+        if verbose < 2:
+            keys.remove("num_batches")
+            keys.remove("turns")
         for w, metadata in sorted(zip(weights, metadatas), key=lambda x: (x[0], x[1]["dataset"])):
             detail_string = ""
-            for what in (
-                "conversations",
-                # "turns",
-                "words",
-                "num_samples",
-                "num_batches",
-                ):
+            for what in keys:
                 ratio = metadata[what] / total[what]
                 what_short = what.replace("num_", "").replace("conversations", "convs")
                 detail_string += f" {format_number(metadata[what])} {what_short} ({ratio*100:5.2f} %)"
             if use_weights:
                 detail_string += f" -- weights = {w*100:5.2f} %"
-            detail_string += f" -- {metadata['num_files']} files"
-            detail_string += f" / {metadata['n_chunks']} chunks"
-            detail_string += f" / {metadata['num_processes']} processes"
+            if verbose > 1:
+                detail_string += f" -- {metadata['num_files']} files"
+                detail_string += f" / {metadata['n_chunks']} chunks"
+                detail_string += f" / {metadata['num_processes']} processes"
             print(f"* {metadata['dataset']:30}:{detail_string}")
 
     # Cut data if higher than max_samples
