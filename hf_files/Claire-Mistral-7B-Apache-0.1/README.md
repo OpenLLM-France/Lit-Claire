@@ -143,15 +143,17 @@ prompt = """\
 
 ### Training Data
 
+The training dataset will be made available soon.
+
 Claire-Mistral-7B-Apache-0.1 was tuned from Mistral-7B-v0.1 on the following data distribution:
 
 | **Data type**                           | **Words**  | **Training Sampling Weight** | **Sources**                               |
 |-----------------------------------------|------------|------------------------------|-------------------------------------------|
-| Parliamentary Proceedings               | 135M       | 57%                          | Assemblée Nationale                   |
-| Theatre                                 |  16M       | 28.5%                        | Théâtre Gratuit                        |
-| Meetings                                |   1.0M     | 10.5%                        | SUMM-RE, LinTO                            |
-| Debates                                 |   326k     |  3.4%                        | FreDSum                                      |
-| Presentations, Conversations            |    58k     | <1%                          | LinTO                                     |
+| Parliamentary Proceedings               | 135M       | 54%                          | Assemblée Nationale                       |
+| Theatre                                 | 2.7M       | 23%                          | Théâtre Gratuit                           |
+| Meetings                                |   1.0M     | 16.6%                        | SUMM-RE, LinTO                            |
+| Debates                                 |   326k     |  5.4%                        | FreDSum                                   |
+| Presentations, Conversations            |    58k     |  1%                          | LinTO                                     |
 
 Training data was augmented with the following techniques:
 * varying the format used to indicate speech turns (dashes or [XXX:])
@@ -163,6 +165,8 @@ Long conversations were truncated at a maximum of 4096 tokens. Where possible, t
 While the model has been trained and evaluated only on French dialogues, it may be able to generate conversations in other languages from the original Mistral-7B-v0.1 training data.
 
 ### Training Procedure 
+
+The training code will be made available soon.
 
 Claire-Mistral-7B-Apache-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
 See [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) for more details.

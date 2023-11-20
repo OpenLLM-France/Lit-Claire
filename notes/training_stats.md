@@ -26,6 +26,9 @@ Validation set composition: 303 conversations, 24821 turns, 840649 words, 889 sa
 
 ### 2023/10/26-29 -- v0.1 French (CC-BY-NC-SA 4.0)
 
+* Weight penalty for Assemblée Nationale: 16
+* Weight penalty for Théatre: 4
+
 Training set composition: 38219 conversations, 2933193 turns, 159568634 words, 373553 samples (of length 2049):
 ```
 * FR/PresDiscourse/TRAIN        :   17 convs ( 0.04 %)  86k words ( 0.05 %)  479 samples ( 0.13 %) -- weights =  0.37 %
@@ -33,12 +36,12 @@ Training set composition: 38219 conversations, 2933193 turns, 159568634 words, 3
 * FR/Debates/TRAIN              :  119 convs ( 0.31 %) 402k words ( 0.25 %) 2.2k samples ( 0.60 %) -- weights =  1.72 %
 * FR/Meetings/TRAIN             :  243 convs ( 0.64 %) 1.2M words ( 0.74 %) 6.2k samples ( 1.65 %) -- weights =  5.16 %
 * FR/FreeConversations/TRAIN    :  753 convs ( 1.97 %) 2.2M words ( 1.39 %)  13k samples ( 3.58 %) -- weights =  9.91 %
+* FR/Theatre/TRAIN              :  31k convs (81.09 %)  16M words (10.16 %)  69k samples (18.53 %) -- weights = 17.70 %
+* FR/Interviews/TRAIN           : 1.1k convs ( 2.79 %) 6.4M words ( 4.03 %)  42k samples (11.36 %) -- weights = 29.02 %
 * FR/AssembleeNationale_16/TRAIN:  381 convs ( 1.00 %)  11M words ( 6.79 %)  19k samples ( 5.14 %) -- weights =  2.89 %
 * FR/AssembleeNationale_13/TRAIN: 1.2k convs ( 3.27 %)  36M words (22.26 %)  64k samples (17.04 %) -- weights =  9.45 %
 * FR/AssembleeNationale_14/TRAIN: 1.3k convs ( 3.45 %)  39M words (24.34 %)  69k samples (18.47 %) -- weights = 10.33 %
 * FR/AssembleeNationale_15/TRAIN: 1.5k convs ( 4.03 %)  48M words (29.88 %)  85k samples (22.62 %) -- weights = 12.68 %
-* FR/Theatre/TRAIN              :  31k convs (81.09 %)  16M words (10.16 %)  69k samples (18.53 %) -- weights = 17.70 %
-* FR/Interviews/TRAIN           : 1.1k convs ( 2.79 %) 6.4M words ( 4.03 %)  42k samples (11.36 %) -- weights = 29.02 %
 ```
 
 Validation set composition: 343 conversations, 27365 turns, 834887 words, 893 samples (of length 2049):
@@ -55,20 +58,43 @@ Validation set composition: 343 conversations, 27365 turns, 834887 words, 893 sa
 
 ### 2023/11/07 -- v0.1 French (Apache)
 
+Same validation set as for the "CC-BY-NC-SA version"
+
+#### with TheatreClassique
+
+* Weight penalty for Assemblée Nationale: 24
+* Weight penalty for Théatre: 6
+
 Training composition: 35816 conversations, 2291620 turns, 150475208 words, 313309 samples (of length 2049):
 ```
 * FR/FreeConversations/TRAIN    :    4 convs ( 0.01 %)  26k words ( 0.02 %)  159 samples ( 0.05 %) -- weights =  0.29 %
 * FR/PresDiscourse/TRAIN        :    3 convs ( 0.01 %)  31k words ( 0.02 %)  173 samples ( 0.06 %) -- weights =  0.33 %
 * FR/Debates/TRAIN              :  115 convs ( 0.32 %) 326k words ( 0.22 %) 1.9k samples ( 0.59 %) -- weights =  3.37 %
 * FR/Meetings/TRAIN             :  216 convs ( 0.60 %) 1.0M words ( 0.67 %) 5.5k samples ( 1.76 %) -- weights = 10.49 %
+* FR/Theatre/TRAIN              :  31k convs (86.53 %)  16M words (10.77 %)  69k samples (22.10 %) -- weights = 28.53 %
 * FR/AssembleeNationale_16/TRAIN:  381 convs ( 1.06 %)  11M words ( 7.20 %)  19k samples ( 6.13 %) -- weights =  4.66 %
 * FR/AssembleeNationale_13/TRAIN: 1.2k convs ( 3.48 %)  36M words (23.60 %)  64k samples (20.31 %) -- weights = 15.24 %
 * FR/AssembleeNationale_14/TRAIN: 1.3k convs ( 3.69 %)  39M words (25.81 %)  69k samples (22.02 %) -- weights = 16.65 %
 * FR/AssembleeNationale_15/TRAIN: 1.5k convs ( 4.30 %)  48M words (31.69 %)  85k samples (26.97 %) -- weights = 20.44 %
-* FR/Theatre/TRAIN              :  31k convs (86.53 %)  16M words (10.77 %)  69k samples (22.10 %) -- weights = 28.53 %
 ```
 
-Same validation set as for the "CC-BY-NC-SA version"
+#### without TheatreClassique
+
+* Weight penalty for Assemblée Nationale: 40
+* Weight penalty for Théatre: 2
+
+Dataset composition: 8906 conversations, 1816190 turns, 136960226 words, 254914 samples (of length 2049):
+```
+* FR/FreeConversations/TRAIN    :    4 convs ( 0.04 %)  26k words ( 0.02 %)  159 samples ( 0.06 %) -- weights =  0.45 %
+* FR/PresDiscourse/TRAIN        :    3 convs ( 0.03 %)  31k words ( 0.02 %)  173 samples ( 0.07 %) -- weights =  0.52 %
+* FR/Debates/TRAIN              :  115 convs ( 1.29 %) 326k words ( 0.24 %) 1.9k samples ( 0.73 %) -- weights =  5.34 %
+* FR/Meetings/TRAIN             :  216 convs ( 2.43 %) 1.0M words ( 0.73 %) 5.5k samples ( 2.17 %) -- weights = 16.61 %
+* FR/Theatre/TRAIN              : 4.1k convs (45.81 %) 2.7M words ( 1.96 %)  11k samples ( 4.25 %) -- weights = 22.92 %
+* FR/AssembleeNationale_16/TRAIN:  381 convs ( 4.28 %)  11M words ( 7.92 %)  19k samples ( 7.54 %) -- weights =  4.43 %
+* FR/AssembleeNationale_13/TRAIN: 1.2k convs (14.01 %)  36M words (25.93 %)  64k samples (24.97 %) -- weights = 14.48 %                        
+* FR/AssembleeNationale_14/TRAIN: 1.3k convs (14.82 %)  39M words (28.36 %)  69k samples (27.06 %) -- weights = 15.82 %
+* FR/AssembleeNationale_15/TRAIN: 1.5k convs (17.28 %)  48M words (34.82 %)  85k samples (33.15 %) -- weights = 19.42 %
+```
 
 ## Hyper-parameters
 

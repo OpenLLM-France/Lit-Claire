@@ -139,18 +139,20 @@ prompt = """\
 
 ### Training Data
 
+The training dataset will be made available soon.
+
 Claire-Mistral-7B-0.1 was tuned from Mistral-7B-v0.1 on the following data distribution:
 
 | **Data type**                 | **Words**  | **Training Sampling Weight** | **Sources**                                         |
 |-------------------------------|------------|------------------------------|-----------------------------------------------------|
-| Parliamentary Proceedings     | 135M       | 35%                          | Assemblée Nationale                              |
-| Theatre                       |  16M       | 18%                          | Théâtre Classique, Théâtre Gratuit            |
-| Interviews                    |   6.4M     | 29%                          | TCOF, CFPP, CFPB, ACSYNT, PFC, Valibel (ORFEO), ESLO              |
+| Parliamentary Proceedings     | 135M       | 35%                          | Assemblée Nationale                                 |
+| Theatre                       |  16M       | 18%                          | Théâtre Classique, Théâtre Gratuit                  |
+| Interviews                    |   6.4M     | 29%                          | TCOF, CFPP, CFPB, ACSYNT, PFC, Valibel (ORFEO), ESLO|
 | Free Conversations            |   2.2M     | 10%                          | CRFP (ORFEO), OFROM (ORFEO), CID, Rhapsodie, ParisStories, PFC, CLAPI, C-ORAL-ROM (ORFEO), LinTO, ESLO |
-| Meetings                      |   1.2M     |  5%                          | SUMM-RE, LinTO, Réunions de travail (ORFEO) |
-| Debates                       |   402k     | <2%                          | FreDSum, ESLO                                |
-| Assistance                    |   159k     | <1%                          | Fleuron (ORFEO), Accueil UBS, OTG, ESLO     |
-| Presentation, Formal Address         |    86k     | <0.5%                        | Valibel (ORFEO), LinTO, ESLO              |
+| Meetings                      |   1.2M     |  5%                          | SUMM-RE, LinTO, Réunions de travail (ORFEO)         |
+| Debates                       |   402k     | <2%                          | FreDSum, ESLO                                       |
+| Assistance                    |   159k     | <1%                          | Fleuron (ORFEO), Accueil UBS, OTG, ESLO             |
+| Presentation, Formal Address  |    86k     | <0.5%                        | Valibel (ORFEO), LinTO, ESLO                        |
 
 Training data was augmented with the following techniques:
 * varying the format used to indicate speech turns (dashes or [XXX:])
@@ -162,6 +164,8 @@ Long conversations were truncated at a maximum of 4096 tokens. Where possible, t
 While the model has been trained and evaluated only on French dialogues, it may be able to generate conversations in other languages from the original Mistral-7B-v0.1 training data.
 
 ### Training Procedure 
+
+The training code will be made available soon.
 
 Claire-Mistral-7B-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
 See [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) for more details.
