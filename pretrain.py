@@ -52,7 +52,7 @@ def setup(
     language: Optional[str] = None,
 
     # Hardware (only used in setup, not main)
-    devices: int = 2,  # num_gpus_per_node
+    devices: int = 1,  # num_gpus_per_node
     num_nodes: int = 1,
     precision: Optional[str] = None,
 
@@ -93,6 +93,9 @@ def setup(
     lora_mlp: bool = True,
     lora_head: bool = True,
 
+    # Optimization
+    force_fsdp: bool = False, # Even if devices == 1, use FSDP
+
     seed: int = 1337,
 
     # debug
@@ -105,7 +108,7 @@ def setup(
     precision = precision or get_default_supported_precision(training=True)
 
     accelerator = "auto"
-    if devices > 1 or num_nodes > 1:
+    if devices > 1 or num_nodes > 1 or force_fsdp:
         block_class = LoraBlock if use_lora else Block
         strategy = FSDPStrategy(
             auto_wrap_policy={block_class},
