@@ -156,7 +156,7 @@ def has_specials(text):
     return bool(re.search(PATTERN_SPECIAL_NOSPEAKER, text))
 
 def remove_empty_turns(text):
-    if re.search(PATTERN_EMPTY_TURN, text):
+    while re.search(PATTERN_EMPTY_TURN, text):
         # Remove empty turns
         text = re.sub(PATTERN_EMPTY_TURN, r"\1", text)
         # Remove same speaker speaking twice
@@ -164,7 +164,7 @@ def remove_empty_turns(text):
     return text
 
 PATTERN_EMPTY_TURN = re.compile(PATTERN_SPEAKER.pattern + r"[^\p{L}]*" + "("+PATTERN_SPEAKER.pattern+")")
-PATTERN_REPEATED_TURN = re.compile(r"("+PATTERN_SPEAKER.pattern+r") ([^:]*)\s\1")
+PATTERN_REPEATED_TURN = re.compile(r"("+PATTERN_SPEAKER.pattern+r") ([^\[]*)\s\1")
 PATTERN_SPEAKER_LOOSE = re.compile(r"\s*"+PATTERN_SPEAKER.pattern+r"\s*")
 
 def augmented_texts_generator(text, max_variants=4, force_augmentation=False, keep_specials=False):
