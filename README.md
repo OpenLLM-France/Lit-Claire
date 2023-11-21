@@ -21,18 +21,19 @@ git clone --recurse-submodules https://github.com/OpenLLM-France/Claire
 
 First create a virtual environment.
 
-Example on Jean Zay:
+For example:
+```bash
+python3.10 -m venv env
+source env/bin/activate
+```
+
+Or on Jean Zay:
 ```bash
 module load cpuarch/amd
 module load anaconda-py3/2023.03
 
 conda create -y -n claire python=3.10
 conda activate claire
-```
-Example on your own machine:
-```bash
-python3.10 -m venv env
-source env/bin/activate
 ```
 
 ### Install dependencies
@@ -44,12 +45,14 @@ pip install --no-cache-dir -r requirements.txt
 
 ## Finetune a model
 
+In the following, example bash commands are given for foundation model `tiiuae/falcon-7b`.
+Other foundation models can be used, such as `mistralai/Mistral-7B-v0.1`.
+
 ### Download then convert Hugging Face model to Lit-GPT format
 
 Those steps are only needed if you want to start from a Hugging Face model.
 The last one download additional files that will be needed for the packaging of the trained model in the end.
 ```bash
-# MODEL=mistralai/Mistral-7B-v0.1
 MODEL=tiiuae/falcon-7b
 
 python lit_gpt/scripts/download.py --repo_id $MODEL
@@ -62,6 +65,18 @@ so that all foundation models can be found in `$WORK/../commun/Claire/checkpoint
 
 ### Prepare data
 
+The script to generate the training data is `prepare_data.py`.
+It takes as input a folder containing the raw data, and a folder containing the foundation model.
+It generates a folder containing the training data, in the binary format to train efficiently.
+
+By default, the script:
+* groups datasets by type. Use option `--group_datasets_by_genre` to change that.
+* generate multiple of 8 files for each dataset, to be able to use 1, 2, 4, or 8 GPUs.
+  Use option `--multiple_of` to change that.
+* use padding to pack variable-length sequences. Use `--padding false` to put all sequences in a row.
+* split too long sequences in chunks of `max_length` tokens (the maximum context window for the model), and try to split by starting at a speech turn.
+
+Typical usage:
 ```bash
 MODEL=tiiuae/falcon-7b
 FOUNDATION_MODEL_DIR=$WORK/../commun/Claire/checkpoints/$MODEL
@@ -80,7 +95,7 @@ An example command to launch pre-training on 8 GPU:
 MODEL=tiiuae/falcon-7b
 DATA_DIR=$SCRATCH/../commun/preprocessed_data/Claire/lit-gpt/padded_8_grouped/$MODEL
 FOUNDATION_MODEL_DIR=$WORK/../commun/Claire/checkpoints/$MODEL
-TRAINING_DIR=$SCRATCH/../commun/Claire/pretrain-Claire-Falcon-7B-v0.0.1
+TRAINING_DIR=$SCRATCH/../commun/Claire/Claire-Falcon-7B-0.1
 
 python pretrain.py \
 --data_dir       $DATA_DIR \
@@ -117,19 +132,23 @@ These 2 arguments should be equal:
 - `#SBATCH --nodes=1`
 - `srun python pretrain.py --num_nodes 1`
 
-Training checkpoints and monitoring log can be found under `out_dir`, standard output and error should be recorded in that same folder.
+Training checkpoints and monitoring log can be found under output folder (`--out_dir`),
+standard output and error should be recorded in that same folder.
 
 
 ### Offline validation
 
+The script `validate_pretrain.py` can be used to validate a trained model on each dataset separately,
+possibly while the model is training.
+
 ```bash
-TRAINING_DIR=$SCRATCH/../commun/Claire/pretrain/pretrain-Claire-Falcon-7B-v0.0.1
+TRAINING_DIR=$SCRATCH/../commun/Claire/pretrain/Claire-Falcon-7B-0.1
 
 srun --ntasks=1 --gres=gpu:1 -C a100 --qos=qos_gpu-dev \
 --output=$OUTDIR/validation.out --error=$OUTDIR/validation.out \
 --time=00:10:00 \
 python validate_pretrain.py \
---out_dir        $TRAINING_DIR \
+--out_dir  $TRAINING_DIR \
 --language fr \
 --max 40 --batch_size 8
 ```
@@ -141,10 +160,10 @@ python validate_pretrain.py \
 If trained with LoRA, you can first merge the weights, with a command like:
 ```bash
 MODEL=tiiuae/falcon-7b
-TRAINING_DIR=$SCRATCH/../commun/Claire/pretrain/pretrain-Claire-Falcon-7B-v0.0.1
+TRAINING_DIR=$SCRATCH/../commun/Claire/pretrain/Claire-Falcon-7B-0.1
 TRAINED_MODEL_PATH=$TRAINING_DIR/iter-020883-ckpt.pth  # lit_model_lora_finetuned.pth
 FOUNDATION_MODEL_DIR=$WORK/../commun/Claire/checkpoints/$MODEL
-SAVE_DIR=$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B-v0.0.1
+SAVE_DIR=$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B-0.1
 
 srun --ntasks=1 --gres=gpu:1 --constraint=a100 \
 python utils/merge_lora.py \
@@ -173,25 +192,24 @@ Note: you can also test LoRA weights directly, without merging first, by using `
 ### Convert trained Lit-GPT model to transformers and upload it to Hugging Face
 
 You can convert the model to transormers with the following command.
-Use option `--repo_id` if and only if you want to upload the model to Hugging Face.
 ```bash
-MODEL=tiiuae/falcon-7b
-TRAINING_DIR=$WORK/../commun/Claire/pretrain/lora/$MODEL
+TRAINING_DIR=$WORK/../commun/Claire/Claire-Falcon-7B-0.1
 TRAINED_MODEL_PATH=$TRAINING_DIR/iter-020883-ckpt.pth
-SAVE_DIR=$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B-v0.0.1
+SAVE_DIR=$WORK/../commun/Claire/checkpoints/OpenLLM-France/Claire-7B-0.1
 
 python convert_litgpt_to_transformers.py \
     --input_path $TRAINED_MODEL_PATH \
     --output_dir $SAVE_DIR \
-    --repo_id    OpenLLM-France/Claire-7B-v0.0.1
+    --repo_id    OpenLLM-France/Claire-7B-0.1
 ```
-You will need to provide your [User Access Tokens](https://huggingface.co/settings/tokens).
+Use option `--repo_id` if and only if you want to upload the model to Hugging Face.
+In this case, you will need to provide your [User Access Tokens](https://huggingface.co/settings/tokens).
 
 The steps done by this script are:
 * Copy relevant files from the foundation model checkpoint folder
-  (This folder should be in `$SAVE_DIR/hparams.json`, and can also be specified with option `--checkpoint_dir`)
+  (This folder should be in `$TRAINING_DIR/hparams.json`, and can also be specified with option `--checkpoint_dir`)
 * If needed, merge LoRA weights
-* Convert the model in [lit-gpt](https://github.com/Lightning-AI/lit-gpt/blob/main/scripts/convert_lit_checkpoint.py) format (`lit_model.pth`) to a model in the [transformers](https://github.com/huggingface/transformers) format (`pytorch_model.bin`).
+* Convert the model in [lit-gpt](lit_gpt/scripts/convert_lit_checkpoint.py) format (`lit_model.pth`) to a model in the [transformers](https://github.com/huggingface/transformers) format (`pytorch_model.bin`).
 * If needed, split the big model into chunks of <10 GB (ex: `pytorch_model-00001-of-00002.bin`, `pytorch_model-00002-of-00002.bin`, `pytorch_model.bin.index.json`)
 * If asked (with `--repo_id`):
   * Create the Hugging Face repo if it does not exist
@@ -201,8 +219,8 @@ The steps done by this script are:
 ### Update Hugging Face model card
 
 The model card ([README.md](hf_files/Claire-Falcon-7B-0.1/README.md)),
-files requided to make an endpoint ([handler.py](hf_files/common/handler.py) and [requirements.txt](hf_files/common/requirements.txt)),
-or model files
+files requided to make an endpoint ([handler.py](hf_files/common/handler.py), [requirements.txt](hf_files/common/requirements.txt)),
+and/or model files
 can be updated on a Hugging Face model hub page (like [OpenLLM-France/Claire-7B-0.1](https://huggingface.co/OpenLLM-France/Claire-7B-0.1)) with the following command:
 ```bash
 python utils/hf_upload_model.py \
@@ -210,11 +228,9 @@ OpenLLM-France/Claire-7B-0.1 \
 --input_dir $DIR \
 --message "<<your commit message>>"
 ```
-where `$DIR` can be something like `hf_files/Claire-Falcon-7B-0.1`, `hf_files/common` or the folder with the model weights (`pytorch_model*bin`).
+where `$DIR` can be something like `hf_files/Claire-Falcon-7B-0.1`, `hf_files/common` or the folder that contains model weights (`pytorch_model*bin`).
 
 You will need to provide your [HuggingFace User Access Tokens](https://huggingface.co/settings/tokens).
-
-The model weights also can be updated with `convert_litgpt_to_transformers.py`.
 
 
 ## Acknowledgements
