@@ -53,28 +53,24 @@ def read_training_csv(csvfile, folder="."):
 
     return data, valid_data, batch_size, (time-valid_time_delta)/iter, valid_time_delta
 
+def guess_segment_length_from_training_log(logfile, default):
+    with open(logfile) as f:
+        for line in f:
+            if "samples (of length " in line:
+                return int(line.split("samples (of length ")[-1].split(")")[0]) - 1
+    return default
+
 def format_dataset_name(name):
     name = name.replace("Politics", "Débats politiques")
+    name = name.replace("Debates", "Débats")
     name = name.replace("AssembleeNationale", "Assemblée Nationale")
     name = name.replace("Theatre", "Théâtre")
     name = name.replace("Meetings", "Réunions")
+    name = name.replace("FreeConversations", "Conversations")
+    name = name.replace("PresDiscourse", "Discours")
     if name == "Validation":
         return "Validation (online)"
     return name # "Validation: " + name
-
-def name_order(name):
-    lname = name.lower()
-    if name == "Validation":
-        return (-1, name)
-    if "meetings" in lname:
-        return (2, name)
-    if "politic" in lname or "debate" in lname:
-        return (3, name)
-    if "assemblee" in lname or "senat" in lname:
-        return (4, name)
-    if "theatre" in lname:
-        return (5, name)
-    return (0, name)
 
 def format_xtick_value(xtick, unit="", prec=1e-6):
     if abs(round(xtick) - xtick) < prec:
@@ -92,13 +88,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("folders", help="folder where lies validation_results.csv and metrics.csv", default=".", nargs="+")
     parser.add_argument("--segment_length", help="Number of tokens in each sequence", type=int, default=2048)
+    parser.add_argument("--output", help="Output filename (with extension like .png)", default=None)
     parser.add_argument("--max_loss", help="Maximum loss to plot", type=float, default=None)
     parser.add_argument("--min_loss", help="Minimum loss to plot", type=float, default=None)
     parser.add_argument("--max_iter", help="Maximum number of batches", type=int, default=None)
     parser.add_argument("--max_time", help="Maximum number of training time (in hours)", type=float, default=None)
     parser.add_argument("--max_gpu_time", help="Maximum number of training time (in GPU hours)", type=float, default=None)
     parser.add_argument("--no_offline_valid", help="Do not plot offline validation curves", default=False, action="store_true")
-    parser.add_argument("--text", help="Print all validation loss values", default=False, action="store_true")
+    parser.add_argument("--print_all", help="Print all validation loss values", default=False, action="store_true")
+    parser.add_argument("--print_in_legend", help="Print validation loss values in legend", default=False, action="store_true")
+    parser.add_argument("--print_best_checkpoint", help="Print the name of the best checkpoint file in the figure", default=False, action="store_true")
+    parser.add_argument("--plus", help="Put a + for each validation point", default=False, action="store_true")
+    parser.add_argument("--legend_right", help="To use legend only in the right subplot", default=False, action="store_true")
     args = parser.parse_args()
 
     # Plotting parameters
@@ -121,18 +122,23 @@ if __name__ == "__main__":
     XTICKS_MIN_POINTS = 5
     XTICKS_MAX_POINTS = 15
     XTICKS_STEPS = [1, 2, 5] # Then multiple of 10
-    PLOT_BEST_IN_LEGEND = True
+    PLOT_BEST_IN_LEGEND = args.print_in_legend
     DISABLE_OFFLINE_VALIDATION = args.no_offline_valid
     DISABLE_BEST_VALIDATION = args.no_offline_valid
-    INDICATE_BEST_CKPT_IN_FIGURE = True
+    INDICATE_BEST_CKPT_IN_FIGURE = args.print_best_checkpoint
 
     num_expes = len(args.folders)
     num_columns = num_expes # 1
 
-    fig, axes = plt.subplots(nrows=5, ncols=num_columns, gridspec_kw={
-        'height_ratios': [10, 0.2, 0.2, 0.2, 0.2],
-        'width_ratios': [1/num_columns] * num_columns,
-    }, facecolor=(1,1,1,0)) # transparent)
+    fig, axes = plt.subplots(
+        nrows=5, ncols=num_columns,
+        figsize=(6*num_columns, 7),
+        gridspec_kw={
+            'height_ratios': [10, 0.2, 0.2, 0.2, 0.2],
+            'width_ratios': [1/num_columns] * num_columns,
+        },
+        facecolor=(1,1,1,0), # transparent
+    )
     if num_columns == 1:
         axes = [[ax] for ax in axes]
     # plt.suptitle("Claire-7b v0.02 (batch size= 12 sequences)")
@@ -183,37 +189,48 @@ if __name__ == "__main__":
     min_loss = args.min_loss if args.min_loss else 1e10
     max_loss = args.max_loss if args.max_loss else 0
 
+    name_order = None
+
     for iexpe, folder in enumerate(args.folders):
         icolumn = min(iexpe, num_columns-1)
 
         max_x = 0
 
-        validation_file = None
-        training_file = None
+        all_files = {
+            "validation": None,
+            "metrics": None,
+            "training_log": None,
+        }
         for root, dirs, files in os.walk(folder):
             for filename in files:
+                key = None
                 if filename.startswith("validation_results") and filename.endswith(".csv"):
-                    if validation_file is None:
-                        validation_file = os.path.join(root, filename)
+                    key = "validation"
+                elif filename == "metrics.csv":
+                    key = "metrics"
+                elif filename == "training_log.out":
+                    key = "training_log"
+                if key:
+                    if all_files[key] is None:
+                        all_files[key] = os.path.join(root, filename)
                     else:
                         # Look at modification times
-                        if os.path.getmtime(os.path.join(root, filename)) > os.path.getmtime(validation_file):
-                            validation_file = os.path.join(root, filename)
-                if filename == "metrics.csv":
-                    if training_file is None:
-                        training_file = os.path.join(root, filename)
-                    else:
-                        # Look at modification times
-                        if os.path.getmtime(os.path.join(root, filename)) > os.path.getmtime(training_file):
-                            training_file = os.path.join(root, filename)
+                        if os.path.getmtime(os.path.join(root, filename)) > os.path.getmtime(all_files[key]):
+                            all_files[key] = os.path.join(root, filename)
 
         if DISABLE_OFFLINE_VALIDATION:
-            validation_file = None
+            all_files["validation"] = None
 
-        # assert validation_file is not None, f"Could not find validation_results.csv in {args.folder}"
-        assert training_file is not None, f"Could not find metrics.csv in {args.folder}"
+        if all_files["training_log"]:
+            segment_length = guess_segment_length_from_training_log(all_files["training_log"], args.segment_length)
+            print(f"Using segment length: {segment_length}")
+        else:
+            segment_length = args.segment_length
 
-        conv_training, valid_data, batch_size, factor_time, valid_time_delta = read_training_csv(training_file, folder=folder)
+        # assert all_files["validation"] is not None, f"Could not find validation_results.csv in {folder}"
+        assert all_files["metrics"] is not None, f"Could not find metrics.csv in {folder}"
+
+        conv_training, valid_data, batch_size, factor_time, valid_time_delta = read_training_csv(all_files["metrics"], folder=folder)
         if batch_sizes[iexpe] is not None:
             assert batch_size == batch_sizes[iexpe], f"Batch size mismatch: {batch_size} != {batch_sizes[iexpe]}"
         conv_validation = {}
@@ -221,9 +238,10 @@ if __name__ == "__main__":
             conv_validation["Validation"] = valid_data
         else:
             conv_validation["Validation"] = []
-        conv_validation.update(read_validation_csv(validation_file))
+        conv_validation.update(read_validation_csv(all_files["validation"]))
         
         ax = axes[0][icolumn]
+
         if hparams[iexpe]:
             title = os.path.basename(folder)+"\n" if title_folder_names else ""
             title += ",\n".join([f"{k}={v}" for k, v in hparams[iexpe].items()])
@@ -233,7 +251,7 @@ if __name__ == "__main__":
             ax.set_title(os.path.basename(folder))
 
         x, y = zip(*sorted(conv_training))
-        ax.plot(x, y, label="Training (online)", alpha=0.5, color=COLOR_TRAIN)
+        ax.plot(x, y, label="Training (online)", alpha=0.4, color=COLOR_TRAIN)
         max_x = max(max_x, max(x))
         if args.max_iter and (max_x > args.max_iter or num_columns > 1):
             max_x = args.max_iter
@@ -244,6 +262,15 @@ if __name__ == "__main__":
 
         best_x = None
         if conv_validation:
+
+            if name_order is None:
+                CONV_VALIDATION = conv_validation
+                def name_order(name):
+                    if name == "Validation":
+                        return (-1e10, name)
+                    losses = [x[1] for x in CONV_VALIDATION[name]]
+                    return (-min(losses), name)
+
             x_valids = None
             for name in sorted(conv_validation.keys(), key = lambda name: -len(conv_validation[name])):
                 if name == "Validation" and len(conv_validation) > 1:
@@ -296,11 +323,12 @@ if __name__ == "__main__":
                         label = f"loss={y[i]:.3f} | " + label
                     color = COLORS_VALID_OFFLINE[(ivalid-offset_online_valid) % len(COLORS_VALID_OFFLINE)] if name != "Validation" else COLOR_VALID
                     ax.plot(x, y, label=label,
-                        marker="+" if (name != "Validation" or len(conv_validation) == 1) else None,
-                        linewidth = 2 if name == "Validation" else 1,
+                        marker="+" if (args.plus and (name != "Validation" or len(conv_validation) == 1)) else None,
+                        linewidth = 4 if name == "Validation" else 2,
+                        alpha=0.7 if name == "Validation" else 1,
                         color=color,
                     )
-                    if args.text:
+                    if args.print_all:
                         for xi, yi in zip(x, y):
                             ax.text(xi, yi, f"{yi:.3f}", color=color, fontsize=9, rotation=0, ha="left", va="bottom")
                 else:
@@ -314,7 +342,7 @@ if __name__ == "__main__":
                     continue
                 if not DISABLE_BEST_VALIDATION:
                     ax.axhline(y=y[i], color=color, linestyle=':')
-                    ax.text(-0.05, y[i], f"{y[i]:.3f}", color=color, fontsize=9, ha="right", va="center", transform=ax.get_yaxis_transform())
+                    ax.text(-0.08, y[i], f"{y[i]:.3f}", color=color, fontsize=9, ha="right", va="center", transform=ax.get_yaxis_transform())
             
         ymin, ymax = ax.get_ylim()
         if not args.max_loss:
@@ -322,8 +350,10 @@ if __name__ == "__main__":
         if not args.min_loss:
             min_loss = min(min_loss, ymin)
         if icolumn == 0:
-            ax.set_ylabel("Loss")
-        ax.legend()
+            ax.set_ylabel("Loss", rotation='horizontal', ha='right', y=1)
+        if not args.legend_right or iexpe == num_columns-1:
+            # ax.yaxis.set_label_coords(1.05, 1)
+            ax.legend()
 
         num_devices = devices[iexpe]
         batch_factor = num_devices
@@ -331,7 +361,7 @@ if __name__ == "__main__":
         for iax, (label, factor, unit) in enumerate([
             ("batches",         batch_factor,                                "k"),
             ("sequences",       batch_size*batch_factor,                     "k"),
-            ("tokens",          batch_size*batch_factor*args.segment_length, "M"),
+            ("tokens",          batch_size*batch_factor*segment_length,      "M"),
             ("training",        factor_time,                                 "hrs"),
             ("GPU",             factor_time*num_devices,                     "hrs"),
         ]):
@@ -379,4 +409,8 @@ if __name__ == "__main__":
         ax = axes[0][icolumn]
         ax.set_ylim(min_loss, max_loss)
 
-    plt.show()
+    plt.tight_layout(rect=(0.03, 0, 0.97, 1))
+    if args.output:
+        plt.savefig(args.output)
+    else:
+        plt.show()
