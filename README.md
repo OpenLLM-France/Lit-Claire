@@ -1,13 +1,27 @@
 # Lit-Claire
 
-This is the code repository used to train [Claire models](https://huggingface.co/OpenLLM-France/Claire-7B-0.1) on the supercomputer [Jean Zay](http://www.idris.fr/eng/jean-zay/jean-zay-presentation-eng.html).
+This is the code repository used to train [Claire models](https://huggingface.co/OpenLLM-France/Claire-7B-0.1)
+using [⚡ Lightning Fabric](https://lightning.ai/docs/fabric/stable/),
+with hints to run on a supercomputer like [Jean Zay](http://www.idris.fr/eng/jean-zay/jean-zay-presentation-eng.html).
 
-Claire is a reasonably sized LLM specialized for French conversational data
+Claire is a suite of reasonably sized LLM specialized for conversational data
 (typically, transcribed and diarized spontaneous oral speech).
 
 * [Setup](#setup)
-* [Finetune a model](#finetune-a-model)
+* [Continual pretraining](#continual-pretraining)
+  * [Download and convert foundation model to Lit-GPT format](#download-and-convert-foundation-model-to-lit-gpt-format)
+  * [Download raw data](#download-raw-data)
+  * [Prepare data](#prepare-data)
+  * [Launch training](#launch-training)
+  * [Monitoring](#monitoring)
+    * [Convergence curves](#convergence-curves)
+    * [Offline validation](#offline-validation)
 * [Check the model and make it available](#check-the-model-and-make-it-available)
+  * [Merge LoRA weights](#merge-lora-weights)
+  * [Quick test of the model](#quick-test-of-the-model)
+  * [Convert trained Lit-GPT model and upload it to 🤗 Hugging Face](#convert-trained-lit-gpt-model-and-upload-it-to--hugging-face)
+     * [Update Hugging Face model card](#update-hugging-face-model-card)
+  * [Quantize the model (GGUF format)](#quantize-the-model-gguf-format)
 * [Acknowledgements](#acknowledgements)
 
 ## Setup
@@ -43,12 +57,12 @@ Then, install the dependencies (you may want to use `--user` if you don't use a 
 pip install --no-cache-dir -r requirements.txt
 ```
 
-## Finetune a model
+## Continual pretraining
 
 In the following, example bash commands are given for foundation model `tiiuae/falcon-7b`.
 Other foundation models can be used, such as `mistralai/Mistral-7B-v0.1`.
 
-### Download then convert Hugging Face model to Lit-GPT format
+### Download and convert foundation model to Lit-GPT format
 
 Those steps are only needed if you want to start from a Hugging Face model.
 The last one download additional files that will be needed for the packaging of the trained model in the end.
@@ -63,16 +77,23 @@ python download_config.py --repo_id $MODEL --checkpoint_dir checkpoints/$MODEL
 On Jean Zay, you can do that from the folder `$WORK/../commun/Claire`,
 so that all foundation models can be found in `$WORK/../commun/Claire/checkpoints`.
 
+### Download raw data
+
+Raw data can be found here:
+* [Claire-dialogue-french-0.1](https://huggingface.co/datasets/OpenLLM-France/Claire-dialogue-french-0.1)
+
 ### Prepare data
+
+Data preparation consists in tokenization, data augmentation, chunking/padding and conversion to binary format.
 
 The script to generate the training data is `prepare_data.py`.
 It takes as input a folder containing the raw data, and a folder containing the foundation model.
 It generates a folder containing the training data, in the binary format to train efficiently.
 
 By default, the script:
-* groups datasets by type. Use option `--group_datasets_by_genre` to change that.
 * generate multiple of 8 files for each dataset, to be able to use 1, 2, 4, or 8 GPUs.
   Use option `--multiple_of` to change that.
+* groups datasets by type based on this [claire_data_groups.json](data/claire_data_groups.json). Use option `--group_datasets_by_genre` to change that.
 * use padding to pack variable-length sequences. Use `--padding false` to put all sequences in a row.
 * split too long sequences in chunks of `max_length` tokens (the maximum context window for the model), and try to split by starting at a speech turn.
 
@@ -135,11 +156,22 @@ These 2 arguments should be equal:
 Training checkpoints and monitoring log can be found under output folder (`--out_dir`),
 standard output and error should be recorded in that same folder.
 
+### Monitoring
 
-### Offline validation
+#### Convergence curves
+
+The script `plot_convergence_curves.py` can be used to plot the training logs.
+You can give it one or several training folders (for comparison).
+
+It will generate a plot like this:
+![Convergence Curves of continual pretraining from Falcon-7b and Mistral-7B](figs/ConvergenceCurve_0.1_Claire-Falcon-VS-Mistral.png)
+
+#### Offline validation
 
 The script `validate_pretrain.py` can be used to validate a trained model on each dataset separately,
 possibly while the model is training.
+
+It will generate a csv file with the validation results (or append to an existing one).
 
 ```bash
 TRAINING_DIR=$SCRATCH/../commun/Claire/pretrain/Claire-Falcon-7B-0.1
@@ -155,7 +187,7 @@ python validate_pretrain.py \
 
 ## Check the model and make it available
 
-### Quick test the model
+### Merge LoRA weights
 
 If trained with LoRA, you can first merge the weights, with a command like:
 ```bash
@@ -173,6 +205,8 @@ python utils/merge_lora.py \
 ```
 This generates the merged model `lit_model.pth` in the specified `$SAVE_DIR`.
 
+### Quick test of the model
+
 You can then test the model with a single prompt:
 ```bash
 srun --ntasks=1 --gres=gpu:1 --constraint=a100 --qos=qos_gpu-dev \
@@ -189,9 +223,9 @@ python lit_gpt/chat/base.py \
 
 Note: you can also test LoRA weights directly, without merging first, by using `lora.py` instead of `base.py` in the two commands above.
 
-### Convert trained Lit-GPT model to transformers and upload it to Hugging Face
+### Convert trained Lit-GPT model and upload it to 🤗 Hugging Face
 
-You can convert the model to transormers with the following command.
+You can convert the model to [`transformers`](https://github.com/huggingface/transformers) with the following command.
 ```bash
 TRAINING_DIR=$WORK/../commun/Claire/Claire-Falcon-7B-0.1
 TRAINED_MODEL_PATH=$TRAINING_DIR/iter-020883-ckpt.pth
@@ -216,7 +250,7 @@ The steps done by this script are:
   * Upload the model and its companion files
 
 
-### Update Hugging Face model card
+#### Update Hugging Face model card
 
 The model card ([README.md](hf_files/Claire-Falcon-7B-0.1/README.md)),
 files requided to make an endpoint ([handler.py](hf_files/common/handler.py), [requirements.txt](hf_files/common/requirements.txt)),
@@ -233,10 +267,34 @@ where `$DIR` can be something like `hf_files/Claire-Falcon-7B-0.1`, `hf_files/co
 You will need to provide your [HuggingFace User Access Tokens](https://huggingface.co/settings/tokens).
 
 
+### Quantize the model (GGUF format)
+
+Install [llama.cpp](https://github.com/ggerganov):
+```bash
+git clone https://github.com/ggerganov/llama.cpp
+cd llama.cpp
+make
+python3 -m pip install -r requirements.txt
+```
+
+Run the conversion of the model packaged for Hugging Face,
+choosing the desired quantization method:
+```bash
+# Convert to GGUF FP16 format
+python3 convert.py /path/to/model/
+
+# Quantize model weights
+./quantize /path/to/model/ggml-model-f16.gguf /path/to/model/ggml-model-q4_0.gguf q4_0
+```
+
+Note: if you downloaded the model from Hugging Face,
+it can be found by default under `.cache/huggingface/hub/models--OpenLLM-France--Claire-7B-0.1`.
+
+
 ## Acknowledgements
 
 * [Lightning](https://github.com/Lightning-AI/lightning):  Deep Learning framework to train and deploy neural networks.
 * [Lit-GPT](https://github.com/Lightning-AI/lit-gpt): Hackable implementation of state-of-the-art open-source Large Language Models.
-* [HuggingFace](https://huggingface.co/models): Model hub containing state-of-the-art open-source Large Language Models.
+* [Hugging Face](https://huggingface.co/models): Model hub containing state-of-the-art open-source Large Language Models.
 
 This work was granted access to the HPC resources of IDRIS under the allocation 2023-AD011014561 made by GENCI

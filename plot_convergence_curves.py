@@ -100,6 +100,7 @@ if __name__ == "__main__":
     parser.add_argument("--print_best_checkpoint", help="Print the name of the best checkpoint file in the figure", default=False, action="store_true")
     parser.add_argument("--plus", help="Put a + for each validation point", default=False, action="store_true")
     parser.add_argument("--legend_right", help="To use legend only in the right subplot", default=False, action="store_true")
+    parser.add_argument("--transparent", help="To have transparent background", default=False, action="store_true")
     args = parser.parse_args()
 
     # Plotting parameters
@@ -137,7 +138,7 @@ if __name__ == "__main__":
             'height_ratios': [10, 0.2, 0.2, 0.2, 0.2],
             'width_ratios': [1/num_columns] * num_columns,
         },
-        facecolor=(1,1,1,0), # transparent
+        facecolor=(1,1,1,0) if args.transparent else (1,1,1),
     )
     if num_columns == 1:
         axes = [[ax] for ax in axes]
