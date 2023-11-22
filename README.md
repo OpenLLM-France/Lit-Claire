@@ -158,14 +158,6 @@ standard output and error should be recorded in that same folder.
 
 ### Monitoring
 
-#### Convergence curves
-
-The script `plot_convergence_curves.py` can be used to plot the training logs.
-You can give it one or several training folders (for comparison).
-
-It will generate a plot like this:
-![Convergence Curves of continual pretraining from Falcon-7b and Mistral-7B](figs/ConvergenceCurve_0.1_Claire-Falcon-VS-Mistral.png)
-
 #### Offline validation
 
 The script `validate_pretrain.py` can be used to validate a trained model on each dataset separately,
@@ -184,6 +176,15 @@ python validate_pretrain.py \
 --language fr \
 --max 40 --batch_size 8
 ```
+
+#### Convergence curves
+
+The script `plot_convergence_curves.py` can be used to plot the evaluation of
+the losses for online training (and offline validations if any).
+You can give it one or several training folders (for comparison).
+
+It will generate a plot like this:
+![Convergence Curves of continual pretraining from Falcon-7b and Mistral-7B](training_history/ConvergenceCurve_0.1_Claire-Falcon-VS-Mistral.png)
 
 ## Check the model and make it available
 
