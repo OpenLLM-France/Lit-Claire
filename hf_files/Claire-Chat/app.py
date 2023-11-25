@@ -290,6 +290,7 @@ def generate(
 
 
 def claire_text_preproc_message(text):
+    text = format_punctuations_for_french(text)
     text = format_special_characters(text)
     text = collapse_whitespaces(text)
     text = replace_brackets(text)
@@ -307,6 +308,20 @@ def replace_brackets(text):
     text = re.sub(r"[\]\}]", ")", text)
     return text
 
+def format_punctuations_for_french(text):
+    for before, after in french_punctuation_rules:
+        text = re.sub(before, after, text)
+    return text
+
+french_punctuation_rules = {
+    # Add a space before double punctuation marks
+    (r"([" + re.escape('?!:;') + r"])", r" \1"),
+    # Remove space before simple punctuation marks
+    (r"\s+([" + re.escape(',.') + r"])", r"\1"),
+    # Add space after punctuation marks
+    (r"([" + re.escape('?!:;,') + r"]+)([^ " + re.escape('?!:;,') + r"\d])", r"\1 \2"),
+    (r"([" + re.escape('.') + r"]+)([A-Z])", r"\1 \2"),
+}
 
 def format_special_characters(text):
     text = unicodedata.normalize("NFC", text)
@@ -418,7 +433,10 @@ chat_interface = gr.ChatInterface(
     textbox=textbox,
     examples=examples,
     additional_inputs=additional_inputs,
-    additional_inputs_accordion_name=additional_inputs_name,
+    additional_inputs_accordion=gr.Accordion(
+        label="Paramètres",
+        open=True,
+    ),
     autofocus=False,
     **gradio_buttons,
 )

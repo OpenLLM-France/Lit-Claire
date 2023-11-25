@@ -4,7 +4,7 @@ emoji: 🗣️🇫🇷💬
 colorFrom: blue
 colorTo: red
 sdk: gradio
-sdk_version: 4.4.1
+# sdk_version: 4.4.1
 app_file: app.py
 pinned: true
 license: cc-by-nc-sa-4.0
