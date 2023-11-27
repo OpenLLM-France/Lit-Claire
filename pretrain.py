@@ -31,8 +31,6 @@ from lit_gpt.lora import (
     mark_only_lora_as_trainable,
 )
 from lit_gpt.tokenizer import Tokenizer
-from lit_gpt.speed_monitor import SpeedMonitorFabric as SpeedMonitor
-from lit_gpt.speed_monitor import estimate_flops, measure_flops
 from lit_gpt.utils import (
     check_valid_checkpoint_dir,
     chunked_cross_entropy,
@@ -40,6 +38,7 @@ from lit_gpt.utils import (
     load_checkpoint,
     num_parameters,
 )
+from lightning.fabric.utilities import ThroughputMonitor
 from lightning.fabric.loggers import CSVLogger
 
 from utils.data import create_dataloaders
@@ -146,8 +145,6 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
 
     check_valid_checkpoint_dir(checkpoint_dir)  # check if there is lit-gpt format model
 
-    speed_monitor = SpeedMonitor(fabric, window_size=50, time_unit="seconds")
-
     fabric.seed_everything(seed)  # same seed for every process to init model (FSDP)
 
     # Make output folder and copy source code and hyperparameters to out_dir
@@ -251,7 +248,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
 
     train_time = time.perf_counter()
     train(
-        fabric, model, optimizer, train_dataloader, val_dataloader, speed_monitor, out_dir,
+        fabric, model, optimizer, train_dataloader, val_dataloader, out_dir,
         hparams, tokenizer
     )
     fabric.print(f"Training time: {(time.perf_counter()-train_time):.2f}s")
@@ -269,7 +266,6 @@ def train(
     optimizer: torch.optim.Optimizer,
     train_dataloader: DataLoader,
     val_dataloader: DataLoader,
-    speed_monitor: SpeedMonitor,
     out_dir: Path,
     hparams: dict,
     tokenizer: Optional[Tokenizer] = None,
@@ -297,24 +293,7 @@ def train(
     best_valid_loss_iter = 0
     valid_loss_iter = 0
 
-    with torch.device("meta"):
-        if use_lora:
-            meta_model = LoraGPT(model.config)
-            mark_only_lora_as_trainable(meta_model)
-        else:
-            meta_model = GPT(model.config)
-        # "estimated" is not as precise as "measured". Estimated is optimistic but widely used in the wild.
-        # When comparing MFU or FLOP numbers with other projects that use estimated FLOPs,
-        # consider passing `SpeedMonitor(flops_per_batch=estimated_flops)` instead
-        estimated_flops = estimate_flops(meta_model) * micro_batch_size
-        fabric.print(f"Estimated TFLOPs: {estimated_flops * fabric.world_size / 1e12:.2f}")
-        # this assumes that all samples have a fixed length equal to the longest sequence length
-        # which is most likely false during finetuning
-        x = torch.randint(0, 1, (micro_batch_size, model.max_seq_length))
-        measured_flops = measure_flops(meta_model, x)
-        fabric.print(f"Measured TFLOPs: {measured_flops * fabric.world_size / 1e12:.2f}")
-        del meta_model, x
-
+    throughput = ThroughputMonitor(fabric, window_size=50)
     step_count = 0
     total_lengths = 0
     total_t0 = time.perf_counter()
@@ -362,19 +341,16 @@ def train(
 
         t1 = time.perf_counter()
         total_lengths += input_ids.size(1)
-        speed_monitor.on_train_batch_end(
-            (iter_num + 1) * micro_batch_size,
-            t1 - total_t0,
-            # this assumes that device FLOPs are the same and that all devices have the same batch size
-            fabric.world_size,
-            flops_per_batch=measured_flops,
-            lengths=total_lengths,
+        throughput.update(
+            time=t1 - total_t0, batches=iter_num, samples=iter_num * micro_batch_size, lengths=total_lengths
         )
+        throughput.compute_and_log(step=iter_num)
         if iter_num % log_interval == 0:
             fabric.print(
                 f"iter {iter_num} step {step_count}: loss {loss.item():.4f}, iter time:"
                 f" {(t1 - iter_t0) * 1000:.2f}ms{' (optimizer.step)' if not is_accumulating else ''}"
             )
+            sys.stdout.flush()
             fabric.logger.log_metrics({"loss": f"{loss.item():.4f}"})
 
         if not is_accumulating:
@@ -411,7 +387,6 @@ def train(
                 t0 = time.perf_counter()
                 val_loss = validate(fabric, model, val_dataloader, max_eval_iters, tokenizer)
                 t1 = time.perf_counter() - t0
-                speed_monitor.eval_end(t1)
                 info = {"val_loss": round(val_loss, 4), "val_time": round(t1, 2)}
                 fabric.barrier()
                 if fabric.device.type == "cuda":
