@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 
 # support running without installing as a package
 this_folder = Path(__file__).parent.resolve()
-sys.path = [str(this_folder / "lit_gpt")] + sys.path # Prepend to PYTHONPATH
+sys.path.append(str(this_folder / "lit-gpt"))
 
 from lit_gpt.model import Config, GPT, Block
 from lit_gpt.lora import (

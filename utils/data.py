@@ -11,8 +11,8 @@ from torch.utils.data import IterableDataset
 if __name__ == "__main__":
     # If python paths are not set, and that we want to test with this file standalone
     parent_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    sys.path = [parent_path + "/lit_gpt"] + sys.path
     sys.path.append(parent_path)
+    sys.path.append(parent_path + "/lit-gpt")
 
 from utils.metadata import get_metadata, get_filename_prefix
 

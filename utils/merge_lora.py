@@ -12,7 +12,7 @@ import torch
 
 # support running without installing as a package
 wd = Path(__file__).parent.parent.resolve()
-sys.path = [str(wd / "lit_gpt")] + sys.path # Prepend to PYTHONPATH
+sys.path.append(str(wd / "lit-gpt"))
 
 from lit_gpt.lora import GPT, Config, lora_filter, merge_lora_weights
 from lit_gpt.utils import check_valid_checkpoint_dir, get_default_supported_precision, lazy_load
