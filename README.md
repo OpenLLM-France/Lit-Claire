@@ -85,8 +85,8 @@ so that all foundation models can be found in `$WORK/../commun/Claire/checkpoint
 
 ### Download raw data
 
-Raw data can be found here:
-* [Claire-dialogue-french-0.1](https://huggingface.co/datasets/OpenLLM-France/Claire-dialogue-french-0.1)
+Raw data can be found on 🤗 Hugging Face:
+[OpenLLM-France/Claire-Dialogue-French-0.1](https://huggingface.co/datasets/OpenLLM-France/Claire-Dialogue-French-0.1)
 
 ### Prepare data
 
