@@ -19,7 +19,7 @@ from datasets import load_dataset
 
 # support running without installing as a package
 this_folder = Path(__file__).parent.resolve()
-sys.path = [str(this_folder / "lit_gpt")] + sys.path # Prepend to PYTHONPATH
+sys.path.append(str(this_folder / "lit-gpt"))
 
 import lit_gpt.packed_dataset as packed_dataset
 from lit_gpt.config import Config

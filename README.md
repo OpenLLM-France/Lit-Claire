@@ -57,6 +57,12 @@ Then, install the dependencies (you may want to use `--user` if you don't use a 
 pip install --no-cache-dir -r requirements.txt
 ```
 
+You may also want to update torch to the latest version:
+```bash
+pip install pytorch-lightning==2.1.2
+pip install torch==2.2.0.dev20231127+cu121 -f https://download.pytorch.org/whl/nightly/torch/
+```
+
 ## Continual pretraining
 
 In the following, example bash commands are given for foundation model `tiiuae/falcon-7b`.

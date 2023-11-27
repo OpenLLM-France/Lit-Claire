@@ -1,5 +1,5 @@
 -r lit_gpt/requirements-all.txt
-lightning-fabric==2.0.9
+lightning-fabric==2.1.2
 # git+https://github.com/EleutherAI/lm-evaluation-harness.git@master  # eval
 # deepspeed
 names

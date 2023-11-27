@@ -31,11 +31,15 @@ def read_training_csv(csvfile, folder="."):
         reader = csv.DictReader(f)
         for row in reader:
             s = row["step"]
+            version1 = ("time/total" in row)
             if s:
-                iter0 = int(s) + 1
+                iter0 = int(s) + (1 if version1 else 0)
                 if iter0 > iter:
                     iter = iter0
-                    time = float(row["time/total"])
+                    if version1:
+                        time = float(row["time/total"])
+                    else:
+                        time = float(row["time"])
                     if iter == 1:
                         batch_size = int(row["samples"])
             l = row["loss"]
