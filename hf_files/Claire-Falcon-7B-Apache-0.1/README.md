@@ -151,7 +151,7 @@ Claire-7B-Apache-0.1 was tuned from Falcon-7b on the following data distribution
 | Parliamentary Proceedings               | 135M       | 54%                          | Assemblée Nationale                       |
 | Theatre                                 | 2.7M       | 23%                          | Théâtre Gratuit                           |
 | Meetings                                |   1.0M     | 16.6%                        | SUMM-RE, LinTO                            |
-| Debates                                 |   326k     |  5.4%                        | FreDSum                                   |
+| Debates                                 |   326k     |  5.4%                        | FREDSum                                   |
 | Presentations, Conversations            |    58k     |  1%                          | LinTO                                     |
 
 Training data was augmented with the following techniques:

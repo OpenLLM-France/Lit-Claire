@@ -1,5 +1,5 @@
 {
-    "FR/ASR_Whisper_SUMM-RE":       "FR/Meetings",
+    "FR/SUMM-RE":                   "FR/Meetings",
     "FR/ORFEO_reunions-de-travail": "FR/Meetings",
     "FR/LINAGORA_meetings":         "FR/Meetings",
 
@@ -17,11 +17,10 @@
     "FR/CFPP":                      "FR/Interviews",
     "FR/ORFEO_valibel_interview":   "FR/Interviews",
     "FR/PFC_guided":                "FR/Interviews",
-    "FR/CFPB":                      "FR/Interviews",
+    "FR/ORFEO_cfpb":                "FR/Interviews",
     "FR/ACSYNT":                    "FR/Interviews",
     "FR/ESLO_interview":            "FR/Interviews",
-    "FR/TCOF_Adults":               "FR/Interviews",
-    "discarded/FR/TCOF_Children":   "FR/Interviews",
+    "FR/TCOF_adults":               "FR/Interviews",
 
     "FR/ORFEO_fleuron":             "FR/Assistance",
     "FR/OTG":                       "FR/Assistance",
@@ -32,16 +31,18 @@
     "FR/ESLO_discourse":            "FR/PresDiscourse",
     "FR/ORFEO_valibel_discourse":   "FR/PresDiscourse",
 
-    "FR/NAMED_FreD":                "FR/Debates",
+    "FR/FREDSum":                   "FR/Debates",
     "FR/ESLO_conf":                 "FR/Debates",
-    "FR/NAMED_AssembleeNationale_13": "FR/AssembleeNationale_13",
-    "FR/NAMED_AssembleeNationale_14": "FR/AssembleeNationale_14",
-    "FR/NAMED_AssembleeNationale_15": "FR/AssembleeNationale_15",
-    "FR/NAMED_AssembleeNationale_16": "FR/AssembleeNationale_16",
-    "FR/NAMED_AssembleeNationale":  "FR/AssembleeNationale",
-    "discarded/FR/NAMED_Senat":     "FR/Senat",
-    "discarded/FR/ASR_Old_MINEFI":  "FR/Debates",
+    "FR/AssembleeNationale_13":     "FR/ParliamentaryProceedings_1",
+    "FR/AssembleeNationale_14":     "FR/ParliamentaryProceedings_2",
+    "FR/AssembleeNationale_15":     "FR/ParliamentaryProceedings_3",
+    "FR/AssembleeNationale_16":     "FR/ParliamentaryProceedings_4",
+    "FR/AssembleeNationale":        "FR/ParliamentaryProceedings",
 
-    "FR/NAMED_TheatreClassique":    "FR/Theatre",
-    "FR/NAMED_TheatreGratuit":      "FR/Theatre"
+    "FR/TheatreClassique":          "FR/Theatre",
+    "FR/TheatreGratuit":            "FR/Theatre",
+
+    "discarded/FR/TCOF_children":   "FR/Interviews",
+    "discarded/FR/Senat":           "FR/Senat",
+    "discarded/FR/MINEFI":          "FR/Debates"
 }

@@ -148,10 +148,10 @@ Claire-7B-0.1 was tuned from Falcon-7b on the following data distribution:
 |-------------------------------|------------|------------------------------|-----------------------------------------------------|
 | Parliamentary Proceedings     | 135M       | 35%                          | Assemblée Nationale                                 |
 | Theatre                       |  16M       | 18%                          | Théâtre Classique, Théâtre Gratuit                  |
-| Interviews                    |   6.4M     | 29%                          | TCOF, CFPP, CFPB, ACSYNT, PFC, Valibel (ORFEO), ESLO|
+| Interviews                    |   6.4M     | 29%                          | TCOF, CFPP, CFPB (ORFEO), ACSYNT, PFC, Valibel (ORFEO), ESLO|
 | Free Conversations            |   2.2M     | 10%                          | CRFP (ORFEO), OFROM (ORFEO), CID, Rhapsodie, ParisStories, PFC, CLAPI, C-ORAL-ROM (ORFEO), LinTO, ESLO |
 | Meetings                      |   1.2M     |  5%                          | SUMM-RE, LinTO, Réunions de travail (ORFEO)         |
-| Debates                       |   402k     | <2%                          | FreDSum, ESLO                                       |
+| Debates                       |   402k     | <2%                          | FREDSum, ESLO                                       |
 | Assistance                    |   159k     | <1%                          | Fleuron (ORFEO), Accueil UBS, OTG, ESLO             |
 | Presentation, Formal Address  |    86k     | <0.5%                        | Valibel (ORFEO), LinTO, ESLO                        |
 
