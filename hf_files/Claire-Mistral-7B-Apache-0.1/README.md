@@ -143,7 +143,7 @@ prompt = """\
 
 ### Training Data
 
-The training dataset will be made available soon.
+The training dataset is available at [OpenLLM-France/Claire-Dialogue-French-0.1](https://huggingface.co/datasets/OpenLLM-France/Claire-Dialogue-French-0.1).
 
 Claire-Mistral-7B-Apache-0.1 was tuned from Mistral-7B-v0.1 on the following data distribution:
 
@@ -166,7 +166,7 @@ While the model has been trained and evaluated only on French dialogues, it may 
 
 ### Training Procedure 
 
-The training code will be made available soon.
+The training code is available at [https://github.com/OpenLLM-France/Lit-Claire](https://github.com/OpenLLM-France/Lit-Claire).
 
 Claire-Mistral-7B-Apache-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
 See [Mistral-7B](https://huggingface.co/mistralai/Mistral-7B-v0.1) for more details.

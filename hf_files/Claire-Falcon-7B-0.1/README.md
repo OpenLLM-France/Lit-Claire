@@ -140,7 +140,7 @@ prompt = """\
 
 ### Training Data
 
-The training dataset will be made available soon.
+The training dataset is available at [OpenLLM-France/Claire-Dialogue-French-0.1](https://huggingface.co/datasets/OpenLLM-France/Claire-Dialogue-French-0.1).
 
 Claire-7B-0.1 was tuned from Falcon-7b on the following data distribution:
 
@@ -167,7 +167,7 @@ While the model has been trained and evaluated only on French dialogues, it may 
 
 ### Training Procedure 
 
-The training code will be made available soon.
+The training code is available at [https://github.com/OpenLLM-France/Lit-Claire](https://github.com/OpenLLM-France/Lit-Claire).
 
 Claire-7B-0.1 is a causal decoder-only model trained on a causal language modeling task (i.e., predict the next token).
 See [Falcon-7b](https://huggingface.co/tiiuae/falcon-7b) for more details.
