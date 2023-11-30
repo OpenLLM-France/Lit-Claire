@@ -142,7 +142,8 @@ prompt = """\
 
 ### Training Data
 
-The training dataset is available at [OpenLLM-France/Claire-Dialogue-French-0.1](https://huggingface.co/datasets/OpenLLM-France/Claire-Dialogue-French-0.1).
+The training dataset is available at [OpenLLM-France/Claire-Dialogue-French-0.1](https://huggingface.co/datasets/OpenLLM-France/Claire-Dialogue-French-0.1)
+and described in ["The Claire French Dialogue Dataset" (2023)](https://arxiv.org/abs/2311.16840).
 
 Claire-7B-Apache-0.1 was tuned from Falcon-7b on the following data distribution:
 
