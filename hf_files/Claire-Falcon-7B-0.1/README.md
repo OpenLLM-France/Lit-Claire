@@ -221,7 +221,6 @@ and "Claire-Mistral", for [Claire-Mistral-7B-0.1](https://huggingface.co/OpenLLM
 
 Please note that the model can generate disfluencies and humorous responses as a result of its training on spoken and theatrical text. 
 
-More evaluation details will be provided in a separate publication.
 
 ## License
 
