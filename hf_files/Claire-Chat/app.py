@@ -155,12 +155,10 @@ model = transformers.AutoModelForCausalLM.from_pretrained(
     load_in_4bit=True,
 )
 
-print("Optimizing model...")
-
-import optimum
-from optimum.bettertransformer import BetterTransformer
-
-model = BetterTransformer.transform(model)
+# print("Optimizing model...")
+# import optimum
+# from optimum.bettertransformer import BetterTransformer
+# model = BetterTransformer.transform(model)
 
 print("Setup chat...")
 
