@@ -28,7 +28,7 @@ Claire is a suite of reasonably sized LLM specialized for conversational data
 
 ### Clone the repo
 ```
-git clone --recurse-submodules https://github.com/OpenLLM-France/Claire
+git clone --recurse-submodules git@github.com:OpenLLM-France/Lit-Claire.git
 ```
 
 ### Create environment
