@@ -44,5 +44,41 @@
 
     "discarded/FR/TCOF_children":   "FR/Interviews",
     "discarded/FR/Senat":           "FR/Senat",
-    "discarded/FR/MINEFI":          "FR/Debates"
+    "discarded/FR/MINEFI":          "FR/Debates",
+
+    
+    "EN/AMI":                               "EN/Meetings",
+    "EN/ICSI":                              "EN/Meetings",
+
+    "EN/DialogStudio_TOD_ABCD":             "EN/Assistance",
+    "EN/DialogStudio_CR_Redial":            "EN/Assistance",
+    "EN/DialogStudio_CR_OpenDialKG":        "EN/Assistance",
+    "EN/DialogStudio_TOD_AirDialogue":      "EN/Assistance",
+    "EN/DialogStudio_TOD_MULTIWOZ2_2":      "EN/Assistance",
+
+    "EN/DailyDialog":                       "EN/FreeConversations",
+    "EN/OANC_Switchboard":                  "EN/FreeConversations",
+    "EN/DialogStudio_ODD_chitchat-dataset": "EN/FreeConversations",
+
+    "EN/MediaSum_NPR":                      "EN/Interviews",
+    "EN/OANC_Charlotte":                    "EN/Interviews",
+    "EN/MediaSum_CNN-1":                    "EN/Interviews",
+    "EN/MediaSum_CNN-2":                    "EN/Interviews",
+    "EN/MediaSum_CNN-3":                    "EN/Interviews",
+    "EN/MediaSum_CNN-4":                    "EN/Interviews",
+    "EN/MediaSum_CNN-5":                    "EN/Interviews",
+    "EN/MediaSum_CNN-6":                    "EN/Interviews",
+    "EN/MediaSum_CNN-7":                    "EN/Interviews",
+    "EN/MediaSum_CNN-8":                    "EN/Interviews",
+
+    "EN/BNC":                               "EN/Misc",
+
+
+
+    "EN/ASR-ETELECSC":                          "EN/discarded",
+    "EN/DialogStudio_TOD_CaSiNo":               "EN/discarded",
+    "EN/DialogStudio_TOD_FRAMES":               "EN/discarded",
+    "EN/DialogStudio_TOD_MulDoGO":              "EN/discarded",
+    "EN/DialogStudio_ODD_AntiScam":             "EN/discarded",
+    "EN/DialogStudio_TOD_CraigslistBargains":   "EN/discarded"
 }
