@@ -64,6 +64,7 @@ FR/TheatreClassique,fr,True,False,True,False,27085,478274,13600225,2434771,47879
 FR/TheatreClassique/TRAIN,fr,True,False,True,False,26910,475430,13514982,2419378,478795
 FR/TheatreClassique/TEST,fr,True,False,True,False,175,2844,85243,15393,2850
 FR/TheatreGratuit,fr,True,False,True,False,4080,155066,2690745,651127,155066
+FR/TheatreGratuit2,fr,True,False,True,False,4813,183110,3164183,755751,183110
 FR/UBS,fr,False,False,False,True,41,952,7274,0,1186
 FR/UBS/TRAIN,fr,False,False,False,True,40,916,6921,0,1186
 FR/UBS/TEST,fr,False,False,False,True,1,36,353,0,36
@@ -88,6 +89,7 @@ EN/DialogStudio_TOD_CraigslistBargains,en,False,False,True,False,5373,38553,5402
 EN/DialogStudio_TOD_FRAMES,en,False,False,True,False,1369,19986,254427,43306,20056
 EN/DialogStudio_TOD_MULTIWOZ2_2,en,False,False,True,False,10437,143044,1912828,333975,143181
 EN/DialogStudio_TOD_MulDoGO,en,False,False,True,False,63408,892388,10096099,1547974,898184
+EN/Europarl,en,False,False,False,True,5102,214337,55556677,5501610,215855
 EN/ICSI,en,False,False,False,True,75,64267,804156,146324,117131
 EN/ICSI/TRAIN,en,False,False,False,True,69,59741,742729,136336,117131
 EN/ICSI/TEST,en,False,False,False,True,6,4526,61427,9988,8481
