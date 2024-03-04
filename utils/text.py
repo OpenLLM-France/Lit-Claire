@@ -18,11 +18,11 @@ SPECIALS_TO_KEEP = [
 FRANCIZISE_SPECIALS = True
 USE_DASHES = True
 
-PATTERN_SPEAKER_INBRACKETS = re.compile(r"[^\]]+:")
+PATTERN_SPEAKER_INBRACKETS = re.compile(r"[^\n\]]+:")
 PATTERN_SPEAKER = re.compile(r"\[" + PATTERN_SPEAKER_INBRACKETS.pattern + r"\]")
 PATTERN_SPEAKER_UNANONYMIZED = re.compile(r"\[(?!speaker\d+:)([^]]+):]")
 
-PATTERN_SPECIAL = re.compile(r"\[([^\]]*)\]")
+PATTERN_SPECIAL = re.compile(r"\[([^\n\]]*)\]")
 PATTERN_SPECIAL_NOSPEAKER = re.compile(r"\[([^\]]*[^:])\]")
 
 PATTERN_PUNCTUATIONS = re.compile(r"[,;\.!?…]|: ")
