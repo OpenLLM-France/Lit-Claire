@@ -352,8 +352,9 @@ def prepare_fn(
                     num_convs += 1
 
                 except Exception as err:
+                    for fn in glob.glob(f"{destination_path}/{prefix}*bin"):
+                        os.remove(fn)
                     raise RuntimeError(f"Error while processing {text[:1000]}") from err
-
 
             if build_it:
                 builder.write_reminder()
