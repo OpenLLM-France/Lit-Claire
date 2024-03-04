@@ -46,24 +46,23 @@
     "discarded/FR/Senat":           "FR/Senat",
     "discarded/FR/MINEFI":          "FR/Debates",
 
+
     
-    "EN/AMI":                               "EN/Meetings",
-    "EN/ICSI":                              "EN/Meetings",
 
     "EN/DialogStudio_TOD_ABCD":             "EN/Assistance",
     "EN/DialogStudio_CR_Redial":            "EN/Assistance",
     "EN/DialogStudio_CR_OpenDialKG":        "EN/Assistance",
     "EN/DialogStudio_TOD_AirDialogue":      "EN/Assistance",
     "EN/DialogStudio_TOD_MULTIWOZ2_2":      "EN/Assistance",
+    "EN/DialogStudio_TOD_MulDoGO":          "EN/Assistance",
 
-    "EN/DailyDialog":                       "EN/FreeConversations",
-    "EN/OANC_Switchboard":                  "EN/FreeConversations",
-    "EN/DialogStudio_ODD_chitchat-dataset": "EN/FreeConversations",
+    "EN/DailyDialog":                       "EN/FreeChat",
+    "EN/DialogStudio_ODD_chitchat-dataset": "EN/FreeChat",
 
-    "EN/Europarl":                          "EN/ParliamentaryProceedings",
+    "EN/AMI":                               "EN/Meetings",
+    "EN/ICSI":                              "EN/Meetings",
 
     "EN/MediaSum_NPR":                      "EN/Interviews",
-    "EN/OANC_Charlotte":                    "EN/Interviews",
     "EN/MediaSum_CNN-1":                    "EN/Interviews_1",
     "EN/MediaSum_CNN-2":                    "EN/Interviews_2",
     "EN/MediaSum_CNN-3":                    "EN/Interviews_3",
@@ -73,6 +72,11 @@
     "EN/MediaSum_CNN-7":                    "EN/Interviews_7",
     "EN/MediaSum_CNN-8":                    "EN/Interviews_8",
 
+    "EN/Europarl":                          "EN/ParliamentaryProceedings",
+
+    "EN/OANC_Charlotte":                    "EN/SpokenDialogue",
+    "EN/OANC_Switchboard":                  "EN/SpokenDialogue",
+
     "EN/BNC":                               "EN/Misc",
 
 
@@ -80,7 +84,6 @@
     "EN/ASR-ETELECSC":                          "EN/discarded",
     "EN/DialogStudio_TOD_CaSiNo":               "EN/discarded",
     "EN/DialogStudio_TOD_FRAMES":               "EN/discarded",
-    "EN/DialogStudio_TOD_MulDoGO":              "EN/discarded",
     "EN/DialogStudio_ODD_AntiScam":             "EN/discarded",
     "EN/DialogStudio_TOD_CraigslistBargains":   "EN/discarded"
 }
