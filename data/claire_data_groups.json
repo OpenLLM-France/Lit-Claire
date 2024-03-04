@@ -60,16 +60,18 @@
     "EN/OANC_Switchboard":                  "EN/FreeConversations",
     "EN/DialogStudio_ODD_chitchat-dataset": "EN/FreeConversations",
 
+    "EN/Europarl":                          "EN/ParliamentaryProceedings",
+
     "EN/MediaSum_NPR":                      "EN/Interviews",
     "EN/OANC_Charlotte":                    "EN/Interviews",
-    "EN/MediaSum_CNN-1":                    "EN/Interviews",
-    "EN/MediaSum_CNN-2":                    "EN/Interviews",
-    "EN/MediaSum_CNN-3":                    "EN/Interviews",
-    "EN/MediaSum_CNN-4":                    "EN/Interviews",
-    "EN/MediaSum_CNN-5":                    "EN/Interviews",
-    "EN/MediaSum_CNN-6":                    "EN/Interviews",
-    "EN/MediaSum_CNN-7":                    "EN/Interviews",
-    "EN/MediaSum_CNN-8":                    "EN/Interviews",
+    "EN/MediaSum_CNN-1":                    "EN/Interviews_1",
+    "EN/MediaSum_CNN-2":                    "EN/Interviews_2",
+    "EN/MediaSum_CNN-3":                    "EN/Interviews_3",
+    "EN/MediaSum_CNN-4":                    "EN/Interviews_4",
+    "EN/MediaSum_CNN-5":                    "EN/Interviews_5",
+    "EN/MediaSum_CNN-6":                    "EN/Interviews_6",
+    "EN/MediaSum_CNN-7":                    "EN/Interviews_7",
+    "EN/MediaSum_CNN-8":                    "EN/Interviews_8",
 
     "EN/BNC":                               "EN/Misc",
 

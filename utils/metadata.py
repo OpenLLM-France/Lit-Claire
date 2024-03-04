@@ -77,15 +77,17 @@ def accumulate_metadata_by_group(datasets, metadatas=None):
 def get_scaled_num_samples(metadata):
     num_samples = metadata["words"] + metadata["turns"]
     # penalty factors
-    if not metadata["spontaneous"]: # Theatre, Assemblée Nationale...
+    if not metadata["spontaneous"]: # Theatre, Assemblée Nationale + All "text" datasets from English
         num_samples /= 4
-    if "AssembleeNationale" in metadata["dataset"]: # Assemblée Nationale...
+    if "AssembleeNationale" in metadata["dataset"] or "MediaSum" in metadata["dataset"]: # Assemblée Nationale or MediaSum
         num_samples /= 4
+    if "Europarl" in metadata["dataset"]: # Half the penalty for Europarl
+        num_samples /= 2
     return num_samples
 
 scale_per_languages = {
-    "fr": 0.25,
-    "en": 0.75,
+    "fr": 0.5,
+    "en": 0.5,
 }
 num_samples_per_language = {}
 for dataset, metadata in METADATA_DICT.items():
