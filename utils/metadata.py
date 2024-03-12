@@ -79,15 +79,18 @@ def get_scaled_num_samples(metadata):
     # penalty factors
     if not metadata["spontaneous"]: # Theatre, Assemblée Nationale + All "text" datasets from English
         num_samples /= 4
-    if "AssembleeNationale" in metadata["dataset"] or "MediaSum" in metadata["dataset"]: # Assemblée Nationale or MediaSum
+    if "AssembleeNationale" in metadata["dataset"]: #Assemblée Nationale
         num_samples /= 4
-    if "Europarl" in metadata["dataset"]: # Half the penalty for Europarl
+    if "MediaSum" in metadata["dataset"]: # Penalty for the MediaSum-CNN corpus 
+        num_samples /= 16
+    if "Europarl" in metadata["dataset"]: # penalty for English Europarl
         num_samples /= 2
     return num_samples
 
+# Scaling the languages to get a 50/50 split
 scale_per_languages = {
-    "fr": 0.5,
-    "en": 0.5,
+    "fr": 0.663,
+    "en": 0.337,
 }
 num_samples_per_language = {}
 for dataset, metadata in METADATA_DICT.items():

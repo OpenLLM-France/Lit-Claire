@@ -129,8 +129,7 @@ def create_dataloader(
     weights = []
     num_samples_per_dataset = []
     metadatas = []
-    for prefix in sorted(prefixes):
-        
+    for prefix in prefixes:
         if isinstance(prefix, str):
             filenames = sorted(glob.glob(os.path.join(path, f"{prefix}*.bin")))
             assert len(filenames) > 0, f"No files found in {path} (for prefix: {prefix})"
@@ -362,7 +361,7 @@ if __name__ == "__main__":
     import random
     import argparse
     parser = argparse.ArgumentParser("Test dataset iterator", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("path", type=str, default="/gpfsscratch/rech/qgz/commun/preprocessed_data/Claire/lit-gpt/padded/tiiuae/falcon-7b/", nargs="?")
+    parser.add_argument("path", type=str, default="/gpfsscratch/rech/qgz/commun/preprocessed_data/Claire/lit-gpt/padded_8_grouped/tiiuae/falcon-7b/", nargs="?")
     parser.add_argument("checkpoint_dir", type=str, default="/gpfswork/rech/qgz/commun/Claire/checkpoints/tiiuae/falcon-7b", nargs="?")
     parser.add_argument("--devices", type=int, default=1, help= "Number of devices")
     parser.add_argument("--batch_size", type=int, default=12, help= "Batch size")
