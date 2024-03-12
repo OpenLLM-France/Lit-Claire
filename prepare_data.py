@@ -182,11 +182,20 @@ def prepare_fn(
                 while num_segments_per_file > 512:
                     it += 1
                     num_segments_per_file = math.ceil(num_segments_augmented / (multiple_of * it))
+
+                    # Check the number of files remain a multiple (otherwise revert)
+                    num_files = math.ceil(num_segments_augmented/num_segments_per_file)
+                    if num_files % multiple_of != 0:
+                        num_segments_per_file = math.ceil(num_segments_augmented / (multiple_of * (it-1)))
+                        break
+
                 chunk_size = effective_block_size * num_segments_per_file
                 
                 num_files = math.ceil(num_segments_augmented/num_segments_per_file)
                 num_padded = num_segments_per_file * num_files - num_segments_augmented
                 print(f"Will cut in {num_files} files of {num_segments_per_file} samples each ({num_segments_augmented} + {num_padded} padded)")
+
+                assert num_files % multiple_of == 0
 
                 # Write metadata
                 metadata.update({
