@@ -233,7 +233,7 @@ def create_dataloader(
             print(f"* {metadata['dataset']:30}:{detail_string}")
 
     # Cut data if higher than max_samples
-    if max_samples and (max_samples < total_samples_with_padding or split_in_subsets):
+    if max_samples and (max_samples < total_samples_with_padding):
         assert not use_weights, "Cannot use weights and max_samples at the same time"
 
         # We'll take the first samples of each dataset until we reach max_samples
@@ -392,7 +392,7 @@ if __name__ == "__main__":
     seed = args.seed
     try_small = args.try_small
     wrap_validation = args.wrap_validation
-    max_validation_samples=args.max_validation_samples if args.max_validation_samples else (200 if try_small else 4000)
+    max_validation_samples=args.max_validation_samples if args.max_validation_samples else (200 if try_small else 1e32)
     split_validation_in_subsets = args.split_validation_in_subsets
 
     checkpoint_dir = args.checkpoint_dir

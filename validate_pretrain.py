@@ -128,7 +128,7 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
         verbose=True,
         try_small=try_small,
         shuffle=True,
-        max_validation_samples=200 if try_small else 4000,
+        max_validation_samples=200 if try_small else 1e32,
         return_details=True,
         wrap_validation=False,
         split_validation_in_subsets=True,
