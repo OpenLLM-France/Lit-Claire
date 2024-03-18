@@ -233,7 +233,7 @@ def create_dataloader(
             print(f"* {metadata['dataset']:30}:{detail_string}")
 
     # Cut data if higher than max_samples
-    if max_samples and max_samples < total_samples_with_padding:
+    if max_samples and (max_samples < total_samples_with_padding or split_in_subsets):
         assert not use_weights, "Cannot use weights and max_samples at the same time"
 
         # We'll take the first samples of each dataset until we reach max_samples
@@ -271,6 +271,7 @@ def create_dataloader(
             seed=seed,
             verbose=verbose,
             return_details=return_details,
+            split_in_subsets=split_in_subsets,
             use_weights=use_weights,
             use_progress_bar=use_progress_bar,
         )

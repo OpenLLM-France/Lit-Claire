@@ -135,7 +135,7 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
         enable_train=False,
     )
 
-    already_done = []
+    already_done = {}
     valid_file_exists = False
     if os.path.isfile(out_file):
         with open(out_file, "r") as file:
@@ -143,7 +143,9 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
             for row in reader:
                 valid_file_exists = True
                 if str(row["max_iters"]) == str(max_eval_iters0):
-                    already_done.append(row["file"])
+                    name_model = row["file"]
+                    dataset_name = row["data"]
+                    already_done[name_model] = already_done.get(name_model, []) + [dataset_name]
 
     sys.stdout.flush()
 
@@ -154,23 +156,33 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
 
         for checkpoint_path in checkpoints:
             info = get_iter_info(checkpoint_path)
-            if info["file"] in already_done:
-                continue
+            # if info["file"] in already_done:
+            #     print(f"Skipping {info['file']} as it is already in the file")
+            #     continue
 
-            if use_lora:
-                model = merge_lora(
-                    lora_path=Path(checkpoint_path),
-                    checkpoint_dir=Path(checkpoint_dir),
-                    model=None,
-                    fabric=fabric,
-                )
-            else:
-                load_checkpoint(fabric, model, checkpoint_path, strict=not use_lora)
-
-            model = fabric.setup_module(model)
-            model.eval()
+            has_loaded_model = False
 
             for val_dataloader, val_detail in zip(val_dataloaders, val_details):
+
+                dataset_name = val_detail["name"]
+                if dataset_name in already_done.get(info["file"], []):
+                    print(f"Skipping {info['file']} on {dataset_name} as it is already in the file")
+                    continue
+
+                if not has_loaded_model:
+                    has_loaded_model = True
+                    if use_lora:
+                        model = merge_lora(
+                            lora_path=Path(checkpoint_path),
+                            checkpoint_dir=Path(checkpoint_dir),
+                            model=None,
+                            fabric=fabric,
+                        )
+                    else:
+                        load_checkpoint(fabric, model, checkpoint_path, strict=not use_lora)
+
+                    model = fabric.setup_module(model)
+                    model.eval()
 
                 val_dataloader = fabric.setup_dataloaders(val_dataloader)
                 if max_eval_iters0 is None:
@@ -182,7 +194,7 @@ def main(fabric, checkpoint_dir, out_dir, out_file, data_dir, try_small, hparams
                 val_loss = validate(fabric, model, val_dataloader, max_eval_iters=max_eval_iters, tokenizer=tokenizer)
                 t1 = time.perf_counter() - t0
                 info.update({
-                    "data": val_detail["name"],
+                    "data": dataset_name,
                     "loss": val_loss, # round(val_loss, 4 ) # f"{val_loss:.4f}",
                     "time": f"{t1:.3f} sec",
                     "batch_size": batch_size,
