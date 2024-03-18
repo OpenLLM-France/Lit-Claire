@@ -9,7 +9,7 @@ def run_command(command, need_gpu=False, doit=True):
     if need_gpu:
         jeanzay = socket.gethostname().startswith("jean-zay")
         if jeanzay:
-            prefix = "srun --ntasks=1 --gres=gpu:1 --constraint=a100 --cpus-per-task=8 --qos=qos_gpu-dev "
+            prefix = "srun --ntasks=1 --gres=gpu:1 --constraint=a100 --account=qgz@a100 --cpus-per-task=8 --qos=qos_gpu-dev "
         else:
             prefix = ""
         command = prefix + command
