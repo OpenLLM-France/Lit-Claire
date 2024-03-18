@@ -151,7 +151,7 @@ def main(fabric, checkpoint_dir, out_dir, data_dir, try_small, enable_validation
     os.makedirs(out_dir / "src", exist_ok=True)
     for file in __file__, "prepare_data.py", "data/claire_metadata.csv":
         shutil.copy2(this_folder / file, out_dir / "src" / os.path.basename(file))
-    for folder in "lit_gpt/lit_gpt", "utils", :
+    for folder in "lit-gpt/lit_gpt", "utils", :
         shutil.copytree(this_folder / folder, out_dir / "src" / folder,
             ignore=lambda x, y: ["__pycache__"], dirs_exist_ok=True)
     json.dump(

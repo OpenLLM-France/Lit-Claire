@@ -431,7 +431,7 @@ def prepare(
     (destination_path / "src").mkdir(parents=True, exist_ok=True)
     for file in __file__, "data/claire_metadata.csv":
         shutil.copy2(this_folder / file, destination_path / "src" / os.path.basename(file))
-    for folder in "utils", "lit_gpt/lit_gpt", :
+    for folder in "utils", "lit-gpt/lit_gpt", :
         shutil.copytree(this_folder / folder, destination_path / "src" / folder,
             ignore=lambda x, y: ["__pycache__"], dirs_exist_ok=True)
 

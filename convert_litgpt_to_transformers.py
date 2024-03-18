@@ -11,7 +11,7 @@ wd = os.path.dirname(os.path.realpath(__file__))
 from utils.run_command import run_command
 from utils.hf_upload_model import upload_to_huggingface_hub
 
-path_lit_gpt_script = os.path.join(wd, "lit_gpt", "scripts")
+path_lit_gpt_script = os.path.join(wd, "lit-gpt", "scripts")
 assert os.path.isdir(path_lit_gpt_script), f"Cannot find {path_lit_gpt_script}"
 
 script_convert_model = os.path.join(path_lit_gpt_script, "convert_lit_checkpoint.py")
