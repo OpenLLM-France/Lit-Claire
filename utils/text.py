@@ -27,57 +27,73 @@ PATTERN_SPECIAL_NOSPEAKER = re.compile(r"\[([^\]]*[^:])\]")
 
 PATTERN_PUNCTUATIONS = re.compile(r"[,;\.!?…]|: ")
 
-def format_text(text, keep_specials=True):
+def format_text(text, keep_specials=True, language="fr"):
     if keep_specials:
-        text = re.sub(PATTERN_SPECIAL, _remove_all_except_specials, text)
+        text = re.sub(PATTERN_SPECIAL, lambda x: _remove_all_except_specials(x, language=language), text)
     else:
-        text = re.sub(PATTERN_SPECIAL, _remove_all_except_speakers_and_pii, text)
+        text = re.sub(PATTERN_SPECIAL, lambda x: _remove_all_except_speakers_and_pii(x, language=language), text)
     text = remove_empty_turns(text)
     return collapse_whitespaces(text)
 
 if FRANCIZISE_SPECIALS:
 
-    def format_special(text):
+    def format_special(text, language="fr"):
         if text.endswith(":]"):
             if text.startswith("[speaker"):
                 # "[speaker001:]" -> "[Intervenant 1:]"
                 index = int(text[8:11])
-                return f"[Intervenant {index}:]"
+                if language == "fr":
+                    return f"[Intervenant {index}:]"
+                elif language == "en":
+                    return f"[Speaker {index}:]"
+                else:
+                    raise RuntimeError(f"Unsupported language {language}")
             else:
                 # "[claude-marie Claude-Marie JR:]" -> "[Claude-Marie Claude-Marie JR:]"
                 speaker = text[1:-2]
                 speaker = capitalize(speaker)
                 assert re.match(r"[A-ZÉÈËÊÔÓÖŐÀÁÂÅÆŒÌÍŽŠĢ0-9]", speaker), f"Unexpected speaker {text} ({[ord(c) for c in text[:6]]}) -> {speaker}"
                 return f"[{speaker}:]"
-        if text == "[PII]":
-            return "[Nom]"
-        if text == "[NOISE]":
-            return "[bruit]"
-        if text == "[LAUGHTER]":
-            return "[rire]"
+        if language == "fr":
+            if text == "[PII]":
+                return "[Nom]"
+            if text == "[NOISE]":
+                return "[bruit]"
+            if text == "[LAUGHTER]":
+                return "[rire]"
+        elif language == "en":
+            if text == "[PII]":
+                return "[Name]"
+            if text == "[NOISE]":
+                return "[noise]"
+            if text == "[LAUGHTER]":
+                return "[laughter]"
+        else:
+            raise RuntimeError(f"Unsupported language {language}")
+
 
     def speaker_tag(i):
         return f"[Intervenant {i+1}:]"
 
 else:
 
-    def format_special(text):
+    def format_special(text, **kwargs):
         return text.lower()
     
     def speaker_tag(i):
         return f"[speaker{i+1:03d}:]"
 
-def _remove_all_except_specials(match):
+def _remove_all_except_specials(match, language):
     content_within_brackets = match.group(1)
     if re.match(PATTERN_SPEAKER_INBRACKETS, content_within_brackets) or content_within_brackets in SPECIALS_TO_KEEP:
-        return format_special(match.group())
+        return format_special(match.group(), language=language)
     else:
         return ""
     
-def _remove_all_except_speakers_and_pii(match):
+def _remove_all_except_speakers_and_pii(match, language):
     content_within_brackets = match.group(1)
     if re.match(PATTERN_SPEAKER_INBRACKETS, content_within_brackets):
-        return format_special(match.group())
+        return format_special(match.group(), language=language)
     elif content_within_brackets in ["Nom", "nom", "PII", "pii"]:
         return names.get_first_name()
     else:
@@ -167,7 +183,7 @@ PATTERN_EMPTY_TURN = re.compile(PATTERN_SPEAKER.pattern + r"[^\p{L}]*" + "("+PAT
 PATTERN_REPEATED_TURN = re.compile(r"("+PATTERN_SPEAKER.pattern+r") ([^\[]*)\s\1")
 PATTERN_SPEAKER_LOOSE = re.compile(r"\s*"+PATTERN_SPEAKER.pattern+r"\s*")
 
-def augmented_texts_generator(text, max_variants=4, force_augmentation=False, keep_specials=False):
+def augmented_texts_generator(text, max_variants=4, force_augmentation=False, keep_specials=False, language="fr"):
     """
     Generate several variants of a text.
     max_variants: maximum number of variants returned
@@ -175,7 +191,7 @@ def augmented_texts_generator(text, max_variants=4, force_augmentation=False, ke
     """
     only_one_variant = (max_variants == 1)
     if not only_one_variant and (bool(max_variants) or (max_variants == 0 and force_augmentation)):
-        all_variants = list(augmented_texts_generator(text, max_variants=None))
+        all_variants = list(augmented_texts_generator(text, max_variants=None, keep_specials=keep_specials, language=language))
         if max_variants:
             # Provide normalized text first
             yield all_variants[0]
@@ -186,7 +202,7 @@ def augmented_texts_generator(text, max_variants=4, force_augmentation=False, ke
             yield all_variants[i]
         return
 
-    text1 = format_text(text, keep_specials=keep_specials)
+    text1 = format_text(text, keep_specials=keep_specials, language=language)
     yield text1
     if max_variants == 0:
         return
@@ -215,7 +231,7 @@ def augmented_texts_generator(text, max_variants=4, force_augmentation=False, ke
     # print(f"Applying: {do_specials=} {do_anonymize=} {do_lower_case=} {do_remove_punc=} {num_speakers=}")
 
     if do_specials:
-        text1 = format_text(text1, keep_specials=False)
+        text1 = format_text(text1, keep_specials=False, language=language)
         if not only_one_variant:
             yield text1
 
@@ -295,6 +311,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_variants", type=int, default=None, help="Augmentation max_variants.")
     parser.add_argument("--seed", type=int, default=random.randint(1, 1000), help="Random seed")
     parser.add_argument("--force_augmentation", default=False, action="store_true", help="Force augmentation even when max_variants=0.")
+    parser.add_argument("--language", default="fr", help="Language")
     args = parser.parse_args()
 
     import random
@@ -310,6 +327,6 @@ if __name__ == "__main__":
     print("Original      :", format_stdout(text))
     # print("Normalized (2):", format_stdout(format_text(text, keep_specials=False)))
     random.seed(args.seed)
-    for ivariant, text_variant in enumerate(augmented_texts_generator(text, max_variants, force_augmentation=args.force_augmentation)):
+    for ivariant, text_variant in enumerate(augmented_texts_generator(text, max_variants, force_augmentation=args.force_augmentation, language=args.language)):
         print(f"Augmented ({ivariant}/{max_variants}):" if ivariant > 0 else "Normalized     :", format_stdout(text_variant))
 

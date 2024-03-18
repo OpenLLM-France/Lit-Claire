@@ -131,6 +131,7 @@ def prepare_fn(
         set_name = metadata["dataset"]
         num_conversations = int(metadata["conversations"])
         is_spontaneous = metadata["spontaneous"]
+        language = metadata["language"]
         assert is_spontaneous in [True, False]
         augmentation_level = 8 if is_spontaneous else 1
         force_augmentation = True
@@ -239,7 +240,7 @@ def prepare_fn(
 
                 try:
                     # Text normalization and augmentation
-                    for ivariant, text_variant in enumerate(augmented_texts_generator(text, augmentation_level, force_augmentation=force_augmentation)):
+                    for ivariant, text_variant in enumerate(augmented_texts_generator(text, augmentation_level, force_augmentation=force_augmentation, language=language)):
 
                         # # Uncomment for debugging of text augmentation
                         # if ivariant > 0:
