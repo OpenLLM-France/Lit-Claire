@@ -188,7 +188,7 @@ if __name__ == "__main__":
             hparam.pop("data_dir", None)
             hparam.pop("checkpoint_dir", None)
             hparam.pop("seed", None)
-        hparams = [{}] * len(hparams) # NOCOMMIT
+        # hparams = [{}] * len(hparams)
         title_folder_names = True
 
     min_loss = args.min_loss if args.min_loss else 1e10
