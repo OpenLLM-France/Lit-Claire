@@ -94,7 +94,7 @@ def _remove_all_except_speakers_and_pii(match, language):
     content_within_brackets = match.group(1)
     if re.match(PATTERN_SPEAKER_INBRACKETS, content_within_brackets):
         return format_special(match.group(), language=language)
-    elif content_within_brackets in ["Nom", "nom", "PII", "pii"]:
+    elif content_within_brackets in ["PII", "pii", "Nom", "nom", "Name", "name"]:
         return names.get_first_name()
     else:
         return ""
