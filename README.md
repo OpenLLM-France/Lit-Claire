@@ -7,22 +7,27 @@ with hints to run on a supercomputer like [Jean Zay](http://www.idris.fr/eng/jea
 Claire is a suite of reasonably sized LLM specialized for conversational data
 (typically, transcribed and diarized spontaneous oral speech).
 
-* [Setup](#setup)
-* [Continual pretraining](#continual-pretraining)
-  * [Download and convert foundation model to Lit-GPT format](#download-and-convert-foundation-model-to-lit-gpt-format)
-  * [Download raw data](#download-raw-data)
-  * [Prepare data](#prepare-data)
-  * [Launch training](#launch-training)
-  * [Monitoring](#monitoring)
-    * [Convergence curves](#convergence-curves)
-    * [Offline validation](#offline-validation)
-* [Check the model and make it available](#check-the-model-and-make-it-available)
-  * [Merge LoRA weights](#merge-lora-weights)
-  * [Quick test of the model](#quick-test-of-the-model)
-  * [Convert trained Lit-GPT model and upload it to 🤗 Hugging Face](#convert-trained-lit-gpt-model-and-upload-it-to--hugging-face)
-     * [Update Hugging Face model card](#update-hugging-face-model-card)
-  * [Quantize the model (GGUF format)](#quantize-the-model-gguf-format)
-* [Acknowledgements](#acknowledgements)
+- [Lit-Claire](#lit-claire)
+  - [Setup](#setup)
+    - [Clone the repo](#clone-the-repo)
+    - [Create environment](#create-environment)
+    - [Install dependencies](#install-dependencies)
+  - [Continual pretraining](#continual-pretraining)
+    - [Download and convert foundation model to Lit-GPT format](#download-and-convert-foundation-model-to-lit-gpt-format)
+    - [Download raw data](#download-raw-data)
+    - [Prepare data](#prepare-data)
+    - [Launch training](#launch-training)
+      - [On Jean-Zay](#on-jean-zay)
+    - [Monitoring](#monitoring)
+      - [Offline validation](#offline-validation)
+      - [Convergence curves](#convergence-curves)
+  - [Check the model and make it available](#check-the-model-and-make-it-available)
+    - [Merge LoRA weights](#merge-lora-weights)
+    - [Quick test of the model](#quick-test-of-the-model)
+    - [Convert trained Lit-GPT model and upload it to 🤗 Hugging Face](#convert-trained-lit-gpt-model-and-upload-it-to--hugging-face)
+      - [Update Hugging Face model card](#update-hugging-face-model-card)
+    - [Quantize the model (GGUF format)](#quantize-the-model-gguf-format)
+  - [Acknowledgements](#acknowledgements)
 
 ## Setup
 
@@ -250,7 +255,7 @@ The steps done by this script are:
 * Copy relevant files from the foundation model checkpoint folder
   (This folder should be in `$TRAINING_DIR/hparams.json`, and can also be specified with option `--checkpoint_dir`)
 * If needed, merge LoRA weights
-* Convert the model in [lit-gpt](lit_gpt/scripts/convert_lit_checkpoint.py) format (`lit_model.pth`) to a model in the [transformers](https://github.com/huggingface/transformers) format (`pytorch_model.bin`).
+* Convert the model in [lit-gpt](https://github.com/Lightning-AI/litgpt/blob/e05fc4a6a39808100cd76aff3d6c26bfae7417be/scripts/convert_lit_checkpoint.py) format (`lit_model.pth`) to a model in the [transformers](https://github.com/huggingface/transformers) format (`pytorch_model.bin`).
 * If needed, split the big model into chunks of <10 GB (ex: `pytorch_model-00001-of-00002.bin`, `pytorch_model-00002-of-00002.bin`, `pytorch_model.bin.index.json`)
 * If asked (with `--repo_id`):
   * Create the Hugging Face repo if it does not exist
