@@ -154,6 +154,42 @@ Validation set composition: 12335 conversations, 386892 turns, 17575218 words, 1
 * FR/PresDiscourse/TEST         :    1 convs ( 0.01 %) 7.5k words ( 0.04 %)    8 samples ( 0.04 %)
 * FR/Theatre/TEST               :  175 convs ( 1.42 %)  85k words ( 0.49 %)  185 samples ( 0.98 %)
 ```
+#### Data Proportions for the Bilingual Models
+
+##### Claire-7B-EN-0.1
+
+```
+scale_per_languages = {
+    "fr": 0.0,
+    "en": 1.0,
+}
+```
+
+##### Claire-7B-FR-EN-25-75-0.1
+```
+scale_per_languages = {
+    "fr": 0.403,
+    "en": 0.597,
+}
+```
+
+##### Claire-7B-FR-EN-50-50-0.1
+```
+scale_per_languages = {
+    "fr": 0.596,
+    "en": 0.404,
+}
+```
+
+
+##### Claire-7B-FR-EN-75-25-0.1
+```
+scale_per_languages = {
+    "fr": 0.858,
+    "en": 0.142,
+}
+```
+
 
 ## Hyper-parameters
 
