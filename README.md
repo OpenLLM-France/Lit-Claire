@@ -276,7 +276,7 @@ You will need to provide your [HuggingFace User Access Tokens](https://huggingfa
 
 ### Quantize the model (GGUF format)
 
-Install [llama.cpp](https://github.com/ggerganov):
+Install [llama.cpp](https://github.com/ggerganov/llama.cpp):
 ```bash
 git clone https://github.com/ggerganov/llama.cpp
 cd llama.cpp
@@ -288,10 +288,10 @@ Run the conversion of the model packaged for Hugging Face,
 choosing the desired quantization method:
 ```bash
 # Convert to GGUF FP16 format
-python3 convert.py /path/to/model/
+python3 convert_hf_to_gguf.py /path/to/model/transformers/ --outfile custom-name-f16.gguf --outtype f16
 
 # Quantize model weights
-./quantize /path/to/model/ggml-model-f16.gguf /path/to/model/ggml-model-q4_0.gguf q4_0
+./llama-quantize custom-name-f16.gguf custom-name-q4_k_m.gguf  $OUT q4_k_m
 ```
 
 Note: if you downloaded the model from Hugging Face,
