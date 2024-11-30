@@ -250,7 +250,7 @@ The steps done by this script are:
 * Copy relevant files from the foundation model checkpoint folder
   (This folder should be in `$TRAINING_DIR/hparams.json`, and can also be specified with option `--checkpoint_dir`)
 * If needed, merge LoRA weights
-* Convert the model in [lit-gpt](lit_gpt/scripts/convert_lit_checkpoint.py) format (`lit_model.pth`) to a model in the [transformers](https://github.com/huggingface/transformers) format (`pytorch_model.bin`).
+* Convert the model in [lit-gpt](https://github.com/Lightning-AI/litgpt/blob/e05fc4a6a39808100cd76aff3d6c26bfae7417be/scripts/convert_lit_checkpoint.py) format (`lit_model.pth`) to a model in the [transformers](https://github.com/huggingface/transformers) format (`pytorch_model.bin`).
 * If needed, split the big model into chunks of <10 GB (ex: `pytorch_model-00001-of-00002.bin`, `pytorch_model-00002-of-00002.bin`, `pytorch_model.bin.index.json`)
 * If asked (with `--repo_id`):
   * Create the Hugging Face repo if it does not exist
